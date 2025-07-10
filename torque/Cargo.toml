@@ -1,0 +1,100 @@
+[package]
+name = "torque"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance platform for designing, running and presenting applications"
+license = "MIT"
+repository = "https://github.com/michiel/torque"
+authors = ["Torque Contributors"]
+
+[features]
+default = ["sqlite"]
+sqlite = ["sea-orm/sqlx-sqlite"]
+postgres = ["sea-orm/sqlx-postgres"]
+simd = ["simd-json"]
+mimalloc = ["dep:mimalloc"]
+
+[dependencies]
+# Core runtime - using workspace dependencies
+tokio = { workspace = true }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# MCP API integration
+axum-mcp = { git = "https://github.com/michiel/axum-mcp", branch = "main" }
+
+# Database (optimized for speed)
+sea-orm = { version = "0.12", features = ["sqlx-postgres", "sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "sqlite"] }
+
+# Serialization (fast JSON) - using workspace dependencies
+serde = { workspace = true }
+serde_json = { workspace = true }
+simd-json = { version = "0.13", optional = true }
+uuid = { workspace = true }
+
+# APIs
+async-graphql = "7.0"
+async-graphql-axum = "7.0"
+jsonrpc-core = "18.0"
+jsonrpc-http-server = "18.0"
+
+# JavaScript Engine (lightweight and fast)
+boa_engine = "0.17"
+boa_runtime = "0.17"
+
+# Validation (fast schema validation)
+jsonschema = "0.17"
+validator = { version = "0.16", features = ["derive"] }
+
+# HTTP client for webhooks (performance optimized)
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Cron scheduling
+tokio-cron-scheduler = "0.10"
+
+# Logging and monitoring (low overhead) - using workspace dependencies
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+opentelemetry = "0.21"
+
+# Asset embedding
+rust-embed = "8.0"
+
+# Performance optimizations
+dashmap = "5.5" # Lock-free concurrent hashmap
+parking_lot = "0.12" # Faster mutex implementation
+mimalloc = { version = "0.1", optional = true } # Fast allocator
+
+# CLI and configuration
+clap = { version = "4.0", features = ["derive"] }
+toml = "0.8"
+config = "0.14"
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling - using workspace dependencies
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Async utilities
+futures = "0.3"
+futures-util = "0.3"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.8"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bin]]
+name = "torque"
+path = "src/main.rs"
+
+# Benchmarks will be added in Phase 1 Week 5-6
+# [[bench]]
+# name = "entity_benchmarks"
+# harness = false
+
+# Profiles are defined at workspace root
