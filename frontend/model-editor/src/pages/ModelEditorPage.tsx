@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import {
   Stack,
   Title,
@@ -13,7 +13,14 @@ import {
   Text,
   ActionIcon,
   Menu,
+  Modal,
+  TextInput,
+  Textarea,
+  Select,
 } from '@mantine/core'
+import { useForm } from '@mantine/form'
+import { useDisclosure } from '@mantine/hooks'
+import { notifications } from '@mantine/notifications'
 import {
   IconEdit,
   IconDownload,
@@ -24,19 +31,73 @@ import {
   IconLayout,
   IconShield,
   IconAlertCircle,
+  IconPlus,
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
+import { CREATE_ENTITY } from '../graphql/mutations'
 import { Model } from '../types/model'
 
 export function ModelEditorPage() {
   const { id } = useParams<{ id: string }>()
+  const [entityModalOpened, { open: openEntityModal, close: closeEntityModal }] = useDisclosure(false)
   
   const { data, loading, error, refetch } = useQuery(GET_MODEL, {
     variables: { id },
     skip: !id,
     errorPolicy: 'all',
   })
+
+  const [createEntity, { loading: creatingEntity }] = useMutation(CREATE_ENTITY, {
+    refetchQueries: [{ query: GET_MODEL, variables: { id } }],
+    onCompleted: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Entity created successfully',
+        color: 'green',
+      })
+      closeEntityModal()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message,
+        color: 'red',
+      })
+    },
+  })
+
+  const entityForm = useForm({
+    initialValues: {
+      name: '',
+      displayName: '',
+      description: '',
+      entityType: 'Table',
+    },
+    validate: {
+      name: (value) => (!value ? 'Name is required' : null),
+      displayName: (value) => (!value ? 'Display name is required' : null),
+    },
+  })
+
+  const handleCreateEntity = async (values: typeof entityForm.values) => {
+    await createEntity({
+      variables: {
+        input: {
+          ...values,
+          fields: [], // Start with empty fields
+          uiConfig: {},
+          behavior: {},
+        },
+      },
+    })
+    entityForm.reset()
+  }
+
+  const handleOpenEntityModal = () => {
+    entityForm.reset()
+    openEntityModal()
+  }
 
   const model: Model | null = data?.model || null
 
@@ -147,7 +208,7 @@ export function ModelEditorPage() {
         </Tabs.List>
 
         <Tabs.Panel value="entities" pt="md">
-          <EntitiesPanel model={model} />
+          <EntitiesPanel model={model} onAddEntity={handleOpenEntityModal} />
         </Tabs.Panel>
 
         <Tabs.Panel value="relationships" pt="md">
@@ -162,6 +223,62 @@ export function ModelEditorPage() {
           <FlowsPanel model={model} />
         </Tabs.Panel>
       </Tabs>
+
+      {/* Create Entity Modal */}
+      <Modal
+        opened={entityModalOpened}
+        onClose={closeEntityModal}
+        title="Create New Entity"
+        size="md"
+      >
+        <form onSubmit={entityForm.onSubmit(handleCreateEntity)}>
+          <Stack>
+            <TextInput
+              label="Name"
+              placeholder="user, product, order"
+              required
+              {...entityForm.getInputProps('name')}
+            />
+            
+            <TextInput
+              label="Display Name"
+              placeholder="User, Product, Order"
+              required
+              {...entityForm.getInputProps('displayName')}
+            />
+            
+            <Textarea
+              label="Description"
+              placeholder="Describe what this entity represents..."
+              {...entityForm.getInputProps('description')}
+            />
+            
+            <Select
+              label="Entity Type"
+              data={[
+                { value: 'Table', label: 'Table' },
+                { value: 'View', label: 'View' },
+                { value: 'Document', label: 'Document' },
+                { value: 'Aggregate', label: 'Aggregate' },
+              ]}
+              {...entityForm.getInputProps('entityType')}
+            />
+            
+            <Group justify="flex-end" mt="md">
+              <Button variant="outline" onClick={closeEntityModal}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                loading={creatingEntity}
+                leftSection={<IconPlus size={16} />}
+              >
+                Create Entity
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
     </Stack>
   )
 }
@@ -170,13 +287,21 @@ interface ModelPanelProps {
   model: Model
 }
 
-function EntitiesPanel({ model }: ModelPanelProps) {
+interface EntitiesPanelProps extends ModelPanelProps {
+  onAddEntity: () => void
+}
+
+function EntitiesPanel({ model, onAddEntity }: EntitiesPanelProps) {
   return (
     <Paper p="md" withBorder>
       <Stack>
         <Group justify="space-between">
           <Text fw={500}>Entities</Text>
-          <Button size="sm" leftSection={<IconDatabase size={14} />}>
+          <Button 
+            size="sm" 
+            leftSection={<IconDatabase size={14} />}
+            onClick={onAddEntity}
+          >
             Add Entity
           </Button>
         </Group>
