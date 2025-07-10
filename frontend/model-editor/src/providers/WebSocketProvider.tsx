@@ -1,7 +1,10 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { useWebSocket, ModelChangeEvent } from '../hooks/useWebSocket';
 import { useApolloClient } from '@apollo/client';
 import { GET_MODELS } from '../graphql/queries';
+
+// Global client ID to persist across component re-renders in development mode
+let globalClientId: string | null = null;
 
 interface WebSocketContextType {
   isConnected: boolean;
@@ -25,6 +28,20 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 }) => {
   const apolloClient = useApolloClient();
 
+  // Stabilize client ID to prevent reconnections, using global persistence for dev mode
+  const stableClientId = useMemo(() => {
+    if (clientId) {
+      return clientId;
+    }
+    
+    // Use global client ID if available, otherwise generate a new one
+    if (!globalClientId) {
+      globalClientId = `frontend_${Math.random().toString(36).substr(2, 8)}`;
+    }
+    
+    return globalClientId;
+  }, [clientId]);
+
   const handleEvent = useCallback((event: ModelChangeEvent) => {
     console.log('Handling WebSocket event:', event);
 
@@ -41,7 +58,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
   const webSocket = useWebSocket({
     url,
-    clientId: clientId || `frontend_${Math.random().toString(36).substr(2, 8)}`,
+    clientId: stableClientId,
     onEvent: handleEvent,
     autoReconnect: true,
     reconnectInterval: 5000,

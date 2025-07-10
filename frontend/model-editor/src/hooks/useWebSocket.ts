@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { notifications } from '@mantine/notifications';
 
 export interface ModelChangeEvent {
@@ -52,8 +52,8 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
 
-  const buildUrl = useCallback(() => {
-    const wsUrl = new URL(url);
+  const wsUrl = useMemo(() => {
+    const socketUrl = new URL(url);
     const params = new URLSearchParams();
     
     if (clientId) {
@@ -63,8 +63,8 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
       params.append('model_filter', modelFilter);
     }
     
-    wsUrl.search = params.toString();
-    return wsUrl.toString();
+    socketUrl.search = params.toString();
+    return socketUrl.toString();
   }, [url, clientId, modelFilter]);
 
   const connect = useCallback(() => {
@@ -73,7 +73,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     }
 
     try {
-      const wsUrl = buildUrl();
       console.log('Connecting to WebSocket:', wsUrl);
       
       socketRef.current = new WebSocket(wsUrl);
@@ -139,7 +138,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
     }
-  }, [buildUrl, onEvent, autoReconnect, reconnectInterval]);
+  }, [wsUrl, onEvent, autoReconnect, reconnectInterval]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -164,12 +163,16 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   }, []);
 
   useEffect(() => {
-    connect();
+    // Only connect if we don't already have a connection
+    if (socketRef.current?.readyState !== WebSocket.OPEN && 
+        socketRef.current?.readyState !== WebSocket.CONNECTING) {
+      connect();
+    }
 
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [url, clientId, modelFilter]); // Use primitive values instead of functions
 
   return {
     isConnected,
