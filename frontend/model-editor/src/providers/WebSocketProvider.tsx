@@ -20,7 +20,7 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
-  url = 'ws://localhost:3000/ws',
+  url = 'ws://localhost:8080/ws',
   clientId,
 }) => {
   const apolloClient = useApolloClient();
