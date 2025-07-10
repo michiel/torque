@@ -1,12 +1,15 @@
 use std::sync::Arc;
+use tokio::sync::{broadcast, RwLock};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use serde_json::Value;
+use tracing;
 
 use sea_orm::DatabaseConnection;
 use crate::services::cache::CacheService;
 use crate::model::types::*;
+use crate::model::events::ModelChangeEvent;
 use crate::error::Error;
 
 /// Model service for managing TorqueModels with high-performance caching
@@ -14,6 +17,7 @@ pub struct ModelService {
     database: Arc<DatabaseConnection>,
     cache: Arc<CacheService>,
     model_cache: DashMap<Uuid, CacheEntry<TorqueModel>>,
+    event_sender: Arc<RwLock<Option<broadcast::Sender<ModelChangeEvent>>>>,
 }
 
 #[derive(Clone)]
@@ -46,7 +50,26 @@ impl ModelService {
             database,
             cache,
             model_cache: DashMap::new(),
+            event_sender: Arc::new(RwLock::new(None)),
         }
+    }
+
+    /// Set the event sender for broadcasting model changes
+    pub async fn set_event_sender(&self, sender: broadcast::Sender<ModelChangeEvent>) {
+        *self.event_sender.write().await = Some(sender);
+    }
+
+    /// Emit a model change event
+    fn emit_event(&self, event: ModelChangeEvent) {
+        let event_sender = self.event_sender.clone();
+        tokio::spawn(async move {
+            let sender_guard = event_sender.read().await;
+            if let Some(ref sender) = *sender_guard {
+                if let Err(e) = sender.send(event) {
+                    tracing::warn!("Failed to send model change event: {}", e);
+                }
+            }
+        });
     }
 
     /// Get all models with caching
@@ -99,6 +122,9 @@ impl ModelService {
             CacheEntry::new(model.clone(), 3600), // 1 hour TTL
         );
 
+        // Emit model created event
+        self.emit_event(ModelChangeEvent::model_created(model.clone()));
+
         Ok(model)
     }
 
@@ -128,6 +154,9 @@ impl ModelService {
             CacheEntry::new(model.clone(), 3600),
         );
 
+        // Emit model updated event
+        self.emit_event(ModelChangeEvent::model_updated(model.clone()));
+
         Ok(model)
     }
 
@@ -137,6 +166,9 @@ impl ModelService {
         
         // Remove from cache
         self.model_cache.remove(&id);
+        
+        // Emit model deleted event
+        self.emit_event(ModelChangeEvent::model_deleted(id));
         
         Ok(true)
     }

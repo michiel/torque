@@ -8,6 +8,7 @@ import { ModalsProvider } from '@mantine/modals'
 
 import { apolloClient } from './graphql/client'
 import { theme } from './theme'
+import { WebSocketProvider } from './providers/WebSocketProvider'
 import App from './App'
 
 import '@mantine/core/styles.css'
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <MantineProvider theme={theme}>
           <ModalsProvider>
             <Notifications />
-            <App />
+            <WebSocketProvider>
+              <App />
+            </WebSocketProvider>
           </ModalsProvider>
         </MantineProvider>
       </ApolloProvider>

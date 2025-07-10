@@ -3,6 +3,8 @@
 
 pub mod service;
 pub mod types;
+pub mod events;
 
 pub use service::ModelService;
 pub use types::*;
+pub use events::*;

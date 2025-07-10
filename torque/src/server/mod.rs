@@ -53,6 +53,10 @@ pub fn create_router(services: Arc<ServiceRegistry>) -> Router {
     let jsonrpc_routes = Router::new()
         .route("/rpc", post(handlers::jsonrpc::jsonrpc_handler));
 
+    // WebSocket route for real-time synchronization
+    let websocket_routes = Router::new()
+        .route("/ws", get(handlers::websocket::websocket_handler));
+
     // Static frontend routes (placeholder)
     let frontend_routes = Router::new()
         .route("/", get(handlers::frontend::serve_model_editor))
@@ -71,6 +75,7 @@ pub fn create_router(services: Arc<ServiceRegistry>) -> Router {
         .nest("/api/v1", api_routes)
         .nest("/", graphql_routes)
         .nest("/", jsonrpc_routes)
+        .nest("/", websocket_routes)
         .nest("/", frontend_routes)
         .layer(
             ServiceBuilder::new()

@@ -6,6 +6,7 @@ pub mod entity;
 pub mod cache;
 pub mod metrics;
 pub mod model;
+pub mod broadcast;
 
 /// Core service registry for dependency injection
 #[derive(Clone)]
@@ -16,6 +17,7 @@ pub struct ServiceRegistry {
     pub model_service: Arc<model::ModelService>,
     pub cache: Arc<cache::CacheService>,
     pub metrics: Arc<metrics::MetricsService>,
+    pub broadcast: Arc<broadcast::BroadcastService>,
 }
 
 impl ServiceRegistry {
@@ -38,6 +40,32 @@ impl ServiceRegistry {
             cache.clone(),
         ));
 
+        // Initialize broadcast service
+        let broadcast = Arc::new(broadcast::BroadcastService::new());
+
+        // Start the broadcast loop in the background
+        let broadcast_loop = broadcast.clone();
+        tokio::spawn(async move {
+            broadcast_loop.start_broadcast_loop().await;
+        });
+
+        // Connect model service to broadcast service
+        // Create a channel for model events
+        let (model_event_sender, mut model_event_receiver) = tokio::sync::broadcast::channel(1000);
+        
+        // Set the event sender in the model service
+        model_service.set_event_sender(model_event_sender).await;
+
+        // Bridge model events to broadcast service
+        let broadcast_for_bridge = broadcast.clone();
+        tokio::spawn(async move {
+            while let Ok(event) = model_event_receiver.recv().await {
+                if let Err(e) = broadcast_for_bridge.broadcast_event(event).await {
+                    tracing::error!("Failed to bridge model event to broadcast service: {}", e);
+                }
+            }
+        });
+
         Ok(Self {
             db,
             config,
@@ -45,6 +73,7 @@ impl ServiceRegistry {
             model_service,
             cache,
             metrics,
+            broadcast,
         })
     }
 }

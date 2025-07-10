@@ -18,6 +18,7 @@ import {
   IconDatabase,
   IconBrandGithub,
 } from '@tabler/icons-react'
+import { ConnectionStatus } from './ConnectionStatus'
 
 export function Navigation() {
   const location = useLocation()
@@ -32,11 +33,14 @@ export function Navigation() {
     <Stack gap="md" p="md" h="100vh">
       {/* Header */}
       <Paper p="sm" bg="dark.7">
-        <Group>
-          <IconDatabase size={24} color="white" />
-          <Text fw={600} c="white" size="lg">
-            Torque Model Editor
-          </Text>
+        <Group justify="space-between">
+          <Group>
+            <IconDatabase size={24} color="white" />
+            <Text fw={600} c="white" size="lg">
+              Torque Model Editor
+            </Text>
+          </Group>
+          <ConnectionStatus />
         </Group>
       </Paper>
 

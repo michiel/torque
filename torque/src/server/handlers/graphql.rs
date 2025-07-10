@@ -1,59 +1,55 @@
 use crate::server::AppState;
+use crate::server::graphql::create_schema;
 use axum::{
     extract::State,
     http::StatusCode,
     response::{Html, Json},
 };
+use async_graphql::{http::GraphQLPlaygroundConfig, Request, Response};
 use serde_json::{json, Value};
 
-/// GraphQL endpoint handler (placeholder for Phase 2)
+/// GraphQL endpoint handler
 pub async fn graphql_handler(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     body: String,
 ) -> Result<Json<Value>, StatusCode> {
-    tracing::info!("GraphQL request received: {}", body);
+    tracing::debug!("GraphQL request received: {}", body);
     
-    // TODO: Implement actual GraphQL processing in Phase 2
-    let response = json!({
-        "data": null,
-        "errors": [{
-            "message": "GraphQL endpoint not yet implemented - coming in Phase 2",
-            "extensions": {
-                "code": "NOT_IMPLEMENTED"
-            }
-        }]
-    });
+    // Parse the GraphQL request
+    let request: Request = match serde_json::from_str(&body) {
+        Ok(req) => req,
+        Err(e) => {
+            tracing::error!("Failed to parse GraphQL request: {}", e);
+            return Ok(Json(json!({
+                "data": null,
+                "errors": [{
+                    "message": format!("Invalid GraphQL request: {}", e),
+                    "extensions": {
+                        "code": "PARSE_ERROR"
+                    }
+                }]
+            })));
+        }
+    };
     
-    Ok(Json(response))
+    let schema = create_schema();
+    let response = schema.execute(request.data(state)).await;
+    
+    // Convert the response to JSON
+    let json_response: Value = serde_json::to_value(response)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    Ok(Json(json_response))
 }
 
 /// GraphQL Playground handler
-pub async fn playground() -> Html<&'static str> {
-    Html(r#"
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>GraphQL Playground</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/graphql-playground-react/build/static/css/index.css">
-    </head>
-    <body>
-        <div id="root">
-            <div style="padding: 20px; text-align: center;">
-                <h2>Torque GraphQL Playground</h2>
-                <p>GraphQL endpoint will be available in Phase 2 (Model System)</p>
-                <p>Expected endpoint: <code>/graphql</code></p>
-                <p>Features planned:</p>
-                <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
-                    <li>Model schema queries</li>
-                    <li>Entity operations</li>
-                    <li>Real-time subscriptions</li>
-                    <li>Application introspection</li>
-                </ul>
-            </div>
-        </div>
-    </body>
-    </html>
-    "#)
+pub async fn playground() -> Html<String> {
+    Html(
+        async_graphql::http::playground_source(
+            GraphQLPlaygroundConfig::new("/graphql")
+                .subscription_endpoint("/ws")
+        )
+    )
 }
 
 #[cfg(test)]
