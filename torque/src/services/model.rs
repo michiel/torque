@@ -74,8 +74,20 @@ impl ModelService {
 
     /// Get all models with caching
     pub async fn get_models(&self) -> Result<Vec<TorqueModel>, Error> {
-        // For now, return empty vector - will implement database queries later
-        Ok(vec![])
+        // For now, return models from cache - will implement database queries later
+        let mut models = Vec::new();
+        
+        // Collect non-expired models from cache
+        for entry in self.model_cache.iter() {
+            if !entry.value().is_expired() {
+                models.push(entry.value().data.clone());
+            }
+        }
+        
+        // Sort by creation date (newest first)
+        models.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        
+        Ok(models)
     }
 
     /// Get a specific model by ID with caching
