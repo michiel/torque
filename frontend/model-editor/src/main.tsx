@@ -16,18 +16,16 @@ import '@mantine/notifications/styles.css'
 import './styles/global.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <ApolloProvider client={apolloClient}>
-        <MantineProvider theme={theme}>
-          <ModalsProvider>
-            <Notifications />
-            <WebSocketProvider>
-              <App />
-            </WebSocketProvider>
-          </ModalsProvider>
-        </MantineProvider>
-      </ApolloProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
+  <BrowserRouter>
+    <ApolloProvider client={apolloClient}>
+      <MantineProvider theme={theme}>
+        <ModalsProvider>
+          <Notifications />
+          <WebSocketProvider>
+            <App />
+          </WebSocketProvider>
+        </ModalsProvider>
+      </MantineProvider>
+    </ApolloProvider>
+  </BrowserRouter>,
 )
