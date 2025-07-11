@@ -60,6 +60,42 @@ pub enum ModelChangeEvent {
         relationship_id: Uuid,
         timestamp: DateTime<Utc>,
     },
+    /// A flow was added to a model
+    FlowAdded {
+        model_id: Uuid,
+        flow_id: Uuid,
+        timestamp: DateTime<Utc>,
+    },
+    /// A flow was updated in a model
+    FlowUpdated {
+        model_id: Uuid,
+        flow_id: Uuid,
+        timestamp: DateTime<Utc>,
+    },
+    /// A flow was removed from a model
+    FlowRemoved {
+        model_id: Uuid,
+        flow_id: Uuid,
+        timestamp: DateTime<Utc>,
+    },
+    /// A layout was added to a model
+    LayoutAdded {
+        model_id: Uuid,
+        layout_id: Uuid,
+        timestamp: DateTime<Utc>,
+    },
+    /// A layout was updated in a model
+    LayoutUpdated {
+        model_id: Uuid,
+        layout_id: Uuid,
+        timestamp: DateTime<Utc>,
+    },
+    /// A layout was removed from a model
+    LayoutRemoved {
+        model_id: Uuid,
+        layout_id: Uuid,
+        timestamp: DateTime<Utc>,
+    },
 }
 
 impl ModelChangeEvent {
@@ -143,6 +179,60 @@ impl ModelChangeEvent {
         }
     }
 
+    /// Create a new flow added event
+    pub fn flow_added(model_id: Uuid, flow_id: Uuid) -> Self {
+        Self::FlowAdded {
+            model_id,
+            flow_id,
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Create a new flow updated event
+    pub fn flow_updated(model_id: Uuid, flow_id: Uuid) -> Self {
+        Self::FlowUpdated {
+            model_id,
+            flow_id,
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Create a new flow removed event
+    pub fn flow_removed(model_id: Uuid, flow_id: Uuid) -> Self {
+        Self::FlowRemoved {
+            model_id,
+            flow_id,
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Create a new layout added event
+    pub fn layout_added(model_id: Uuid, layout_id: Uuid) -> Self {
+        Self::LayoutAdded {
+            model_id,
+            layout_id,
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Create a new layout updated event
+    pub fn layout_updated(model_id: Uuid, layout_id: Uuid) -> Self {
+        Self::LayoutUpdated {
+            model_id,
+            layout_id,
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Create a new layout removed event
+    pub fn layout_removed(model_id: Uuid, layout_id: Uuid) -> Self {
+        Self::LayoutRemoved {
+            model_id,
+            layout_id,
+            timestamp: Utc::now(),
+        }
+    }
+
     /// Get the model ID associated with this event
     pub fn model_id(&self) -> Uuid {
         match self {
@@ -155,6 +245,12 @@ impl ModelChangeEvent {
             Self::RelationshipAdded { model_id, .. } => *model_id,
             Self::RelationshipUpdated { model_id, .. } => *model_id,
             Self::RelationshipRemoved { model_id, .. } => *model_id,
+            Self::FlowAdded { model_id, .. } => *model_id,
+            Self::FlowUpdated { model_id, .. } => *model_id,
+            Self::FlowRemoved { model_id, .. } => *model_id,
+            Self::LayoutAdded { model_id, .. } => *model_id,
+            Self::LayoutUpdated { model_id, .. } => *model_id,
+            Self::LayoutRemoved { model_id, .. } => *model_id,
         }
     }
 
@@ -170,6 +266,12 @@ impl ModelChangeEvent {
             Self::RelationshipAdded { timestamp, .. } => *timestamp,
             Self::RelationshipUpdated { timestamp, .. } => *timestamp,
             Self::RelationshipRemoved { timestamp, .. } => *timestamp,
+            Self::FlowAdded { timestamp, .. } => *timestamp,
+            Self::FlowUpdated { timestamp, .. } => *timestamp,
+            Self::FlowRemoved { timestamp, .. } => *timestamp,
+            Self::LayoutAdded { timestamp, .. } => *timestamp,
+            Self::LayoutUpdated { timestamp, .. } => *timestamp,
+            Self::LayoutRemoved { timestamp, .. } => *timestamp,
         }
     }
 
@@ -185,6 +287,12 @@ impl ModelChangeEvent {
             Self::RelationshipAdded { relationship_id, .. } => format!("Relationship {} was added", relationship_id),
             Self::RelationshipUpdated { relationship_id, .. } => format!("Relationship {} was updated", relationship_id),
             Self::RelationshipRemoved { relationship_id, .. } => format!("Relationship {} was removed", relationship_id),
+            Self::FlowAdded { flow_id, .. } => format!("Flow {} was added", flow_id),
+            Self::FlowUpdated { flow_id, .. } => format!("Flow {} was updated", flow_id),
+            Self::FlowRemoved { flow_id, .. } => format!("Flow {} was removed", flow_id),
+            Self::LayoutAdded { layout_id, .. } => format!("Layout {} was added", layout_id),
+            Self::LayoutUpdated { layout_id, .. } => format!("Layout {} was updated", layout_id),
+            Self::LayoutRemoved { layout_id, .. } => format!("Layout {} was removed", layout_id),
         }
     }
 }

@@ -81,9 +81,19 @@ export function ModelEditorPage() {
   })
 
   const handleCreateEntity = async (values: typeof entityForm.values) => {
+    if (!id) {
+      notifications.show({
+        title: 'Error',
+        message: 'Model ID not found',
+        color: 'red',
+      })
+      return
+    }
+
     await createEntity({
       variables: {
         input: {
+          modelId: id, // Add the required model_id field
           ...values,
           fields: [], // Start with empty fields
           uiConfig: {},

@@ -196,11 +196,18 @@ impl ModelService {
 
     /// Create a new entity in a model
     pub async fn create_entity(&self, input: CreateEntityInput) -> Result<ModelEntity, Error> {
+        let model_id = input.model_id.parse::<Uuid>()
+            .map_err(|_| Error::InvalidInput("Invalid model ID format".to_string()))?;
+
+        // Get the existing model
+        let mut model = self.get_model(model_id).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+
         let entity = ModelEntity {
             id: Uuid::new_v4(),
-            name: input.name,
-            display_name: input.display_name,
-            description: input.description,
+            name: input.name.clone(),
+            display_name: input.display_name.clone(),
+            description: input.description.clone(),
             entity_type: input.entity_type,
             fields: input.fields.into_iter().map(|f| EntityField {
                 id: Uuid::new_v4(),
@@ -218,8 +225,20 @@ impl ModelService {
             behavior: input.behavior.unwrap_or_default(),
         };
 
-        // TODO: Add entity to model in database
-        // TODO: Invalidate model cache
+        // Add entity to model
+        model.entities.push(entity.clone());
+        model.updated_at = chrono::Utc::now();
+
+        // Update cache with modified model
+        self.model_cache.insert(
+            model_id,
+            CacheEntry::new(model.clone(), 3600), // 1 hour TTL
+        );
+
+        // Emit entity added event
+        self.emit_event(ModelChangeEvent::entity_added(model_id, entity.id));
+
+        // TODO: Persist to database
 
         Ok(entity)
     }
@@ -233,6 +252,48 @@ impl ModelService {
         }
     }
 
+    /// Create a new relationship in a model
+    pub async fn create_relationship(&self, input: CreateRelationshipInput) -> Result<ModelRelationship, Error> {
+        let model_id = input.model_id.parse::<Uuid>()
+            .map_err(|_| Error::InvalidInput("Invalid model ID format".to_string()))?;
+
+        // Get the existing model
+        let mut model = self.get_model(model_id).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+
+        let from_entity = input.from_entity.parse::<Uuid>()
+            .map_err(|_| Error::InvalidInput("Invalid from_entity ID format".to_string()))?;
+        let to_entity = input.to_entity.parse::<Uuid>()
+            .map_err(|_| Error::InvalidInput("Invalid to_entity ID format".to_string()))?;
+
+        let relationship = ModelRelationship {
+            id: Uuid::new_v4(),
+            name: input.name.clone(),
+            relationship_type: input.relationship_type,
+            from_entity,
+            to_entity,
+            from_field: input.from_field,
+            to_field: input.to_field,
+            cascade: input.cascade,
+            ui_config: input.ui_config.unwrap_or_default(),
+        };
+
+        // Add relationship to model
+        model.relationships.push(relationship.clone());
+        model.updated_at = chrono::Utc::now();
+
+        // Update cache with modified model
+        self.model_cache.insert(
+            model_id,
+            CacheEntry::new(model.clone(), 3600),
+        );
+
+        // Emit relationship added event
+        self.emit_event(ModelChangeEvent::relationship_added(model_id, relationship.id));
+
+        Ok(relationship)
+    }
+
     /// Get flows for a specific model
     pub async fn get_flows(&self, model_id: Uuid) -> Result<Vec<ModelFlow>, Error> {
         if let Some(model) = self.get_model(model_id).await? {
@@ -242,6 +303,46 @@ impl ModelService {
         }
     }
 
+    /// Create a new flow in a model
+    pub async fn create_flow(&self, input: CreateFlowInput) -> Result<ModelFlow, Error> {
+        let model_id = input.model_id.parse::<Uuid>()
+            .map_err(|_| Error::InvalidInput("Invalid model ID format".to_string()))?;
+
+        // Get the existing model
+        let mut model = self.get_model(model_id).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+
+        let flow = ModelFlow {
+            id: Uuid::new_v4(),
+            name: input.name.clone(),
+            flow_type: input.flow_type,
+            trigger: input.trigger,
+            steps: input.steps.into_iter().map(|s| crate::model::types::FlowStep {
+                id: Uuid::new_v4(),
+                name: s.name,
+                step_type: s.step_type,
+                condition: s.condition,
+                configuration: serde_json::from_value(s.configuration).unwrap_or_default(),
+            }).collect(),
+            error_handling: input.error_handling.unwrap_or_default(),
+        };
+
+        // Add flow to model
+        model.flows.push(flow.clone());
+        model.updated_at = chrono::Utc::now();
+
+        // Update cache with modified model
+        self.model_cache.insert(
+            model_id,
+            CacheEntry::new(model.clone(), 3600),
+        );
+
+        // Emit flow added event
+        self.emit_event(ModelChangeEvent::flow_added(model_id, flow.id));
+
+        Ok(flow)
+    }
+
     /// Get layouts for a specific model
     pub async fn get_layouts(&self, model_id: Uuid) -> Result<Vec<ModelLayout>, Error> {
         if let Some(model) = self.get_model(model_id).await? {
@@ -249,6 +350,52 @@ impl ModelService {
         } else {
             Ok(vec![])
         }
+    }
+
+    /// Create a new layout in a model
+    pub async fn create_layout(&self, input: CreateLayoutInput) -> Result<ModelLayout, Error> {
+        let model_id = input.model_id.parse::<Uuid>()
+            .map_err(|_| Error::InvalidInput("Invalid model ID format".to_string()))?;
+
+        // Get the existing model
+        let mut model = self.get_model(model_id).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+
+        let target_entities: Result<Vec<Uuid>, _> = input.target_entities.into_iter()
+            .map(|id| id.parse::<Uuid>())
+            .collect();
+        let target_entities = target_entities
+            .map_err(|_| Error::InvalidInput("Invalid target entity ID format".to_string()))?;
+
+        let layout = ModelLayout {
+            id: Uuid::new_v4(),
+            name: input.name.clone(),
+            layout_type: input.layout_type,
+            target_entities,
+            components: input.components.into_iter().map(|c| crate::model::types::LayoutComponent {
+                id: Uuid::new_v4(),
+                component_type: c.component_type,
+                position: c.position,
+                properties: serde_json::from_value(c.properties).unwrap_or_default(),
+                styling: serde_json::from_value(c.styling.unwrap_or_default()).unwrap_or_default(),
+            }).collect(),
+            responsive: serde_json::from_value(input.responsive.unwrap_or_default()).unwrap_or_default(),
+        };
+
+        // Add layout to model
+        model.layouts.push(layout.clone());
+        model.updated_at = chrono::Utc::now();
+
+        // Update cache with modified model
+        self.model_cache.insert(
+            model_id,
+            CacheEntry::new(model.clone(), 3600),
+        );
+
+        // Emit layout added event
+        self.emit_event(ModelChangeEvent::layout_added(model_id, layout.id));
+
+        Ok(layout)
     }
 
     /// Search models by name or description
@@ -325,7 +472,7 @@ pub struct UpdateModelInput {
 
 #[derive(Debug, Clone)]
 pub struct CreateEntityInput {
-    pub model_id: Uuid,
+    pub model_id: String,
     pub name: String,
     pub display_name: String,
     pub description: Option<String>,
@@ -343,6 +490,55 @@ pub struct CreateFieldInput {
     pub required: bool,
     pub default_value: Option<Value>,
     pub ui_config: Option<FieldUiConfig>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateRelationshipInput {
+    pub model_id: String,
+    pub name: String,
+    pub relationship_type: RelationshipType,
+    pub from_entity: String,
+    pub to_entity: String,
+    pub from_field: String,
+    pub to_field: String,
+    pub cascade: CascadeAction,
+    pub ui_config: Option<RelationshipUiConfig>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateFlowInput {
+    pub model_id: String,
+    pub name: String,
+    pub flow_type: FlowType,
+    pub trigger: FlowTrigger,
+    pub steps: Vec<CreateFlowStepInput>,
+    pub error_handling: Option<ErrorHandling>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateFlowStepInput {
+    pub name: String,
+    pub step_type: FlowStepType,
+    pub condition: Option<String>,
+    pub configuration: serde_json::Value,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateLayoutInput {
+    pub model_id: String,
+    pub name: String,
+    pub layout_type: LayoutType,
+    pub target_entities: Vec<String>,
+    pub components: Vec<CreateLayoutComponentInput>,
+    pub responsive: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateLayoutComponentInput {
+    pub component_type: String,
+    pub position: ComponentPosition,
+    pub properties: serde_json::Value,
+    pub styling: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone)]

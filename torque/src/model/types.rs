@@ -498,7 +498,7 @@ pub enum CascadeAction {
     Restrict,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RelationshipUiConfig {
     pub display_in_form: bool,
     pub display_in_list: bool,
@@ -526,10 +526,11 @@ pub enum FlowType {
     Custom,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum FlowTrigger {
     EntityEvent { entity_id: Uuid, event: LifecycleEvent },
     Schedule(String), // Cron expression
+    #[default]
     Manual,
     Webhook,
 }
@@ -553,15 +554,16 @@ pub enum FlowStepType {
     Custom(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ErrorHandling {
     pub retry_attempts: u32,
     pub retry_delay_seconds: u32,
     pub on_error: ErrorAction,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum ErrorAction {
+    #[default]
     Stop,
     Continue,
     Rollback,
@@ -598,7 +600,7 @@ pub struct LayoutComponent {
     pub styling: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ComponentPosition {
     pub row: u32,
     pub column: u32,
@@ -606,7 +608,7 @@ pub struct ComponentPosition {
     pub height: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ResponsiveLayout {
     pub breakpoints: Vec<ResponsiveBreakpoint>,
     pub adaptive_components: Vec<AdaptiveComponent>,

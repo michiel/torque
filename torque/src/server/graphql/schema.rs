@@ -149,9 +149,49 @@ impl Mutation {
 
     /// Create a new entity
     async fn create_entity(&self, ctx: &Context<'_>, input: CreateEntityInput) -> Result<Entity> {
-        let _state = ctx.data::<AppState>()?;
-        // TODO: Implement entity creation
-        unimplemented!("Entity creation not yet implemented")
+        let state = ctx.data::<AppState>()?;
+        
+        let service_input = crate::services::model::CreateEntityInput {
+            model_id: input.model_id,
+            name: input.name,
+            display_name: input.display_name,
+            description: input.description,
+            entity_type: match input.entity_type {
+                EntityTypeEnum::Data => crate::model::types::EntityType::Data,
+                EntityTypeEnum::Lookup => crate::model::types::EntityType::Lookup,
+                EntityTypeEnum::Audit => crate::model::types::EntityType::Audit,
+                EntityTypeEnum::Temporary => crate::model::types::EntityType::Temporary,
+                EntityTypeEnum::View => crate::model::types::EntityType::View,
+            },
+            fields: input.fields.into_iter().map(|f| crate::services::model::CreateFieldInput {
+                name: f.name,
+                display_name: f.display_name,
+                field_type: match f.field_type {
+                    FieldTypeEnum::String => crate::model::types::FieldType::String { max_length: None },
+                    FieldTypeEnum::Integer => crate::model::types::FieldType::Integer { min: None, max: None },
+                    FieldTypeEnum::Float => crate::model::types::FieldType::Float { min: None, max: None },
+                    FieldTypeEnum::Boolean => crate::model::types::FieldType::Boolean,
+                    FieldTypeEnum::DateTime => crate::model::types::FieldType::DateTime,
+                    FieldTypeEnum::Date => crate::model::types::FieldType::Date,
+                    FieldTypeEnum::Time => crate::model::types::FieldType::Time,
+                    FieldTypeEnum::Json => crate::model::types::FieldType::Json,
+                    FieldTypeEnum::Binary => crate::model::types::FieldType::Binary,
+                    FieldTypeEnum::Enum => crate::model::types::FieldType::Enum { values: vec![] },
+                    FieldTypeEnum::Reference => crate::model::types::FieldType::Reference { entity_id: uuid::Uuid::new_v4() },
+                    FieldTypeEnum::Array => crate::model::types::FieldType::Array { element_type: Box::new(crate::model::types::FieldType::String { max_length: None }) },
+                },
+                required: f.required,
+                default_value: f.default_value,
+                ui_config: f.ui_config.map(|c| serde_json::from_value(c).unwrap_or_default()),
+            }).collect(),
+            ui_config: input.ui_config.map(|c| serde_json::from_value(c).unwrap_or_default()),
+            behavior: input.behavior.map(|b| serde_json::from_value(b).unwrap_or_default()),
+        };
+        
+        let entity = state.services.model_service.create_entity(service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create entity: {}", e)))?;
+            
+        Ok(Entity::from(entity))
     }
 
     /// Update an existing entity
@@ -170,9 +210,34 @@ impl Mutation {
 
     /// Create a new relationship
     async fn create_relationship(&self, ctx: &Context<'_>, input: CreateRelationshipInput) -> Result<Relationship> {
-        let _state = ctx.data::<AppState>()?;
-        // TODO: Implement relationship creation
-        unimplemented!("Relationship creation not yet implemented")
+        let state = ctx.data::<AppState>()?;
+        
+        let service_input = crate::services::model::CreateRelationshipInput {
+            model_id: input.model_id,
+            name: input.name,
+            relationship_type: match input.relationship_type {
+                RelationshipTypeEnum::OneToOne => crate::model::types::RelationshipType::OneToOne,
+                RelationshipTypeEnum::OneToMany => crate::model::types::RelationshipType::OneToMany,
+                RelationshipTypeEnum::ManyToOne => crate::model::types::RelationshipType::ManyToOne,
+                RelationshipTypeEnum::ManyToMany => crate::model::types::RelationshipType::ManyToMany,
+            },
+            from_entity: input.from_entity,
+            to_entity: input.to_entity,
+            from_field: input.from_field,
+            to_field: input.to_field,
+            cascade: match input.cascade {
+                CascadeActionEnum::None => crate::model::types::CascadeAction::None,
+                CascadeActionEnum::Delete => crate::model::types::CascadeAction::Delete,
+                CascadeActionEnum::SetNull => crate::model::types::CascadeAction::SetNull,
+                CascadeActionEnum::Restrict => crate::model::types::CascadeAction::Restrict,
+            },
+            ui_config: input.ui_config.map(|c| serde_json::from_value(c).unwrap_or_default()),
+        };
+        
+        let relationship = state.services.model_service.create_relationship(service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create relationship: {}", e)))?;
+            
+        Ok(Relationship::from(relationship))
     }
 
     /// Update an existing relationship
@@ -191,9 +256,39 @@ impl Mutation {
 
     /// Create a new flow
     async fn create_flow(&self, ctx: &Context<'_>, input: CreateFlowInput) -> Result<Flow> {
-        let _state = ctx.data::<AppState>()?;
-        // TODO: Implement flow creation
-        unimplemented!("Flow creation not yet implemented")
+        let state = ctx.data::<AppState>()?;
+        
+        let service_input = crate::services::model::CreateFlowInput {
+            model_id: input.model_id,
+            name: input.name,
+            flow_type: match input.flow_type {
+                FlowTypeEnum::Validation => crate::model::types::FlowType::Validation,
+                FlowTypeEnum::Automation => crate::model::types::FlowType::Automation,
+                FlowTypeEnum::Approval => crate::model::types::FlowType::Approval,
+                FlowTypeEnum::Notification => crate::model::types::FlowType::Notification,
+                FlowTypeEnum::Custom => crate::model::types::FlowType::Custom,
+            },
+            trigger: serde_json::from_value(input.trigger).unwrap_or_default(),
+            steps: input.steps.into_iter().map(|s| crate::services::model::CreateFlowStepInput {
+                name: s.name,
+                step_type: match s.step_type {
+                    FlowStepTypeEnum::Validation => crate::model::types::FlowStepType::Validation,
+                    FlowStepTypeEnum::Transformation => crate::model::types::FlowStepType::Transformation,
+                    FlowStepTypeEnum::Notification => crate::model::types::FlowStepType::Notification,
+                    FlowStepTypeEnum::Integration => crate::model::types::FlowStepType::Integration,
+                    FlowStepTypeEnum::Approval => crate::model::types::FlowStepType::Approval,
+                    FlowStepTypeEnum::Custom => crate::model::types::FlowStepType::Custom("".to_string()),
+                },
+                condition: s.condition,
+                configuration: serde_json::from_value(s.configuration).unwrap_or_default(),
+            }).collect(),
+            error_handling: input.error_handling.map(|e| serde_json::from_value(e).unwrap_or_default()),
+        };
+        
+        let flow = state.services.model_service.create_flow(service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create flow: {}", e)))?;
+            
+        Ok(Flow::from(flow))
     }
 
     /// Update an existing flow
@@ -212,9 +307,33 @@ impl Mutation {
 
     /// Create a new layout
     async fn create_layout(&self, ctx: &Context<'_>, input: CreateLayoutInput) -> Result<Layout> {
-        let _state = ctx.data::<AppState>()?;
-        // TODO: Implement layout creation
-        unimplemented!("Layout creation not yet implemented")
+        let state = ctx.data::<AppState>()?;
+        
+        let service_input = crate::services::model::CreateLayoutInput {
+            model_id: input.model_id,
+            name: input.name,
+            layout_type: match input.layout_type {
+                LayoutTypeEnum::List => crate::model::types::LayoutType::List,
+                LayoutTypeEnum::Grid => crate::model::types::LayoutType::Grid,
+                LayoutTypeEnum::Dashboard => crate::model::types::LayoutType::Dashboard,
+                LayoutTypeEnum::Form => crate::model::types::LayoutType::Form,
+                LayoutTypeEnum::Detail => crate::model::types::LayoutType::Detail,
+                LayoutTypeEnum::Custom => crate::model::types::LayoutType::Custom,
+            },
+            target_entities: input.target_entities,
+            components: input.components.into_iter().map(|c| crate::services::model::CreateLayoutComponentInput {
+                component_type: c.component_type,
+                position: serde_json::from_value(c.position).unwrap_or_default(),
+                properties: serde_json::from_value(c.properties).unwrap_or_default(),
+                styling: c.styling.map(|s| serde_json::from_value(s).unwrap_or_default()),
+            }).collect(),
+            responsive: input.responsive.map(|r| serde_json::from_value(r).unwrap_or_default()),
+        };
+        
+        let layout = state.services.model_service.create_layout(service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create layout: {}", e)))?;
+            
+        Ok(Layout::from(layout))
     }
 
     /// Update an existing layout
