@@ -1,0 +1,54 @@
+[database]
+url = "sqlite://test.db"
+max_connections = 10
+min_connections = 1
+connection_timeout = 30
+idle_timeout = 600
+
+[server]
+bind = "127.0.0.1:8080"
+workers = 0
+request_timeout = 30
+max_payload_size = "10MB"
+
+[performance]
+enable_simd_json = false
+enable_mimalloc = false
+entity_cache_size = 1000
+entity_cache_ttl = 300
+js_runtime_pool_size = 5
+connection_pool_size = 10
+
+[xflow]
+max_execution_time = 30000
+max_parallel_executions = 100
+enable_compilation_cache = true
+compilation_cache_size = 1000
+
+[logging]
+level = "info"
+format = "json"
+structured = true
+performance_logs = true
+
+[graphql]
+enable_playground = true
+enable_introspection = true
+max_query_complexity = 1000
+max_query_depth = 20
+
+[jsonrpc]
+enable_batch_requests = true
+max_batch_size = 100
+enable_compression = true
+
+[mcp]
+enable_tools = true
+enable_resources = true
+enable_prompts = true
+max_concurrent_requests = 50
+
+[frontend]
+enable_hot_reload = false
+bundle_optimization = true
+enable_pwa = true

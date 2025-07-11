@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::model::types::*;
 use crate::server::AppState;
 use crate::services::model::{CreateModelInput as ServiceCreateModelInput, UpdateModelInput as ServiceUpdateModelInput};
+use crate::Error;
 
 // GraphQL scalars for custom types
 pub type JSON = Value;
@@ -196,9 +197,33 @@ impl Mutation {
 
     /// Update an existing entity
     async fn update_entity(&self, ctx: &Context<'_>, id: String, input: UpdateEntityInput) -> Result<Entity> {
-        let _state = ctx.data::<AppState>()?;
-        // TODO: Implement entity update
-        unimplemented!("Entity update not yet implemented")
+        let state = ctx.data::<AppState>()?;
+        
+        // Parse entity ID
+        let entity_id = id.parse::<Uuid>()
+            .map_err(|_| Error::InvalidInput("Invalid entity ID format".to_string()))?;
+        
+        // Convert GraphQL input to model service input
+        let model_input = crate::services::model::UpdateEntityInput {
+            name: input.name,
+            display_name: input.display_name,
+            description: input.description,
+            entity_type: input.entity_type.map(|et| match et {
+                EntityTypeEnum::Data => crate::model::types::EntityType::Data,
+                EntityTypeEnum::Lookup => crate::model::types::EntityType::Lookup,
+                EntityTypeEnum::Audit => crate::model::types::EntityType::Audit,
+                EntityTypeEnum::Temporary => crate::model::types::EntityType::Temporary,
+                EntityTypeEnum::View => crate::model::types::EntityType::View,
+            }),
+            ui_config: input.ui_config.map(|config| serde_json::from_value(config).unwrap_or_default()),
+            behavior: input.behavior.map(|behavior| serde_json::from_value(behavior).unwrap_or_default()),
+        };
+        
+        // Update entity through model service
+        let updated_entity = state.services.model_service.update_entity(entity_id, model_input).await?;
+        
+        // Convert model entity to GraphQL entity using existing From implementation
+        Ok(Entity::from(updated_entity))
     }
 
     /// Delete an entity
@@ -398,8 +423,11 @@ pub struct Model {
     pub name: String,
     pub description: Option<String>,
     pub version: String,
+    #[graphql(name = "createdAt")]
     pub created_at: String,
+    #[graphql(name = "updatedAt")]
     pub updated_at: String,
+    #[graphql(name = "createdBy")]
     pub created_by: String,
     pub config: JSON,
     pub entities: Vec<Entity>,
@@ -414,12 +442,15 @@ pub struct Model {
 pub struct Entity {
     pub id: UuidString,
     pub name: String,
+    #[graphql(name = "displayName")]
     pub display_name: String,
     pub description: Option<String>,
+    #[graphql(name = "entityType")]
     pub entity_type: EntityTypeEnum,
     pub fields: Vec<Field>,
     pub constraints: Vec<Constraint>,
     pub indexes: Vec<Index>,
+    #[graphql(name = "uiConfig")]
     pub ui_config: JSON,
     pub behavior: JSON,
 }
@@ -429,11 +460,15 @@ pub struct Entity {
 pub struct Field {
     pub id: UuidString,
     pub name: String,
+    #[graphql(name = "displayName")]
     pub display_name: String,
+    #[graphql(name = "fieldType")]
     pub field_type: FieldTypeEnum,
     pub required: bool,
+    #[graphql(name = "defaultValue")]
     pub default_value: Option<JSON>,
     pub validation: Vec<FieldValidationRule>,
+    #[graphql(name = "uiConfig")]
     pub ui_config: JSON,
 }
 
@@ -442,12 +477,18 @@ pub struct Field {
 pub struct Relationship {
     pub id: UuidString,
     pub name: String,
+    #[graphql(name = "relationshipType")]
     pub relationship_type: RelationshipTypeEnum,
+    #[graphql(name = "fromEntity")]
     pub from_entity: UuidString,
+    #[graphql(name = "toEntity")]
     pub to_entity: UuidString,
+    #[graphql(name = "fromField")]
     pub from_field: String,
+    #[graphql(name = "toField")]
     pub to_field: String,
     pub cascade: CascadeActionEnum,
+    #[graphql(name = "uiConfig")]
     pub ui_config: JSON,
 }
 
@@ -456,9 +497,11 @@ pub struct Relationship {
 pub struct Flow {
     pub id: UuidString,
     pub name: String,
+    #[graphql(name = "flowType")]
     pub flow_type: FlowTypeEnum,
     pub trigger: JSON,
     pub steps: Vec<FlowStep>,
+    #[graphql(name = "errorHandling")]
     pub error_handling: JSON,
 }
 
@@ -467,6 +510,7 @@ pub struct Flow {
 pub struct FlowStep {
     pub id: UuidString,
     pub name: String,
+    #[graphql(name = "stepType")]
     pub step_type: FlowStepTypeEnum,
     pub condition: Option<String>,
     pub configuration: JSON,
@@ -477,7 +521,9 @@ pub struct FlowStep {
 pub struct Layout {
     pub id: UuidString,
     pub name: String,
+    #[graphql(name = "layoutType")]
     pub layout_type: LayoutTypeEnum,
+    #[graphql(name = "targetEntities")]
     pub target_entities: Vec<UuidString>,
     pub components: Vec<LayoutComponent>,
     pub responsive: JSON,
@@ -487,6 +533,7 @@ pub struct Layout {
 #[derive(SimpleObject)]
 pub struct LayoutComponent {
     pub id: UuidString,
+    #[graphql(name = "componentType")]
     pub component_type: String,
     pub position: JSON,
     pub properties: JSON,
@@ -498,6 +545,7 @@ pub struct LayoutComponent {
 pub struct Validation {
     pub id: UuidString,
     pub name: String,
+    #[graphql(name = "validationType")]
     pub validation_type: ValidationTypeEnum,
     pub scope: JSON,
     pub rule: String,
@@ -508,6 +556,7 @@ pub struct Validation {
 /// Constraint representation for GraphQL
 #[derive(SimpleObject)]
 pub struct Constraint {
+    #[graphql(name = "constraintType")]
     pub constraint_type: ConstraintTypeEnum,
     pub name: String,
     pub fields: Vec<String>,
@@ -519,6 +568,7 @@ pub struct Constraint {
 pub struct Index {
     pub name: String,
     pub fields: Vec<String>,
+    #[graphql(name = "indexType")]
     pub index_type: IndexTypeEnum,
     pub unique: bool,
 }
@@ -526,6 +576,7 @@ pub struct Index {
 /// Field validation rule for GraphQL
 #[derive(SimpleObject)]
 pub struct FieldValidationRule {
+    #[graphql(name = "validationType")]
     pub validation_type: JSON,
     pub message: String,
     pub severity: ValidationSeverityEnum,
@@ -668,12 +719,16 @@ pub struct UpdateModelInput {
 
 #[derive(InputObject)]
 pub struct CreateEntityInput {
+    #[graphql(name = "modelId")]
     pub model_id: UuidString,
     pub name: String,
+    #[graphql(name = "displayName")]
     pub display_name: String,
     pub description: Option<String>,
+    #[graphql(name = "entityType")]
     pub entity_type: EntityTypeEnum,
     pub fields: Vec<CreateFieldInput>,
+    #[graphql(name = "uiConfig")]
     pub ui_config: Option<JSON>,
     pub behavior: Option<JSON>,
 }
@@ -681,9 +736,12 @@ pub struct CreateEntityInput {
 #[derive(InputObject)]
 pub struct UpdateEntityInput {
     pub name: Option<String>,
+    #[graphql(name = "displayName")]
     pub display_name: Option<String>,
     pub description: Option<String>,
+    #[graphql(name = "entityType")]
     pub entity_type: Option<EntityTypeEnum>,
+    #[graphql(name = "uiConfig")]
     pub ui_config: Option<JSON>,
     pub behavior: Option<JSON>,
 }
@@ -691,57 +749,78 @@ pub struct UpdateEntityInput {
 #[derive(InputObject)]
 pub struct CreateFieldInput {
     pub name: String,
+    #[graphql(name = "displayName")]
     pub display_name: String,
+    #[graphql(name = "fieldType")]
     pub field_type: FieldTypeEnum,
     pub required: bool,
+    #[graphql(name = "defaultValue")]
     pub default_value: Option<JSON>,
+    #[graphql(name = "uiConfig")]
     pub ui_config: Option<JSON>,
 }
 
 #[derive(InputObject)]
 pub struct CreateRelationshipInput {
+    #[graphql(name = "modelId")]
     pub model_id: UuidString,
     pub name: String,
+    #[graphql(name = "relationshipType")]
     pub relationship_type: RelationshipTypeEnum,
+    #[graphql(name = "fromEntity")]
     pub from_entity: UuidString,
+    #[graphql(name = "toEntity")]
     pub to_entity: UuidString,
+    #[graphql(name = "fromField")]
     pub from_field: String,
+    #[graphql(name = "toField")]
     pub to_field: String,
     pub cascade: CascadeActionEnum,
+    #[graphql(name = "uiConfig")]
     pub ui_config: Option<JSON>,
 }
 
 #[derive(InputObject)]
 pub struct UpdateRelationshipInput {
     pub name: Option<String>,
+    #[graphql(name = "relationshipType")]
     pub relationship_type: Option<RelationshipTypeEnum>,
+    #[graphql(name = "fromField")]
     pub from_field: Option<String>,
+    #[graphql(name = "toField")]
     pub to_field: Option<String>,
     pub cascade: Option<CascadeActionEnum>,
+    #[graphql(name = "uiConfig")]
     pub ui_config: Option<JSON>,
 }
 
 #[derive(InputObject)]
 pub struct CreateFlowInput {
+    #[graphql(name = "modelId")]
     pub model_id: UuidString,
     pub name: String,
+    #[graphql(name = "flowType")]
     pub flow_type: FlowTypeEnum,
     pub trigger: JSON,
     pub steps: Vec<CreateFlowStepInput>,
+    #[graphql(name = "errorHandling")]
     pub error_handling: Option<JSON>,
 }
 
 #[derive(InputObject)]
 pub struct UpdateFlowInput {
     pub name: Option<String>,
+    #[graphql(name = "flowType")]
     pub flow_type: Option<FlowTypeEnum>,
     pub trigger: Option<JSON>,
+    #[graphql(name = "errorHandling")]
     pub error_handling: Option<JSON>,
 }
 
 #[derive(InputObject)]
 pub struct CreateFlowStepInput {
     pub name: String,
+    #[graphql(name = "stepType")]
     pub step_type: FlowStepTypeEnum,
     pub condition: Option<String>,
     pub configuration: JSON,
@@ -749,9 +828,12 @@ pub struct CreateFlowStepInput {
 
 #[derive(InputObject)]
 pub struct CreateLayoutInput {
+    #[graphql(name = "modelId")]
     pub model_id: UuidString,
     pub name: String,
+    #[graphql(name = "layoutType")]
     pub layout_type: LayoutTypeEnum,
+    #[graphql(name = "targetEntities")]
     pub target_entities: Vec<UuidString>,
     pub components: Vec<CreateLayoutComponentInput>,
     pub responsive: Option<JSON>,
@@ -760,13 +842,16 @@ pub struct CreateLayoutInput {
 #[derive(InputObject)]
 pub struct UpdateLayoutInput {
     pub name: Option<String>,
+    #[graphql(name = "layoutType")]
     pub layout_type: Option<LayoutTypeEnum>,
+    #[graphql(name = "targetEntities")]
     pub target_entities: Option<Vec<UuidString>>,
     pub responsive: Option<JSON>,
 }
 
 #[derive(InputObject)]
 pub struct CreateLayoutComponentInput {
+    #[graphql(name = "componentType")]
     pub component_type: String,
     pub position: JSON,
     pub properties: JSON,

@@ -6,6 +6,8 @@ use tracing::log::LevelFilter;
 pub mod migrations;
 pub mod entities;
 
+pub use entities::*;
+
 pub async fn connect(database_url: &str, optimize: bool) -> Result<DatabaseConnection> {
     let mut opt = ConnectOptions::new(database_url);
     

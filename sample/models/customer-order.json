@@ -1,0 +1,1010 @@
+{
+  "name": "Customer Order Management",
+  "description": "Complete customer relationship management system with order processing, featuring comprehensive forms, list views, and business logic",
+  "version": "1.0.0",
+  "created_by": "system",
+  "config": {
+    "database": {
+      "type": "sqlite",
+      "migration_strategy": "auto"
+    },
+    "performance": {
+      "caching_enabled": true,
+      "cache_ttl_seconds": 3600
+    },
+    "ui": {
+      "theme": "professional",
+      "layout": "responsive"
+    }
+  },
+  "entities": [
+    {
+      "name": "customer",
+      "display_name": "Customer",
+      "description": "Customer information and contact details",
+      "entity_type": "Data",
+      "fields": [
+        {
+          "name": "id",
+          "display_name": "Customer ID",
+          "field_type": {
+            "type": "Integer",
+            "min": 1
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Customer ID is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Customer ID",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "name": "first_name",
+          "display_name": "First Name",
+          "field_type": {
+            "type": "String",
+            "max_length": 50
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "First name is required",
+              "severity": "Error"
+            },
+            {
+              "type": "MinLength",
+              "message": "First name must be at least 2 characters",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "First Name",
+            "placeholder": "Enter first name",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "last_name",
+          "display_name": "Last Name",
+          "field_type": {
+            "type": "String",
+            "max_length": 50
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Last name is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Last Name",
+            "placeholder": "Enter last name",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "email",
+          "display_name": "Email Address",
+          "field_type": {
+            "type": "String",
+            "max_length": 255
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Email address is required",
+              "severity": "Error"
+            },
+            {
+              "type": "Pattern",
+              "message": "Please enter a valid email address",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Email Address",
+            "placeholder": "customer@example.com",
+            "help_text": "We'll use this to send order confirmations",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "phone",
+          "display_name": "Phone Number",
+          "field_type": {
+            "type": "String",
+            "max_length": 20
+          },
+          "required": false,
+          "validation": [
+            {
+              "type": "Pattern",
+              "message": "Please enter a valid phone number",
+              "severity": "Warning"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Phone Number",
+            "placeholder": "+1 (555) 123-4567",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "address",
+          "display_name": "Address",
+          "field_type": {
+            "type": "String",
+            "max_length": 255
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "textarea",
+            "label": "Address",
+            "placeholder": "Street address, city, state, ZIP",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "customer_type",
+          "display_name": "Customer Type",
+          "field_type": {
+            "type": "Enum",
+            "values": ["Individual", "Business", "Premium", "Enterprise"]
+          },
+          "required": true,
+          "default_value": "Individual",
+          "ui_config": {
+            "component_type": "select",
+            "label": "Customer Type",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "registration_date",
+          "display_name": "Registration Date",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": true,
+          "default_value": "now()",
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Registration Date",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "name": "active",
+          "display_name": "Active",
+          "field_type": {
+            "type": "Boolean"
+          },
+          "required": true,
+          "default_value": true,
+          "ui_config": {
+            "component_type": "checkbox",
+            "label": "Active Customer",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        }
+      ],
+      "constraints": [
+        {
+          "type": "PrimaryKey",
+          "name": "pk_customer_id",
+          "fields": ["id"]
+        },
+        {
+          "type": "UniqueKey",
+          "name": "uk_customer_email",
+          "fields": ["email"],
+          "message": "Email address must be unique"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_customer_email",
+          "fields": ["email"],
+          "type": "BTree",
+          "unique": true
+        },
+        {
+          "name": "idx_customer_type",
+          "fields": ["customer_type"],
+          "type": "BTree",
+          "unique": false
+        }
+      ],
+      "ui_config": {
+        "icon": "user",
+        "color": "#3B82F6",
+        "list_view": {
+          "columns": ["first_name", "last_name", "email", "customer_type", "registration_date", "active"],
+          "default_sort": {
+            "field": "last_name",
+            "direction": "asc"
+          },
+          "page_size": 25,
+          "filters": [
+            {
+              "field": "customer_type",
+              "type": "select",
+              "label": "Customer Type"
+            },
+            {
+              "field": "active",
+              "type": "select",
+              "label": "Status"
+            },
+            {
+              "field": "registration_date",
+              "type": "date",
+              "label": "Registration Date"
+            }
+          ]
+        },
+        "detail_view": {
+          "layout": "Single",
+          "sections": [
+            {
+              "title": "Basic Information",
+              "fields": ["first_name", "last_name", "email", "phone"]
+            },
+            {
+              "title": "Address & Details",
+              "fields": ["address", "customer_type", "registration_date", "active"]
+            }
+          ]
+        },
+        "form_view": {
+          "layout": "Single",
+          "validation": {
+            "client_side": true,
+            "server_side": true,
+            "real_time": true
+          }
+        }
+      },
+      "behavior": {
+        "auditing": {
+          "enabled": true,
+          "track_changes": true,
+          "track_access": false
+        },
+        "caching": {
+          "enabled": true,
+          "ttl_seconds": 3600
+        }
+      }
+    },
+    {
+      "name": "order",
+      "display_name": "Order",
+      "description": "Customer orders with items and payment information",
+      "entity_type": "Data",
+      "fields": [
+        {
+          "name": "id",
+          "display_name": "Order ID",
+          "field_type": {
+            "type": "Integer",
+            "min": 1
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Order ID is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Order ID",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "name": "customer_id",
+          "display_name": "Customer",
+          "field_type": {
+            "type": "Reference",
+            "entity": "customer"
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Customer is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "select",
+            "label": "Customer",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "order_date",
+          "display_name": "Order Date",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": true,
+          "default_value": "now()",
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Order Date",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "status",
+          "display_name": "Order Status",
+          "field_type": {
+            "type": "Enum",
+            "values": ["Draft", "Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled"]
+          },
+          "required": true,
+          "default_value": "Draft",
+          "ui_config": {
+            "component_type": "select",
+            "label": "Order Status",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "total_amount",
+          "display_name": "Total Amount",
+          "field_type": {
+            "type": "Float",
+            "min": 0
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Range",
+              "message": "Total amount must be positive",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Total Amount ($)",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "shipping_address",
+          "display_name": "Shipping Address",
+          "field_type": {
+            "type": "String",
+            "max_length": 500
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "textarea",
+            "label": "Shipping Address",
+            "placeholder": "Complete shipping address",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "payment_method",
+          "display_name": "Payment Method",
+          "field_type": {
+            "type": "Enum",
+            "values": ["Credit Card", "Debit Card", "PayPal", "Bank Transfer", "Cash on Delivery"]
+          },
+          "required": true,
+          "default_value": "Credit Card",
+          "ui_config": {
+            "component_type": "select",
+            "label": "Payment Method",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "payment_status",
+          "display_name": "Payment Status",
+          "field_type": {
+            "type": "Enum",
+            "values": ["Pending", "Processing", "Completed", "Failed", "Refunded"]
+          },
+          "required": true,
+          "default_value": "Pending",
+          "ui_config": {
+            "component_type": "select",
+            "label": "Payment Status",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "notes",
+          "display_name": "Order Notes",
+          "field_type": {
+            "type": "String",
+            "max_length": 1000
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "textarea",
+            "label": "Order Notes",
+            "placeholder": "Special instructions or notes",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "name": "created_at",
+          "display_name": "Created At",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": true,
+          "default_value": "now()",
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Created At",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "name": "updated_at",
+          "display_name": "Updated At",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": true,
+          "default_value": "now()",
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Updated At",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        }
+      ],
+      "constraints": [
+        {
+          "type": "PrimaryKey",
+          "name": "pk_order_id",
+          "fields": ["id"]
+        },
+        {
+          "type": "ForeignKey",
+          "name": "fk_order_customer",
+          "fields": ["customer_id"],
+          "message": "Customer must exist"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_order_customer_id",
+          "fields": ["customer_id"],
+          "type": "BTree",
+          "unique": false
+        },
+        {
+          "name": "idx_order_status",
+          "fields": ["status"],
+          "type": "BTree",
+          "unique": false
+        },
+        {
+          "name": "idx_order_date",
+          "fields": ["order_date"],
+          "type": "BTree",
+          "unique": false
+        }
+      ],
+      "ui_config": {
+        "icon": "shopping-cart",
+        "color": "#10B981",
+        "list_view": {
+          "columns": ["id", "customer_id", "order_date", "status", "total_amount", "payment_status"],
+          "default_sort": {
+            "field": "order_date",
+            "direction": "desc"
+          },
+          "page_size": 25,
+          "filters": [
+            {
+              "field": "status",
+              "type": "select",
+              "label": "Order Status"
+            },
+            {
+              "field": "payment_status",
+              "type": "select",
+              "label": "Payment Status"
+            },
+            {
+              "field": "order_date",
+              "type": "date",
+              "label": "Order Date"
+            },
+            {
+              "field": "total_amount",
+              "type": "number",
+              "label": "Total Amount"
+            }
+          ]
+        },
+        "detail_view": {
+          "layout": "Tabbed",
+          "sections": [
+            {
+              "title": "Order Information",
+              "fields": ["id", "customer_id", "order_date", "status", "total_amount"]
+            },
+            {
+              "title": "Payment & Shipping",
+              "fields": ["payment_method", "payment_status", "shipping_address"]
+            },
+            {
+              "title": "Notes & Timestamps",
+              "fields": ["notes", "created_at", "updated_at"]
+            }
+          ]
+        },
+        "form_view": {
+          "layout": "Sections",
+          "validation": {
+            "client_side": true,
+            "server_side": true,
+            "real_time": true
+          }
+        }
+      },
+      "behavior": {
+        "auditing": {
+          "enabled": true,
+          "track_changes": true,
+          "track_access": true
+        },
+        "caching": {
+          "enabled": true,
+          "ttl_seconds": 1800
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "name": "customer_orders",
+      "type": "OneToMany",
+      "from_entity": "customer",
+      "to_entity": "order",
+      "from_field": "id",
+      "to_field": "customer_id",
+      "cascade": "SetNull",
+      "ui_config": {
+        "display_in_form": true,
+        "display_in_list": true,
+        "component_type": "table"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "name": "order_status_validation",
+      "type": "Validation",
+      "trigger": {
+        "type": "EntityEvent",
+        "config": {
+          "entity": "order",
+          "event": "BeforeUpdate"
+        }
+      },
+      "steps": [
+        {
+          "name": "validate_status_transition",
+          "type": "Validation",
+          "condition": "status_changed",
+          "configuration": {
+            "validation_rules": [
+              "Draft can transition to Pending, Cancelled",
+              "Pending can transition to Confirmed, Cancelled",
+              "Confirmed can transition to Processing, Cancelled",
+              "Processing can transition to Shipped, Cancelled",
+              "Shipped can transition to Delivered",
+              "Delivered and Cancelled are final states"
+            ]
+          }
+        }
+      ],
+      "error_handling": {
+        "retry_attempts": 0,
+        "retry_delay_seconds": 0,
+        "on_error": "Stop"
+      }
+    },
+    {
+      "name": "order_confirmation_email",
+      "type": "Notification",
+      "trigger": {
+        "type": "EntityEvent",
+        "config": {
+          "entity": "order",
+          "event": "AfterUpdate"
+        }
+      },
+      "steps": [
+        {
+          "name": "send_confirmation_email",
+          "type": "Notification",
+          "condition": "status == 'Confirmed'",
+          "configuration": {
+            "email_template": "order_confirmation",
+            "recipient": "customer.email",
+            "subject": "Order Confirmation - Order #{{order.id}}"
+          }
+        }
+      ],
+      "error_handling": {
+        "retry_attempts": 3,
+        "retry_delay_seconds": 60,
+        "on_error": "Continue"
+      }
+    }
+  ],
+  "layouts": [
+    {
+      "name": "customer_dashboard",
+      "type": "Dashboard",
+      "target_entities": ["customer"],
+      "components": [
+        {
+          "type": "DataGrid",
+          "position": {
+            "row": 0,
+            "column": 0,
+            "width": 12,
+            "height": 6
+          },
+          "properties": {
+            "entity": "customer",
+            "title": "Customer Management",
+            "columns": ["first_name", "last_name", "email", "customer_type", "registration_date", "active"],
+            "sortable": true,
+            "filterable": true,
+            "pagination": true,
+            "pageSize": 25
+          },
+          "styling": {
+            "backgroundColor": "white",
+            "borderRadius": "8px",
+            "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+          }
+        },
+        {
+          "type": "TorqueButton",
+          "position": {
+            "row": 6,
+            "column": 0,
+            "width": 3,
+            "height": 1
+          },
+          "properties": {
+            "label": "Add New Customer",
+            "variant": "primary",
+            "action": "openModal",
+            "modalConfig": {
+              "title": "Add New Customer",
+              "entity": "customer",
+              "mode": "create"
+            }
+          }
+        }
+      ],
+      "responsive": {
+        "breakpoints": [
+          {
+            "name": "mobile",
+            "min_width": 0,
+            "columns": 1
+          },
+          {
+            "name": "tablet",
+            "min_width": 768,
+            "columns": 2
+          },
+          {
+            "name": "desktop",
+            "min_width": 1024,
+            "columns": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "order_management",
+      "type": "Dashboard",
+      "target_entities": ["order"],
+      "components": [
+        {
+          "type": "DataGrid",
+          "position": {
+            "row": 0,
+            "column": 0,
+            "width": 12,
+            "height": 8
+          },
+          "properties": {
+            "entity": "order",
+            "title": "Order Management",
+            "columns": ["id", "customer_id", "order_date", "status", "total_amount", "payment_status"],
+            "sortable": true,
+            "filterable": true,
+            "pagination": true,
+            "pageSize": 25,
+            "defaultSort": {
+              "field": "order_date",
+              "direction": "desc"
+            }
+          },
+          "styling": {
+            "backgroundColor": "white",
+            "borderRadius": "8px",
+            "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+          }
+        },
+        {
+          "type": "TorqueButton",
+          "position": {
+            "row": 8,
+            "column": 0,
+            "width": 3,
+            "height": 1
+          },
+          "properties": {
+            "label": "Create New Order",
+            "variant": "primary",
+            "action": "openModal",
+            "modalConfig": {
+              "title": "Create New Order",
+              "entity": "order",
+              "mode": "create"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "customer_form",
+      "type": "Form",
+      "target_entities": ["customer"],
+      "components": [
+        {
+          "type": "TorqueForm",
+          "position": {
+            "row": 0,
+            "column": 0,
+            "width": 12,
+            "height": 8
+          },
+          "properties": {
+            "entity": "customer",
+            "title": "Customer Information",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "first_name",
+                "required": true,
+                "validation": ["required", "min:2"]
+              },
+              {
+                "name": "last_name",
+                "required": true,
+                "validation": ["required"]
+              },
+              {
+                "name": "email",
+                "required": true,
+                "validation": ["required", "email"]
+              },
+              {
+                "name": "phone",
+                "validation": ["phone"]
+              },
+              {
+                "name": "address",
+                "colspan": 2
+              },
+              {
+                "name": "customer_type",
+                "required": true
+              },
+              {
+                "name": "active",
+                "type": "checkbox"
+              }
+            ],
+            "submitButton": {
+              "label": "Save Customer",
+              "variant": "primary"
+            },
+            "cancelButton": {
+              "label": "Cancel",
+              "variant": "secondary"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "sample_data": {
+    "customer": [
+      {
+        "id": 1,
+        "first_name": "John",
+        "last_name": "Smith",
+        "email": "john.smith@example.com",
+        "phone": "+1 (555) 123-4567",
+        "address": "123 Main St, Anytown, ST 12345",
+        "customer_type": "Individual",
+        "registration_date": "2024-01-15T10:30:00Z",
+        "active": true
+      },
+      {
+        "id": 2,
+        "first_name": "Sarah",
+        "last_name": "Johnson",
+        "email": "sarah.johnson@business.com",
+        "phone": "+1 (555) 234-5678",
+        "address": "456 Business Ave, Suite 100, Commerce City, ST 23456",
+        "customer_type": "Business",
+        "registration_date": "2024-02-20T14:15:00Z",
+        "active": true
+      },
+      {
+        "id": 3,
+        "first_name": "Michael",
+        "last_name": "Davis",
+        "email": "michael.davis@premium.com",
+        "phone": "+1 (555) 345-6789",
+        "address": "789 Premium Blvd, Luxury Hills, ST 34567",
+        "customer_type": "Premium",
+        "registration_date": "2024-03-10T09:45:00Z",
+        "active": true
+      },
+      {
+        "id": 4,
+        "first_name": "Emily",
+        "last_name": "Brown",
+        "email": "emily.brown@enterprise.com",
+        "phone": "+1 (555) 456-7890",
+        "address": "321 Enterprise Plaza, Corporate Center, ST 45678",
+        "customer_type": "Enterprise",
+        "registration_date": "2024-04-05T16:20:00Z",
+        "active": true
+      },
+      {
+        "id": 5,
+        "first_name": "David",
+        "last_name": "Wilson",
+        "email": "david.wilson@email.com",
+        "phone": "+1 (555) 567-8901",
+        "address": "654 Residential Dr, Hometown, ST 56789",
+        "customer_type": "Individual",
+        "registration_date": "2024-05-12T11:00:00Z",
+        "active": false
+      }
+    ],
+    "order": [
+      {
+        "id": 1001,
+        "customer_id": 1,
+        "order_date": "2024-06-01T10:00:00Z",
+        "status": "Delivered",
+        "total_amount": 299.99,
+        "shipping_address": "123 Main St, Anytown, ST 12345",
+        "payment_method": "Credit Card",
+        "payment_status": "Completed",
+        "notes": "Customer requested express delivery",
+        "created_at": "2024-06-01T10:00:00Z",
+        "updated_at": "2024-06-05T16:30:00Z"
+      },
+      {
+        "id": 1002,
+        "customer_id": 2,
+        "order_date": "2024-06-15T14:30:00Z",
+        "status": "Processing",
+        "total_amount": 1250.00,
+        "shipping_address": "456 Business Ave, Suite 100, Commerce City, ST 23456",
+        "payment_method": "Bank Transfer",
+        "payment_status": "Completed",
+        "notes": "Bulk order for office supplies",
+        "created_at": "2024-06-15T14:30:00Z",
+        "updated_at": "2024-06-20T09:15:00Z"
+      },
+      {
+        "id": 1003,
+        "customer_id": 3,
+        "order_date": "2024-06-20T16:45:00Z",
+        "status": "Shipped",
+        "total_amount": 499.99,
+        "shipping_address": "789 Premium Blvd, Luxury Hills, ST 34567",
+        "payment_method": "PayPal",
+        "payment_status": "Completed",
+        "notes": "Premium member discount applied",
+        "created_at": "2024-06-20T16:45:00Z",
+        "updated_at": "2024-06-25T12:00:00Z"
+      },
+      {
+        "id": 1004,
+        "customer_id": 4,
+        "order_date": "2024-07-01T08:00:00Z",
+        "status": "Confirmed",
+        "total_amount": 2750.00,
+        "shipping_address": "321 Enterprise Plaza, Corporate Center, ST 45678",
+        "payment_method": "Credit Card",
+        "payment_status": "Processing",
+        "notes": "Large enterprise order - priority handling",
+        "created_at": "2024-07-01T08:00:00Z",
+        "updated_at": "2024-07-02T10:30:00Z"
+      },
+      {
+        "id": 1005,
+        "customer_id": 1,
+        "order_date": "2024-07-05T12:30:00Z",
+        "status": "Pending",
+        "total_amount": 149.99,
+        "shipping_address": "123 Main St, Anytown, ST 12345",
+        "payment_method": "Credit Card",
+        "payment_status": "Pending",
+        "notes": "Follow-up order from satisfied customer",
+        "created_at": "2024-07-05T12:30:00Z",
+        "updated_at": "2024-07-05T12:30:00Z"
+      },
+      {
+        "id": 1006,
+        "customer_id": 2,
+        "order_date": "2024-07-10T15:00:00Z",
+        "status": "Draft",
+        "total_amount": 850.00,
+        "shipping_address": "456 Business Ave, Suite 100, Commerce City, ST 23456",
+        "payment_method": "Bank Transfer",
+        "payment_status": "Pending",
+        "notes": "Quarterly office equipment order",
+        "created_at": "2024-07-10T15:00:00Z",
+        "updated_at": "2024-07-10T15:00:00Z"
+      }
+    ]
+  }
+}

@@ -353,6 +353,69 @@ impl ModelService {
         Ok(entity)
     }
 
+    /// Update an existing entity in a model
+    pub async fn update_entity(&self, entity_id: Uuid, input: UpdateEntityInput) -> Result<ModelEntity, Error> {
+        // Find the model containing this entity
+        let mut model_with_entity = None;
+        for entry in self.model_cache.iter() {
+            let model = &entry.value().data;
+            if model.entities.iter().any(|e| e.id == entity_id) {
+                model_with_entity = Some(model.clone());
+                break;
+            }
+        }
+
+        let mut model = model_with_entity
+            .ok_or_else(|| Error::NotFound(format!("Entity with id {} not found", entity_id)))?;
+
+        // Find and update the entity
+        let entity_index = model.entities.iter().position(|e| e.id == entity_id)
+            .ok_or_else(|| Error::NotFound(format!("Entity with id {} not found", entity_id)))?;
+
+        {
+            let entity = &mut model.entities[entity_index];
+
+            // Update entity fields based on input
+            if let Some(name) = input.name {
+                entity.name = name;
+            }
+            if let Some(display_name) = input.display_name {
+                entity.display_name = display_name;
+            }
+            if let Some(description) = input.description {
+                entity.description = Some(description);
+            }
+            if let Some(entity_type) = input.entity_type {
+                entity.entity_type = entity_type;
+            }
+            if let Some(ui_config) = input.ui_config {
+                entity.ui_config = ui_config;
+            }
+            if let Some(behavior) = input.behavior {
+                entity.behavior = behavior;
+            }
+        }
+
+        // Update model timestamp
+        model.updated_at = chrono::Utc::now();
+
+        // Get the updated entity for returning
+        let updated_entity = model.entities[entity_index].clone();
+
+        // Update cache with modified model
+        self.model_cache.insert(
+            model.id,
+            CacheEntry::new(model.clone(), 3600), // 1 hour TTL
+        );
+
+        // Emit entity updated event
+        self.emit_event(ModelChangeEvent::entity_updated(model.id, entity_id));
+
+        // TODO: Persist to database
+
+        Ok(updated_entity)
+    }
+
     /// Get relationships for a specific model
     pub async fn get_relationships(&self, model_id: Uuid) -> Result<Vec<ModelRelationship>, Error> {
         if let Some(model) = self.get_model(model_id).await? {
@@ -1151,6 +1214,16 @@ pub struct CreateEntityInput {
     pub description: Option<String>,
     pub entity_type: EntityType,
     pub fields: Vec<CreateFieldInput>,
+    pub ui_config: Option<EntityUiConfig>,
+    pub behavior: Option<EntityBehavior>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateEntityInput {
+    pub name: Option<String>,
+    pub display_name: Option<String>,
+    pub description: Option<String>,
+    pub entity_type: Option<EntityType>,
     pub ui_config: Option<EntityUiConfig>,
     pub behavior: Option<EntityBehavior>,
 }

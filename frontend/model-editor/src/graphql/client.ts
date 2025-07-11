@@ -28,7 +28,26 @@ export const apolloClient = new ApolloClient({
       Query: {
         fields: {
           models: {
-            merge: true,
+            merge: false,
+          },
+        },
+      },
+      Model: {
+        fields: {
+          entities: {
+            merge: false,
+          },
+          relationships: {
+            merge: false,
+          },
+          flows: {
+            merge: false,
+          },
+          layouts: {
+            merge: false,
+          },
+          validations: {
+            merge: false,
           },
         },
       },

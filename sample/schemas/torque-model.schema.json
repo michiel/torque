@@ -1,0 +1,790 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://torque.dev/schemas/model.json",
+  "title": "Torque Model Schema",
+  "description": "JSON Schema for Torque Model import/export format",
+  "type": "object",
+  "required": ["name", "version", "entities"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the model",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the model",
+      "maxLength": 1000
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the model",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Creator of the model",
+      "default": "system"
+    },
+    "config": {
+      "type": "object",
+      "description": "Model configuration",
+      "properties": {
+        "database": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["sqlite", "postgresql", "mysql"]
+            },
+            "migration_strategy": {
+              "type": "string",
+              "enum": ["auto", "manual", "versioned"]
+            }
+          }
+        },
+        "performance": {
+          "type": "object",
+          "properties": {
+            "caching_enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "cache_ttl_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 3600
+            }
+          }
+        },
+        "ui": {
+          "type": "object",
+          "properties": {
+            "theme": {
+              "type": "string",
+              "default": "default"
+            },
+            "layout": {
+              "type": "string",
+              "enum": ["responsive", "fixed", "fluid"],
+              "default": "responsive"
+            }
+          }
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "description": "List of entities in the model",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/entity"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "description": "List of relationships between entities",
+      "items": {
+        "$ref": "#/$defs/relationship"
+      }
+    },
+    "flows": {
+      "type": "array",
+      "description": "List of business logic flows",
+      "items": {
+        "$ref": "#/$defs/flow"
+      }
+    },
+    "layouts": {
+      "type": "array",
+      "description": "List of UI layouts",
+      "items": {
+        "$ref": "#/$defs/layout"
+      }
+    },
+    "sample_data": {
+      "type": "object",
+      "description": "Sample data for entities",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "required": ["name", "display_name", "entity_type", "fields"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Internal name of the entity",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Human-readable name of the entity"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the entity"
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": ["Data", "Lookup", "Audit", "Temporary", "View"],
+          "description": "Type of entity"
+        },
+        "fields": {
+          "type": "array",
+          "description": "List of fields in the entity",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "description": "Database constraints",
+          "items": {
+            "$ref": "#/$defs/constraint"
+          }
+        },
+        "indexes": {
+          "type": "array",
+          "description": "Database indexes",
+          "items": {
+            "$ref": "#/$defs/index"
+          }
+        },
+        "ui_config": {
+          "$ref": "#/$defs/entity_ui_config"
+        },
+        "behavior": {
+          "$ref": "#/$defs/entity_behavior"
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": ["name", "display_name", "field_type", "required"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Internal name of the field",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Human-readable name of the field"
+        },
+        "field_type": {
+          "$ref": "#/$defs/field_type"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether the field is required"
+        },
+        "default_value": {
+          "description": "Default value for the field"
+        },
+        "validation": {
+          "type": "array",
+          "description": "Validation rules for the field",
+          "items": {
+            "$ref": "#/$defs/field_validation"
+          }
+        },
+        "ui_config": {
+          "$ref": "#/$defs/field_ui_config"
+        }
+      }
+    },
+    "field_type": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "String"
+            },
+            "max_length": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Integer"
+            },
+            "min": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Float"
+            },
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Boolean"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "DateTime"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Date"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Time"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Json"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Binary"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Enum"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["type", "values"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Reference"
+            },
+            "entity": {
+              "type": "string",
+              "description": "Name of the referenced entity"
+            }
+          },
+          "required": ["type", "entity"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "Array"
+            },
+            "element_type": {
+              "$ref": "#/$defs/field_type"
+            }
+          },
+          "required": ["type", "element_type"]
+        }
+      ]
+    },
+    "field_validation": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Required", "MinLength", "MaxLength", "Pattern", "Range", "Custom"]
+        },
+        "value": {},
+        "message": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["Error", "Warning", "Info"],
+          "default": "Error"
+        }
+      },
+      "required": ["type", "message"]
+    },
+    "field_ui_config": {
+      "type": "object",
+      "properties": {
+        "component_type": {
+          "type": "string",
+          "enum": ["input", "textarea", "select", "checkbox", "radio", "date", "datetime", "file", "rich_text"],
+          "default": "input"
+        },
+        "label": {
+          "type": "string"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "help_text": {
+          "type": "string"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["Visible", "Hidden", "ReadOnly"],
+          "default": "Visible"
+        },
+        "edit_mode": {
+          "type": "string",
+          "enum": ["Editable", "ReadOnly", "Hidden"],
+          "default": "Editable"
+        },
+        "custom_props": {
+          "type": "object"
+        }
+      }
+    },
+    "entity_ui_config": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "list_view": {
+          "type": "object",
+          "properties": {
+            "columns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "default_sort": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": ["asc", "desc"]
+                }
+              }
+            },
+            "page_size": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 25
+            },
+            "filters": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["text", "select", "date", "number"]
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "detail_view": {
+          "type": "object",
+          "properties": {
+            "layout": {
+              "type": "string",
+              "enum": ["Single", "Tabbed", "Accordion"],
+              "default": "Single"
+            },
+            "sections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "form_view": {
+          "type": "object",
+          "properties": {
+            "layout": {
+              "type": "string",
+              "enum": ["Single", "Wizard", "Sections"],
+              "default": "Single"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "client_side": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "server_side": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "real_time": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "entity_behavior": {
+      "type": "object",
+      "properties": {
+        "auditing": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "track_changes": {
+              "type": "boolean",
+              "default": false
+            },
+            "track_access": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "caching": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "ttl_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 3600
+            }
+          }
+        }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["PrimaryKey", "UniqueKey", "ForeignKey", "Check"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "name", "fields"]
+    },
+    "index": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": ["BTree", "Hash", "Gin", "Gist"],
+          "default": "BTree"
+        },
+        "unique": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": ["name", "fields"]
+    },
+    "relationship": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["OneToOne", "OneToMany", "ManyToOne", "ManyToMany"]
+        },
+        "from_entity": {
+          "type": "string"
+        },
+        "to_entity": {
+          "type": "string"
+        },
+        "from_field": {
+          "type": "string"
+        },
+        "to_field": {
+          "type": "string"
+        },
+        "cascade": {
+          "type": "string",
+          "enum": ["None", "Delete", "SetNull", "Restrict"],
+          "default": "None"
+        },
+        "ui_config": {
+          "type": "object",
+          "properties": {
+            "display_in_form": {
+              "type": "boolean",
+              "default": true
+            },
+            "display_in_list": {
+              "type": "boolean",
+              "default": false
+            },
+            "component_type": {
+              "type": "string",
+              "enum": ["select", "autocomplete", "table", "cards"],
+              "default": "select"
+            }
+          }
+        }
+      },
+      "required": ["name", "type", "from_entity", "to_entity", "from_field", "to_field"]
+    },
+    "flow": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Validation", "Automation", "Approval", "Notification", "Custom"]
+        },
+        "trigger": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["EntityEvent", "Schedule", "Manual", "Webhook"]
+            },
+            "config": {
+              "type": "object"
+            }
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["Validation", "Transformation", "Notification", "Integration", "Approval", "Custom"]
+              },
+              "condition": {
+                "type": "string"
+              },
+              "configuration": {
+                "type": "object"
+              }
+            },
+            "required": ["name", "type"]
+          }
+        },
+        "error_handling": {
+          "type": "object",
+          "properties": {
+            "retry_attempts": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 3
+            },
+            "retry_delay_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 5
+            },
+            "on_error": {
+              "type": "string",
+              "enum": ["Stop", "Continue", "Rollback", "Notify"],
+              "default": "Stop"
+            }
+          }
+        }
+      },
+      "required": ["name", "type", "trigger", "steps"]
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["List", "Grid", "Dashboard", "Form", "Detail", "Custom"]
+        },
+        "target_entities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["DataGrid", "TorqueForm", "TorqueButton", "Text", "Container", "Modal", "Chart", "KPI"]
+              },
+              "position": {
+                "type": "object",
+                "properties": {
+                  "row": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "column": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              "properties": {
+                "type": "object"
+              },
+              "styling": {
+                "type": "object"
+              }
+            },
+            "required": ["type", "position"]
+          }
+        },
+        "responsive": {
+          "type": "object",
+          "properties": {
+            "breakpoints": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "min_width": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "columns": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": ["name", "type", "target_entities", "components"]
+    }
+  }
+}

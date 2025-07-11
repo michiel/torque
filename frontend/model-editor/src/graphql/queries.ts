@@ -11,6 +11,44 @@ export const GET_MODELS = gql`
       createdAt
       updatedAt
       createdBy
+      config
+      entities {
+        id
+        name
+        displayName
+        description
+        entityType
+      }
+      relationships {
+        id
+        name
+        relationshipType
+        fromEntity
+        toEntity
+        fromField
+        toField
+        cascade
+      }
+      flows {
+        id
+        name
+        flowType
+      }
+      layouts {
+        id
+        name
+        layoutType
+        targetEntities
+      }
+      validations {
+        id
+        name
+        validationType
+        scope
+        rule
+        message
+        severity
+      }
     }
   }
 `

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@apollo/client'
 import {
@@ -35,12 +36,13 @@ import {
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
-import { CREATE_ENTITY } from '../graphql/mutations'
-import { Model } from '../types/model'
+import { CREATE_ENTITY, UPDATE_ENTITY } from '../graphql/mutations'
+import { Model, Entity } from '../types/model'
 
 export function ModelEditorPage() {
   const { id } = useParams<{ id: string }>()
   const [entityModalOpened, { open: openEntityModal, close: closeEntityModal }] = useDisclosure(false)
+  const [editingEntity, setEditingEntity] = useState<Entity | null>(null)
   
   const { data, loading, error, refetch } = useQuery(GET_MODEL, {
     variables: { id },
@@ -57,6 +59,27 @@ export function ModelEditorPage() {
         color: 'green',
       })
       closeEntityModal()
+      setEditingEntity(null)
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error.message,
+        color: 'red',
+      })
+    },
+  })
+
+  const [updateEntity, { loading: updatingEntity }] = useMutation(UPDATE_ENTITY, {
+    refetchQueries: [{ query: GET_MODEL, variables: { id } }],
+    onCompleted: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Entity updated successfully',
+        color: 'green',
+      })
+      closeEntityModal()
+      setEditingEntity(null)
     },
     onError: (error) => {
       notifications.show({
@@ -72,7 +95,7 @@ export function ModelEditorPage() {
       name: '',
       displayName: '',
       description: '',
-      entityType: 'Table',
+      entityType: 'Data',
     },
     validate: {
       name: (value) => (!value ? 'Name is required' : null),
@@ -80,7 +103,7 @@ export function ModelEditorPage() {
     },
   })
 
-  const handleCreateEntity = async (values: typeof entityForm.values) => {
+  const handleSaveEntity = async (values: typeof entityForm.values) => {
     if (!id) {
       notifications.show({
         title: 'Error',
@@ -90,22 +113,50 @@ export function ModelEditorPage() {
       return
     }
 
-    await createEntity({
-      variables: {
-        input: {
-          modelId: id, // Add the required model_id field
-          ...values,
-          fields: [], // Start with empty fields
-          uiConfig: {},
-          behavior: {},
+    if (editingEntity) {
+      // Update existing entity
+      await updateEntity({
+        variables: {
+          id: editingEntity.id,
+          input: {
+            name: values.name,
+            displayName: values.displayName,
+            description: values.description,
+            entityType: values.entityType,
+          },
         },
-      },
-    })
+      })
+    } else {
+      // Create new entity
+      await createEntity({
+        variables: {
+          input: {
+            modelId: id,
+            ...values,
+            fields: [], // Start with empty fields
+            uiConfig: {},
+            behavior: {},
+          },
+        },
+      })
+    }
     entityForm.reset()
   }
 
   const handleOpenEntityModal = () => {
+    setEditingEntity(null)
     entityForm.reset()
+    openEntityModal()
+  }
+
+  const handleEditEntity = (entity: Entity) => {
+    setEditingEntity(entity)
+    entityForm.setValues({
+      name: entity.name,
+      displayName: entity.displayName,
+      description: entity.description || '',
+      entityType: entity.entityType,
+    })
     openEntityModal()
   }
 
@@ -218,7 +269,7 @@ export function ModelEditorPage() {
         </Tabs.List>
 
         <Tabs.Panel value="entities" pt="md">
-          <EntitiesPanel model={model} onAddEntity={handleOpenEntityModal} />
+          <EntitiesPanel model={model} onAddEntity={handleOpenEntityModal} onEditEntity={handleEditEntity} />
         </Tabs.Panel>
 
         <Tabs.Panel value="relationships" pt="md">
@@ -234,14 +285,14 @@ export function ModelEditorPage() {
         </Tabs.Panel>
       </Tabs>
 
-      {/* Create Entity Modal */}
+      {/* Create/Edit Entity Modal */}
       <Modal
         opened={entityModalOpened}
         onClose={closeEntityModal}
-        title="Create New Entity"
+        title={editingEntity ? "Edit Entity" : "Create New Entity"}
         size="md"
       >
-        <form onSubmit={entityForm.onSubmit(handleCreateEntity)}>
+        <form onSubmit={entityForm.onSubmit(handleSaveEntity)}>
           <Stack>
             <TextInput
               label="Name"
@@ -266,10 +317,11 @@ export function ModelEditorPage() {
             <Select
               label="Entity Type"
               data={[
-                { value: 'Table', label: 'Table' },
+                { value: 'Data', label: 'Data' },
+                { value: 'Lookup', label: 'Lookup' },
+                { value: 'Audit', label: 'Audit' },
+                { value: 'Temporary', label: 'Temporary' },
                 { value: 'View', label: 'View' },
-                { value: 'Document', label: 'Document' },
-                { value: 'Aggregate', label: 'Aggregate' },
               ]}
               {...entityForm.getInputProps('entityType')}
             />
@@ -280,10 +332,10 @@ export function ModelEditorPage() {
               </Button>
               <Button 
                 type="submit" 
-                loading={creatingEntity}
+                loading={creatingEntity || updatingEntity}
                 leftSection={<IconPlus size={16} />}
               >
-                Create Entity
+                {editingEntity ? 'Update Entity' : 'Create Entity'}
               </Button>
             </Group>
           </Stack>
@@ -299,9 +351,10 @@ interface ModelPanelProps {
 
 interface EntitiesPanelProps extends ModelPanelProps {
   onAddEntity: () => void
+  onEditEntity: (entity: Entity) => void
 }
 
-function EntitiesPanel({ model, onAddEntity }: EntitiesPanelProps) {
+function EntitiesPanel({ model, onAddEntity, onEditEntity }: EntitiesPanelProps) {
   return (
     <Paper p="md" withBorder>
       <Stack>
@@ -327,7 +380,7 @@ function EntitiesPanel({ model, onAddEntity }: EntitiesPanelProps) {
                       {entity.fields?.length || 0} fields • {entity.entityType}
                     </Text>
                   </Stack>
-                  <Button size="xs" variant="light">
+                  <Button size="xs" variant="light" onClick={() => onEditEntity(entity)}>
                     Edit
                   </Button>
                 </Group>
