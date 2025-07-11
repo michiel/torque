@@ -42,17 +42,25 @@ Torque is a high-performance platform for designing, running and presenting appl
 - [x] JSON Schema Validation System ✅
 - [x] Sample Customer-Order Application ✅
 
-### Phase 4: XFlow Engine (Weeks 19-24) - **0% Complete**
+### Phase 3A: Enhanced Model Editor & Developer Experience (Weeks 13-20) - **0% Complete**
+- [ ] Visual Layout Editor with Drag-and-Drop
+- [ ] DataGrid and Form Configuration Editors
+- [ ] Component Plugin Architecture
+- [ ] Comprehensive Storybook Documentation
+- [ ] End-to-End Playwright Testing
+- [ ] Data Import/Export System
+
+### Phase 4: XFlow Engine (Weeks 21-26) - **0% Complete**
 - [ ] XFlow DAG System
 - [ ] BoaJS Runtime Integration
 - [ ] Visual and JSON Editors
 
-### Phase 5: MCP Integration (Weeks 25-30) - **0% Complete**
+### Phase 5: MCP Integration (Weeks 27-32) - **0% Complete**
 - [ ] axum-mcp Integration
 - [ ] AI Agent API
 - [ ] Advanced Features
 
-### Phase 6: Production Ready (Weeks 31-36) - **0% Complete**
+### Phase 6: Production Ready (Weeks 33-38) - **0% Complete**
 - [ ] Performance Optimization
 - [ ] Testing and Quality Assurance
 - [ ] Deployment and Documentation
@@ -517,7 +525,179 @@ Torque is a high-performance platform for designing, running and presenting appl
 
 ---
 
-## ⚡ Phase 4: XFlow Engine (Weeks 19-24)
+## 🎨 Phase 3A: Enhanced Model Editor & Developer Experience (Weeks 13-20)
+
+**Status**: 🔴 Not Started  
+**Dependencies**: ✅ Phase 3 Complete  
+**Key Deliverable**: Visual Layout Editor with comprehensive testing and component documentation
+
+### Week 13-14: Visual Layout Editor Foundation
+
+#### 3A.1 Layout Editor Core System
+- [ ] **P1** Drag-and-drop component placement system
+  - [ ] Component palette with all TorqueApp components
+  - [ ] Grid-based layout canvas with responsive design
+  - [ ] Real-time component positioning and sizing
+- [ ] **P1** Component selection and configuration
+  - [ ] Inline component configuration without view switching
+  - [ ] Component property panels with validation
+  - [ ] Real-time preview of configuration changes
+- [ ] **P2** Layout editor foundations
+  - [ ] Undo/redo functionality for layout changes
+  - [ ] Component copy/paste and duplication
+  - [ ] Layout templates and presets
+
+#### 3A.2 Component Configuration Editors
+- [ ] **P1** DataGrid configuration editor
+  - [ ] Entity binding with field selection
+  - [ ] Column configuration (width, alignment, sorting, filtering)
+  - [ ] Pagination and action configuration
+  - [ ] Real-time validation against entity schema
+- [ ] **P1** Form configuration editor
+  - [ ] Entity field binding with form layout options
+  - [ ] Field type mapping and validation rules
+  - [ ] Form submission and action configuration
+  - [ ] Layout options (single-column, two-column, custom grid)
+- [ ] **P2** Advanced component editors
+  - [ ] Button action configuration (modals, navigation, CRUD)
+  - [ ] Text component with typography options
+  - [ ] Container component with responsive layouts
+
+### Week 15-16: Component Plugin Architecture
+
+#### 3A.3 Extensible Component System
+- [ ] **P1** Component plugin architecture
+  - [ ] Runtime component registration system
+  - [ ] Component schema validation framework
+  - [ ] Plugin loading and management
+- [ ] **P1** Component registry implementation
+  - [ ] Type-safe component interfaces
+  - [ ] Configuration schema definitions
+  - [ ] Rendering function abstractions
+- [ ] **P2** Plugin development tools
+  - [ ] Component development CLI tools
+  - [ ] Plugin validation and testing framework
+  - [ ] Documentation generation for custom components
+
+#### 3A.4 Enhanced Entity Binding
+- [ ] **P1** Entity relationship editor
+  - [ ] Visual relationship mapping interface
+  - [ ] Foreign key constraint configuration
+  - [ ] Cascade action setup (delete, update)
+- [ ] **P1** Entity validation integration
+  - [ ] Real-time schema validation in layout editor
+  - [ ] Field type compatibility checking
+  - [ ] Required field enforcement in forms
+- [ ] **P2** Advanced entity features
+  - [ ] Entity inheritance and composition
+  - [ ] Computed field definitions
+  - [ ] Entity lifecycle event configuration
+
+### Week 17-18: Comprehensive Testing Infrastructure
+
+#### 3A.5 End-to-End Testing with Playwright
+- [ ] **P1** Layout editor E2E test suite
+  - [ ] Component drag-and-drop testing
+  - [ ] Configuration panel interaction testing
+  - [ ] Real-time preview validation testing
+- [ ] **P1** Component configuration testing
+  - [ ] DataGrid configuration workflow testing
+  - [ ] Form builder interaction testing
+  - [ ] Entity binding validation testing
+- [ ] **P1** Cross-browser compatibility testing
+  - [ ] Chrome, Firefox, Safari test coverage
+  - [ ] Mobile device responsive testing
+  - [ ] Accessibility compliance testing
+- [ ] **P2** Performance and visual testing
+  - [ ] Layout editor performance benchmarks
+  - [ ] Visual regression testing with screenshots
+  - [ ] Memory usage and leak detection
+
+#### 3A.6 Comprehensive Storybook Documentation
+- [ ] **P1** Complete component story coverage
+  - [ ] Layout editor component stories with interactions
+  - [ ] Configuration editor stories with all variants
+  - [ ] TorqueApp runtime component stories
+- [ ] **P1** Interactive documentation
+  - [ ] Component usage examples and best practices
+  - [ ] Configuration option documentation
+  - [ ] Integration guides and tutorials
+- [ ] **P2** Advanced Storybook features
+  - [ ] Accessibility testing integration
+  - [ ] Design system documentation
+  - [ ] Component API documentation generation
+
+### Week 19-20: Data Management and Import/Export
+
+#### 3A.7 Enhanced Import/Export System
+- [ ] **P1** Complete model data export
+  - [ ] JSON export with full model definitions
+  - [ ] Entity data export with referential integrity
+  - [ ] Layout and component configuration export
+- [ ] **P1** Robust import validation
+  - [ ] Schema validation with detailed error reporting
+  - [ ] Conflict resolution strategies
+  - [ ] Incremental import with merge capabilities
+- [ ] **P1** Bulk data operations
+  - [ ] CSV import/export for entity data
+  - [ ] Batch entity operations
+  - [ ] Data transformation and mapping tools
+- [ ] **P2** Advanced data features
+  - [ ] Model template library
+  - [ ] Version control and change tracking
+  - [ ] Data migration and upgrade tools
+
+#### 3A.8 Developer Experience Enhancements
+- [ ] **P1** Development tooling improvements
+  - [ ] Hot module replacement for layout changes
+  - [ ] Development mode with enhanced debugging
+  - [ ] Component development workflow optimization
+- [ ] **P1** Documentation and tutorials
+  - [ ] Layout editor user guide
+  - [ ] Component development guide
+  - [ ] Best practices documentation
+- [ ] **P2** Community features
+  - [ ] Component sharing marketplace
+  - [ ] Template gallery and examples
+  - [ ] Community plugin registry
+
+**Phase 3A Success Criteria**:
+- ✅ Visual layout editor supports all 6 core component types with drag-and-drop
+- ✅ Component configuration validates against entity schemas in real-time
+- ✅ 95%+ test coverage with Playwright E2E tests
+- ✅ All components documented in Storybook with interactive examples
+- ✅ Model import/export completes in <5 seconds for typical models
+- ✅ Layout editor performs at 60fps during drag operations
+- ✅ Plugin architecture supports runtime component registration
+- ✅ DataGrid and Form editors provide full entity binding capabilities
+
+### 🎉 Phase 3A Goals
+
+**Enhanced Features:**
+- 🎨 **Visual Layout Editor** (Drag-and-drop interface design)
+- 📊 **DataGrid Configuration** (Entity binding with column management)
+- 📝 **Form Builder** (Dynamic form creation with validation)
+- 🔌 **Plugin Architecture** (Extensible component system)
+- 📚 **Complete Documentation** (Storybook with interactive examples)
+- 🧪 **Comprehensive Testing** (E2E coverage with Playwright)
+- 📁 **Data Management** (Import/export with validation)
+
+**Developer Experience:**
+- ✅ **Visual development workflow** without code switching
+- ✅ **Real-time validation** with helpful error messages
+- ✅ **Component marketplace** for extensibility
+- ✅ **Professional testing suite** with cross-browser coverage
+- ✅ **Complete documentation** for all components and workflows
+
+**Technical Achievements:**
+- ✅ **Extensible architecture** ready for future component types
+- ✅ **Performance optimized** layout editor with smooth interactions
+- ✅ **Type-safe development** with comprehensive TypeScript integration
+- ✅ **Production-ready testing** with automated quality assurance
+
+---
+
+## ⚡ Phase 4: XFlow Engine (Weeks 21-26)
 
 **Status**: 🔴 Not Started  
 **Dependencies**: Phase 3 Complete  

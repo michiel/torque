@@ -43,6 +43,31 @@
  - Use mermaid diagrams to outline the interactions between user, model editor, database, torqueapp and app user
  - TorqueApp components are individually available for development and testing in storybook for React
 
+## Visual Layout Editor
+
+ - The Model Editor includes a comprehensive visual layout editor for designing TorqueApp interfaces
+ - The layout editor supports drag-and-drop component placement with real-time preview
+ - Components can be configured inline without switching views, including:
+    - DataGrid configuration with column selection, filtering, sorting, and pagination
+    - Form editor with field binding, validation rules, and layout options
+    - Button actions with modal triggers, navigation, and entity operations
+    - Text components with typography and styling options
+    - Container components with responsive grid layouts
+ - The layout editor validates component configurations against entity schemas
+ - Layout definitions are stored as JSON with full schema validation
+ - The component system is extensible through a plugin architecture for runtime component registration
+ - All layout components have corresponding Storybook stories for development and testing
+
+## Data Management and Import/Export
+
+ - Complete model data can be exported as JSON including entities, relationships, flows, layouts, and sample data
+ - JSON model exports conform to the comprehensive Torque Model JSON Schema
+ - Data import supports validation, conflict resolution, and incremental updates
+ - Bulk entity data import/export through CSV and JSON formats
+ - Model templates and examples can be shared and imported
+ - Data export includes entity instances with referential integrity preservation
+ - Import/export operations support versioning and migration paths
+
 
 # Scenarios
 
