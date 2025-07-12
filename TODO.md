@@ -50,6 +50,14 @@ Torque is a high-performance platform for designing, running and presenting appl
 - [ ] End-to-End Playwright Testing
 - [ ] Data Import/Export System
 
+### Phase 3B: Data Transformation Optimization (Current) - **0% Complete**
+- [ ] Standardize UUID and DateTime representations
+- [ ] Implement direct JSONB to frontend mapping
+- [ ] Add UI hints to entity storage
+- [ ] Optimize GraphQL type conversions
+- [ ] Implement field-level projections
+- [ ] Add transformation performance metrics
+
 ### Phase 4: XFlow Engine (Weeks 21-26) - **0% Complete**
 - [ ] XFlow DAG System
 - [ ] BoaJS Runtime Integration

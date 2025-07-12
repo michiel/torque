@@ -1496,6 +1496,14 @@ impl ApiMetrics {
 - Comprehensive performance testing
 - Production deployment and monitoring
 
+### Phase 7: Data Transformation Optimization (Weeks 19-20)
+- Standardize UUID and DateTime representations across stack
+- Implement direct JSONB to frontend mapping for TorqueApp
+- Add UI hints to entity storage for reduced transformations
+- Optimize GraphQL type conversions with derive macros
+- Implement field-level projections for entity queries
+- Add transformation performance metrics and monitoring
+
 ---
 
 ## Ambiguities, Gaps, and Open Questions
