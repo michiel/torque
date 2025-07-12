@@ -126,3 +126,91 @@ export const IMPORT_MODEL = gql`
     }
   }
 `
+
+// Mutation to create a new layout
+export const CREATE_LAYOUT = gql`
+  mutation CreateLayout($input: CreateLayoutInput!) {
+    createLayout(input: $input) {
+      id
+      name
+      layoutType
+      targetEntities
+      components {
+        id
+        componentType
+        position
+        properties
+        styling
+      }
+      responsive
+    }
+  }
+`
+
+// Mutation to update an existing layout
+export const UPDATE_LAYOUT = gql`
+  mutation UpdateLayout($id: String!, $input: UpdateLayoutInput!) {
+    updateLayout(id: $id, input: $input) {
+      id
+      name
+      layoutType
+      targetEntities
+      components {
+        id
+        componentType
+        position
+        properties
+        styling
+      }
+      responsive
+    }
+  }
+`
+
+// Mutation to delete a layout
+export const DELETE_LAYOUT = gql`
+  mutation DeleteLayout($id: String!) {
+    deleteLayout(id: $id)
+  }
+`
+
+// Mutation to create a new relationship
+export const CREATE_RELATIONSHIP = gql`
+  mutation CreateRelationship($input: CreateRelationshipInput!) {
+    createRelationship(input: $input) {
+      id
+      name
+      relationshipType
+      fromEntity
+      toEntity
+      fromField
+      toField
+      cascade
+      uiConfig
+    }
+  }
+`
+
+// Mutation to update a relationship
+export const UPDATE_RELATIONSHIP = gql`
+  mutation UpdateRelationship($id: String!, $input: UpdateRelationshipInput!) {
+    updateRelationship(id: $id, input: $input) {
+      id
+      name
+      relationshipType
+      fromEntity
+      toEntity
+      fromField
+      toField
+      cascade
+      uiConfig
+    }
+  }
+`
+
+// Mutation to delete a relationship
+export const DELETE_RELATIONSHIP = gql`
+  mutation DeleteRelationship($id: String!) {
+    deleteRelationship(id: $id)
+  }
+`

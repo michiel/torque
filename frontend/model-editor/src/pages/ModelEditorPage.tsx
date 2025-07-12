@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@apollo/client'
 import {
   Stack,
@@ -436,20 +436,65 @@ function RelationshipsPanel({ model }: ModelPanelProps) {
   )
 }
 
-function LayoutsPanel({ }: ModelPanelProps) {
+function LayoutsPanel({ model }: ModelPanelProps) {
+  const navigate = useNavigate()
+  
+  const handleCreateLayout = () => {
+    navigate(`/models/${model.id}/layouts/new`)
+  }
+
   return (
     <Paper p="md" withBorder>
       <Stack>
         <Group justify="space-between">
           <Text fw={500}>Layouts</Text>
-          <Button size="sm" leftSection={<IconLayout size={14} />}>
-            Add Layout
+          <Button 
+            size="sm" 
+            leftSection={<IconLayout size={14} />}
+            onClick={handleCreateLayout}
+          >
+            Create Layout
           </Button>
         </Group>
         
-        <Text c="dimmed" ta="center" py="xl">
-          Layout editor coming soon. Define visual layouts for your entities.
-        </Text>
+        {model.layouts && model.layouts.length > 0 ? (
+          <Stack gap="xs">
+            {model.layouts.map((layout) => (
+              <Paper key={layout.id} p="sm" withBorder>
+                <Group justify="space-between">
+                  <Stack gap={4}>
+                    <Text fw={500}>{layout.name}</Text>
+                    <Text size="sm" c="dimmed">
+                      {layout.layoutType} • {layout.components?.length || 0} components
+                    </Text>
+                  </Stack>
+                  <Group gap="xs">
+                    <Button 
+                      size="xs" 
+                      variant="light"
+                      onClick={() => navigate(`/models/${model.id}/layouts/${layout.id}`)}
+                    >
+                      Edit
+                    </Button>
+                  </Group>
+                </Group>
+              </Paper>
+            ))}
+          </Stack>
+        ) : (
+          <Stack align="center" py="xl">
+            <Text c="dimmed" ta="center">
+              No layouts created yet. Use the Layout Editor to design visual interfaces for your entities.
+            </Text>
+            <Button 
+              variant="light" 
+              leftSection={<IconLayout size={14} />}
+              onClick={handleCreateLayout}
+            >
+              Create Your First Layout
+            </Button>
+          </Stack>
+        )}
       </Stack>
     </Paper>
   )
