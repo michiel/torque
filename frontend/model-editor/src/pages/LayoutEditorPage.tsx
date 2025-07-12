@@ -7,6 +7,7 @@ import { LayoutEditor } from '../components/LayoutEditor';
 import { LayoutEditorComponent } from '../components/LayoutEditor/types';
 import { GET_MODEL, GET_ENTITIES, GET_LAYOUT } from '../graphql/queries';
 import { CREATE_LAYOUT, UPDATE_LAYOUT } from '../graphql/mutations';
+import { LayoutType } from '../types/model';
 
 interface RouteParams {
   modelId: string;
@@ -72,16 +73,27 @@ export const LayoutEditorPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Convert components to layout JSON
+      // Get unique entity IDs from components for targetEntities
+      const targetEntities = Array.from(
+        new Set(
+          components
+            .map(comp => comp.entityBinding)
+            .filter(entityId => entityId) // Remove null/undefined
+        )
+      );
+
+      // Convert components to GraphQL LayoutComponent format
       const layoutData = {
-        name: layoutId ? `${model?.name} Layout` : 'New Layout',
+        name: layoutId ? layout?.name || `${model?.name} Layout` : 'New Layout',
+        layoutType: LayoutType.Dashboard, // Default to Dashboard for component-based layouts
         modelId,
+        targetEntities,
         components: components.map(component => ({
           id: component.id,
-          type: component.type,
+          componentType: component.type,
           position: component.position,
-          configuration: component.configuration,
-          entityBinding: component.entityBinding
+          properties: component.configuration || {},
+          styling: {} // Default empty styling
         })),
         responsive: {
           breakpoints: [
