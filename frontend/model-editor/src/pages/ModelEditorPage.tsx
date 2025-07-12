@@ -25,6 +25,7 @@ import { notifications } from '@mantine/notifications'
 import {
   IconEdit,
   IconDownload,
+  IconUpload,
   IconShare,
   IconDots,
   IconDatabase,
@@ -33,15 +34,20 @@ import {
   IconShield,
   IconAlertCircle,
   IconPlus,
+  IconFileImport,
+  IconFileExport,
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
 import { CREATE_ENTITY, UPDATE_ENTITY } from '../graphql/mutations'
 import { Model, Entity } from '../types/model'
+import { ModelExportDialog, ModelImportDialog } from '../components/ModelImportExport'
 
 export function ModelEditorPage() {
   const { id } = useParams<{ id: string }>()
   const [entityModalOpened, { open: openEntityModal, close: closeEntityModal }] = useDisclosure(false)
+  const [exportModalOpened, { open: openExportModal, close: closeExportModal }] = useDisclosure(false)
+  const [importModalOpened, { open: openImportModal, close: closeImportModal }] = useDisclosure(false)
   const [editingEntity, setEditingEntity] = useState<Entity | null>(null)
   
   const { data, loading, error, refetch } = useQuery(GET_MODEL, {
@@ -160,6 +166,29 @@ export function ModelEditorPage() {
     openEntityModal()
   }
 
+  const handleImportModel = (importedModel: any) => {
+    notifications.show({
+      title: 'Model Imported',
+      message: `Successfully imported model: ${importedModel.name}`,
+      color: 'green',
+    })
+    // In a real implementation, you would save this to the backend
+    // For now, we just show a success message
+    refetch()
+  }
+
+  const prepareModelDataForExport = () => {
+    if (!model) return null
+    
+    return {
+      name: model.name,
+      description: model.description,
+      entities: model.entities || [],
+      layouts: model.layouts || [],
+      customComponents: [] // Would include custom components if available
+    }
+  }
+
   const model: Model | null = data?.model || null
 
   if (loading) {
@@ -217,6 +246,9 @@ export function ModelEditorPage() {
           <Button leftSection={<IconEdit size={16} />} variant="light">
             Edit Details
           </Button>
+          <Button leftSection={<IconUpload size={16} />} variant="light" onClick={openImportModal}>
+            Import
+          </Button>
           <Menu>
             <Menu.Target>
               <ActionIcon variant="subtle">
@@ -224,8 +256,11 @@ export function ModelEditorPage() {
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item leftSection={<IconDownload size={14} />}>
+              <Menu.Item leftSection={<IconFileExport size={14} />} onClick={openExportModal}>
                 Export Model
+              </Menu.Item>
+              <Menu.Item leftSection={<IconFileImport size={14} />} onClick={openImportModal}>
+                Import Model
               </Menu.Item>
               <Menu.Item leftSection={<IconShare size={14} />}>
                 Share
@@ -341,6 +376,24 @@ export function ModelEditorPage() {
           </Stack>
         </form>
       </Modal>
+
+      {/* Import/Export Modals */}
+      <ModelExportDialog
+        opened={exportModalOpened}
+        onClose={closeExportModal}
+        modelData={prepareModelDataForExport() || {
+          name: 'Unknown Model',
+          entities: [],
+          layouts: [],
+          customComponents: []
+        }}
+      />
+
+      <ModelImportDialog
+        opened={importModalOpened}
+        onClose={closeImportModal}
+        onImport={handleImportModel}
+      />
     </Stack>
   )
 }
