@@ -9,6 +9,12 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:layout-editor": "playwright test layout-editor",
+    "test:datagrid": "playwright test datagrid-configuration",
+    "test:form": "playwright test form-configuration",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -26,7 +32,6 @@
     "@monaco-editor/react": "^4.7.0",
     "@tabler/icons-react": "^2.47.0",
     "graphql": "^16.8.1",
-    "playwright": "^1.53.2",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
@@ -37,7 +42,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "^1.53.2",
+    "@playwright/test": "^1.54.1",
     "@storybook/addon-essentials": "^8.6.14",
     "@storybook/addon-interactions": "^8.6.14",
     "@storybook/addon-links": "^8.6.14",
@@ -55,6 +60,7 @@
     "eslint": "^8.53.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
+    "playwright": "^1.54.1",
     "storybook": "^8.6.14",
     "typescript": "^5.2.2",
     "vite": "^5.0.0"
