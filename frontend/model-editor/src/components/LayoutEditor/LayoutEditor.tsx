@@ -351,7 +351,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         {/* Header */}
         <Paper p="md" withBorder>
           <Group justify="space-between">
-            <Stack spacing={4}>
+            <Stack gap={4}>
               <Text size="xl" fw={700}>
                 Layout Editor
               </Text>

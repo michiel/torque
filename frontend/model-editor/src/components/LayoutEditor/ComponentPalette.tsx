@@ -5,7 +5,6 @@ import {
   Stack,
   Group,
   Badge,
-  Tooltip,
   TextInput,
   Divider,
   ScrollArea,
@@ -16,7 +15,7 @@ import {
   IconClick,
   IconTypography,
   IconBox,
-  IconModal,
+  IconWindow,
   IconSearch,
 } from '@tabler/icons-react';
 import { useDraggable } from '@dnd-kit/core';
@@ -87,7 +86,7 @@ const getComponentIcon = (iconName: string) => {
     case 'click': return IconClick;
     case 'typography': return IconTypography;
     case 'box': return IconBox;
-    case 'modal': return IconModal;
+    case 'modal': return IconWindow;
     default: return IconBox;
   }
 };
@@ -123,29 +122,24 @@ const DraggableComponentItem: React.FC<DraggableComponentItemProps> = ({ item, o
   return (
     <Card
       ref={setNodeRef}
-      style={style}
       {...listeners}
       {...attributes}
       withBorder
       radius="md"
       p="sm"
-      style={(theme) => ({
+      style={{
         cursor: 'grab',
         transition: 'all 150ms ease',
-        '&:hover': {
-          boxShadow: theme.shadows.sm,
-          transform: 'translateY(-2px)',
-        },
-        '&:active': {
-          cursor: 'grabbing',
-        }
-      })}
+        transform: isDragging ? 'rotate(5deg)' : undefined,
+        opacity: isDragging ? 0.5 : 1,
+        ...style
+      }}
       onClick={onClick}
       data-testid={`component-palette-${item.type.toLowerCase()}`}
     >
-      <Group align="flex-start" gap="sm" noWrap>
+      <Group align="flex-start" gap="sm" wrap="nowrap">
         <IconComponent size={20} color="var(--mantine-color-blue-6)" />
-        <Stack spacing={4} style={{ flex: 1, minWidth: 0 }}>
+        <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
           <Text size="sm" fw={500} lineClamp={1}>
             {item.label}
           </Text>

@@ -179,7 +179,6 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({ component, isSelect
   return (
     <Card
       ref={setNodeRef}
-      style={style}
       {...listeners}
       {...attributes}
       withBorder
@@ -187,19 +186,17 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({ component, isSelect
       p="xs"
       w="100%"
       h="100%"
-      style={(theme) => ({
+      style={{
         cursor: 'grab',
-        backgroundColor: theme.colors[getComponentColor(component.type)][0],
+        backgroundColor: `var(--mantine-color-${getComponentColor(component.type)}-0)`,
         borderColor: isSelected 
-          ? theme.colors[getComponentColor(component.type)][5]
-          : theme.colors[getComponentColor(component.type)][3],
-        '&:active': {
-          cursor: 'grabbing',
-        }
-      })}
+          ? `var(--mantine-color-${getComponentColor(component.type)}-5)`
+          : `var(--mantine-color-${getComponentColor(component.type)}-3)`,
+        ...style
+      }}
       data-testid={`component-${component.type.toLowerCase()}-${component.id}`}
     >
-      <Stack spacing={4} align="center" justify="center" h="100%">
+      <Stack gap={4} align="center" justify="center" h="100%">
         <Text size="lg">{getComponentIcon(component.type)}</Text>
         <Text size="xs" fw={500} ta="center" lineClamp={2}>
           {component.type}
@@ -263,7 +260,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
     <Card withBorder radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
       <Card.Section p="md" withBorder>
         <Group justify="space-between">
-          <Stack spacing={4}>
+          <Stack gap={4}>
             <Text size="lg" fw={600}>
               Layout Canvas
             </Text>
@@ -329,7 +326,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
       {selectedComponentData && (
         <Card.Section p="md" withBorder>
           <Group justify="space-between">
-            <Stack spacing={4}>
+            <Stack gap={4}>
               <Text size="sm" fw={500}>
                 Selected: {selectedComponentData.type}
               </Text>
