@@ -5,6 +5,7 @@ pub mod config;
 pub mod database;
 pub mod entity;
 pub mod error;
+pub mod jsonrpc;
 pub mod model;
 pub mod server;
 pub mod services;

@@ -1,13 +1,13 @@
 // TypeScript types for Torque Model System
 
 export interface Model {
-  id: string
+  id: string // UUID as string
   name: string
   description?: string
   version: string
-  createdAt: string
-  updatedAt: string
-  createdBy: string
+  createdAt: string // ISO 8601 datetime string
+  updatedAt: string // ISO 8601 datetime string
+  createdBy: string // UUID as string
   config: Record<string, any>
   entities: Entity[]
   relationships: Relationship[]
@@ -17,7 +17,7 @@ export interface Model {
 }
 
 export interface Entity {
-  id: string
+  id: string // UUID as string
   name: string
   displayName: string
   description?: string
@@ -30,7 +30,7 @@ export interface Entity {
 }
 
 export interface Field {
-  id: string
+  id: string // UUID as string
   name: string
   displayName: string
   fieldType: FieldType
@@ -41,7 +41,7 @@ export interface Field {
 }
 
 export interface Relationship {
-  id: string
+  id: string // UUID as string
   name: string
   relationshipType: RelationshipType
   fromEntity: string
@@ -53,7 +53,7 @@ export interface Relationship {
 }
 
 export interface Flow {
-  id: string
+  id: string // UUID as string
   name: string
   flowType: FlowType
   trigger: Record<string, any>
@@ -62,7 +62,7 @@ export interface Flow {
 }
 
 export interface FlowStep {
-  id: string
+  id: string // UUID as string
   name: string
   stepType: FlowStepType
   condition?: string
@@ -70,7 +70,7 @@ export interface FlowStep {
 }
 
 export interface Layout {
-  id: string
+  id: string // UUID as string
   name: string
   layoutType: LayoutType
   targetEntities: string[]
@@ -79,7 +79,7 @@ export interface Layout {
 }
 
 export interface LayoutComponent {
-  id: string
+  id: string // UUID as string
   componentType: string
   position: Record<string, any>
   properties: Record<string, any>
@@ -87,7 +87,7 @@ export interface LayoutComponent {
 }
 
 export interface Validation {
-  id: string
+  id: string // UUID as string
   name: string
   validationType: ValidationType
   scope: Record<string, any>

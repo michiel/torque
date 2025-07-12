@@ -33,7 +33,7 @@ export interface LoadPageResponse {
   metadata: {
     modelName: string
     modelVersion: string
-    loadedAt: string
+    loadedAt: string // ISO 8601 datetime string
   }
 }
 
@@ -75,11 +75,11 @@ export interface CreateEntityParams {
 }
 
 export interface CreateEntityResponse {
-  id: string
-  modelId: string
+  id: string // UUID as string
+  modelId: string // UUID as string
   entityName: string
   data: Record<string, any>
-  createdAt: string
+  createdAt: string // ISO 8601 datetime string
 }
 
 export interface UpdateEntityParams {
@@ -88,9 +88,9 @@ export interface UpdateEntityParams {
 }
 
 export interface UpdateEntityResponse {
-  id: string
+  id: string // UUID as string
   data: Record<string, any>
-  updatedAt: string
+  updatedAt: string // ISO 8601 datetime string
 }
 
 export interface DeleteEntityParams {
@@ -98,9 +98,9 @@ export interface DeleteEntityParams {
 }
 
 export interface DeleteEntityResponse {
-  id: string
+  id: string // UUID as string
   deleted: boolean
-  deletedAt: string
+  deletedAt: string // ISO 8601 datetime string
 }
 
 // UI Configuration types
@@ -111,7 +111,7 @@ export interface PageLayout {
 }
 
 export interface ComponentConfig {
-  id: string
+  id: string // UUID as string
   type: 'DataGrid' | 'TorqueForm' | 'TorqueButton' | 'Text' | 'Container' | 'Modal'
   position: {
     row: number
@@ -133,7 +133,7 @@ export interface FormDefinition {
 }
 
 export interface FormField {
-  id: string
+  id: string // UUID as string
   name: string
   label: string
   type: 'text' | 'number' | 'checkbox' | 'date' | 'datetime-local' | 'time' | 'textarea' | 'file' | 'select' | 'multiselect'
