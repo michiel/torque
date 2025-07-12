@@ -33,14 +33,14 @@ impl<T> CacheEntry<T> {
     pub fn new(data: T, ttl_seconds: u64) -> Self {
         Self {
             data,
-            created_at: Utc::now(),
+            created_at: UtcDateTime::now(),
             ttl_seconds,
         }
     }
 
     pub fn is_expired(&self) -> bool {
         let elapsed = Utc::now()
-            .signed_duration_since(self.created_at)
+            .signed_duration_since(*self.created_at.as_chrono())
             .num_seconds() as u64;
         elapsed > self.ttl_seconds
     }
@@ -84,7 +84,7 @@ impl ModelService {
                 // Cache the models we retrieved from database
                 for model in &models {
                     self.model_cache.insert(
-                        model.id,
+                        model.id.clone(),
                         CacheEntry::new(model.clone(), 3600),
                     );
                 }
@@ -160,8 +160,8 @@ impl ModelService {
             version: Set(model.version.clone()),
             model_json: Set(model_json),
             schema_json: Set(schema_json),
-            created_at: Set(model.created_at.naive_utc()),
-            updated_at: Set(model.updated_at.naive_utc()),
+            created_at: Set(model.created_at.as_chrono().naive_utc()),
+            updated_at: Set(model.updated_at.as_chrono().naive_utc()),
         };
         
         torque_models::Entity::insert(active_model)
@@ -217,13 +217,13 @@ impl ModelService {
 
     /// Create a new model
     pub async fn create_model(&self, input: CreateModelInput) -> Result<TorqueModel, Error> {
-        let now = Utc::now();
+        let now = UtcDateTime::from_chrono(Utc::now());
         let model = TorqueModel {
             id: Uuid::new_v4(),
             name: input.name,
             description: input.description,
             version: "1.0.0".to_string(),
-            created_at: now,
+            created_at: now.clone(),
             updated_at: now,
             created_by: "system".to_string(), // TODO: Get from auth context
             config: input.config.unwrap_or_default(),
@@ -241,7 +241,7 @@ impl ModelService {
 
         // Cache the model
         self.model_cache.insert(
-            model.id,
+            model.id.clone(),
             CacheEntry::new(model.clone(), 3600), // 1 hour TTL
         );
 
@@ -254,7 +254,7 @@ impl ModelService {
     /// Update an existing model
     pub async fn update_model(&self, id: Uuid, input: UpdateModelInput) -> Result<TorqueModel, Error> {
         // Get existing model
-        let mut model = self.get_model(id).await?
+        let mut model = self.get_model(id.clone()).await?
             .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", id)))?;
 
         // Update fields
@@ -267,13 +267,13 @@ impl ModelService {
         if let Some(config) = input.config {
             model.config = config;
         }
-        model.updated_at = Utc::now();
+        model.updated_at = UtcDateTime::from_chrono(Utc::now());
 
         // TODO: Persist to database
 
         // Update cache
         self.model_cache.insert(
-            model.id,
+            model.id.clone(),
             CacheEntry::new(model.clone(), 3600),
         );
 
@@ -311,7 +311,7 @@ impl ModelService {
             .map_err(|_| Error::InvalidInput("Invalid model ID format".to_string()))?;
 
         // Get the existing model
-        let mut model = self.get_model(model_id).await?
+        let mut model = self.get_model(model_id.clone()).await?
             .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
 
         let entity = ModelEntity {
@@ -342,12 +342,12 @@ impl ModelService {
 
         // Update cache with modified model
         self.model_cache.insert(
-            model_id,
+            model_id.clone(),
             CacheEntry::new(model.clone(), 3600), // 1 hour TTL
         );
 
         // Emit entity added event
-        self.emit_event(ModelChangeEvent::entity_added(model_id, entity.id));
+        self.emit_event(ModelChangeEvent::entity_added(model_id, entity.id.clone()));
 
         // TODO: Persist to database
 
@@ -405,12 +405,12 @@ impl ModelService {
 
         // Update cache with modified model
         self.model_cache.insert(
-            model.id,
+            model.id.clone(),
             CacheEntry::new(model.clone(), 3600), // 1 hour TTL
         );
 
         // Emit entity updated event
-        self.emit_event(ModelChangeEvent::entity_updated(model.id, entity_id));
+        self.emit_event(ModelChangeEvent::entity_updated(model.id.clone(), entity_id));
 
         // TODO: Persist to database
 
@@ -432,7 +432,7 @@ impl ModelService {
             .map_err(|_| Error::InvalidInput("Invalid model ID format".to_string()))?;
 
         // Get the existing model
-        let mut model = self.get_model(model_id).await?
+        let mut model = self.get_model(model_id.clone()).await?
             .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
 
         let from_entity = input.from_entity.parse::<Uuid>()
@@ -458,12 +458,12 @@ impl ModelService {
 
         // Update cache with modified model
         self.model_cache.insert(
-            model_id,
+            model_id.clone(),
             CacheEntry::new(model.clone(), 3600),
         );
 
         // Emit relationship added event
-        self.emit_event(ModelChangeEvent::relationship_added(model_id, relationship.id));
+        self.emit_event(ModelChangeEvent::relationship_added(model_id.clone(), relationship.id.clone()));
 
         Ok(relationship)
     }
@@ -483,7 +483,7 @@ impl ModelService {
             .map_err(|_| Error::InvalidInput("Invalid model ID format".to_string()))?;
 
         // Get the existing model
-        let mut model = self.get_model(model_id).await?
+        let mut model = self.get_model(model_id.clone()).await?
             .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
 
         let flow = ModelFlow {
@@ -507,12 +507,12 @@ impl ModelService {
 
         // Update cache with modified model
         self.model_cache.insert(
-            model_id,
+            model_id.clone(),
             CacheEntry::new(model.clone(), 3600),
         );
 
         // Emit flow added event
-        self.emit_event(ModelChangeEvent::flow_added(model_id, flow.id));
+        self.emit_event(ModelChangeEvent::flow_added(model_id.clone(), flow.id.clone()));
 
         Ok(flow)
     }
@@ -532,7 +532,7 @@ impl ModelService {
             .map_err(|_| Error::InvalidInput("Invalid model ID format".to_string()))?;
 
         // Get the existing model
-        let mut model = self.get_model(model_id).await?
+        let mut model = self.get_model(model_id.clone()).await?
             .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
 
         let target_entities: Result<Vec<Uuid>, _> = input.target_entities.into_iter()
@@ -562,12 +562,12 @@ impl ModelService {
 
         // Update cache with modified model
         self.model_cache.insert(
-            model_id,
+            model_id.clone(),
             CacheEntry::new(model.clone(), 3600),
         );
 
         // Emit layout added event
-        self.emit_event(ModelChangeEvent::layout_added(model_id, layout.id));
+        self.emit_event(ModelChangeEvent::layout_added(model_id.clone(), layout.id.clone()));
 
         Ok(layout)
     }
@@ -581,7 +581,7 @@ impl ModelService {
 
     /// Validate a model
     pub async fn validate_model(&self, id: Uuid) -> Result<ValidationResult, Error> {
-        let _model = self.get_model(id).await?
+        let _model = self.get_model(id.clone()).await?
             .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", id)))?;
 
         // TODO: Implement comprehensive model validation
@@ -594,7 +594,7 @@ impl ModelService {
 
     /// Export a model to JSON
     pub async fn export_model(&self, id: Uuid) -> Result<String, Error> {
-        let model = self.get_model(id).await?
+        let model = self.get_model(id.clone()).await?
             .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", id)))?;
 
         serde_json::to_string_pretty(&model)
@@ -608,15 +608,15 @@ impl ModelService {
 
         // Generate new ID and update timestamps
         model.id = Uuid::new_v4();
-        let now = Utc::now();
-        model.created_at = now;
+        let now = UtcDateTime::from_chrono(Utc::now());
+        model.created_at = now.clone();
         model.updated_at = now;
 
         // TODO: Persist to database
 
         // Cache the model
         self.model_cache.insert(
-            model.id,
+            model.id.clone(),
             CacheEntry::new(model.clone(), 3600),
         );
 
@@ -731,7 +731,7 @@ impl ModelService {
             name,
             description,
             version,
-            created_at: now,
+            created_at: now.clone(),
             updated_at: now,
             created_by,
             config,
@@ -745,7 +745,7 @@ impl ModelService {
         // Save to database and cache
         self.save_model_to_db(&model).await?;
         self.model_cache.insert(
-            model.id,
+            model.id.clone(),
             CacheEntry::new(model.clone(), 3600),
         );
         
@@ -1014,9 +1014,9 @@ impl ModelService {
         
         // Find entity IDs by name
         let from_entity = entities.iter().find(|e| e.name == from_entity_name)
-            .map(|e| e.id).unwrap_or_else(|| Uuid::new_v4());
+            .map(|e| e.id.clone()).unwrap_or_else(|| Uuid::new_v4());
         let to_entity = entities.iter().find(|e| e.name == to_entity_name)
-            .map(|e| e.id).unwrap_or_else(|| Uuid::new_v4());
+            .map(|e| e.id.clone()).unwrap_or_else(|| Uuid::new_v4());
         
         let from_field = rel_data["from_field"].as_str().unwrap_or("").to_string();
         let to_field = rel_data["to_field"].as_str().unwrap_or("").to_string();

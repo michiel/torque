@@ -50,8 +50,13 @@ Torque is a high-performance platform for designing, running and presenting appl
 - [ ] End-to-End Playwright Testing
 - [ ] Data Import/Export System
 
-### Phase 3B: Data Transformation Optimization (Current) - **0% Complete**
-- [ ] Standardize UUID and DateTime representations
+### Phase 3B: Data Transformation Optimization (Current) - **40% Complete**
+- [x] Standardize UUID and DateTime representations ✅
+- [x] Create common::Uuid type for string-based UUIDs ✅
+- [x] Create common::UtcDateTime for ISO 8601 dates ✅
+- [x] Update all Rust code to use standardized types ✅
+- [x] Fix compilation errors from type migration ✅
+- [ ] Update frontend types for consistent UUID strings
 - [ ] Implement direct JSONB to frontend mapping
 - [ ] Add UI hints to entity storage
 - [ ] Optimize GraphQL type conversions

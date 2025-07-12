@@ -62,7 +62,7 @@ async fn handle_websocket(
     info!("WebSocket client connected: {} (model_filter: {:?})", client_id, model_filter);
 
     // Register client with broadcast service
-    if let Err(e) = state.services.broadcast.register_client(client_id.clone(), model_filter).await {
+    if let Err(e) = state.services.broadcast.register_client(client_id.clone(), model_filter.clone()).await {
         error!("Failed to register WebSocket client {}: {}", client_id, e);
         return;
     }
@@ -77,6 +77,7 @@ async fn handle_websocket(
     let client_id_for_sender = client_id.clone();
     let client_id_for_cleanup = client_id.clone();
     let broadcast_service = state.services.broadcast.clone();
+    let model_filter_for_task = model_filter;
 
     // Task for sending events to client
     let send_task = tokio::spawn(async move {
@@ -92,8 +93,8 @@ async fn handle_websocket(
                     }
 
                     // Check model filter
-                    if let Some(model_filter) = model_filter {
-                        if message.event.model_id() != model_filter {
+                    if let Some(ref model_filter) = model_filter_for_task {
+                        if message.event.model_id() != *model_filter {
                             debug!("Skipping message due to model filter for client: {}", client_id_for_sender);
                             continue;
                         }

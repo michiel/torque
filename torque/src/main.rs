@@ -306,8 +306,8 @@ async fn handle_model_list(config: &Config) -> Result<()> {
             println!("Description: {}", description);
         }
         println!("Version: {}", model.version);
-        println!("Created: {}", model.created_at.format("%Y-%m-%d %H:%M:%S"));
-        println!("Updated: {}", model.updated_at.format("%Y-%m-%d %H:%M:%S"));
+        println!("Created: {}", model.created_at.as_chrono().format("%Y-%m-%d %H:%M:%S"));
+        println!("Updated: {}", model.updated_at.as_chrono().format("%Y-%m-%d %H:%M:%S"));
         println!("Entities: {}", model.entities.len());
         println!("Relationships: {}", model.relationships.len());
         println!("Flows: {}", model.flows.len());
@@ -395,17 +395,21 @@ async fn handle_model_import(config: &Config, input: PathBuf, name_override: Opt
             description: None,
             config: None,
         };
-        let updated_model = services.model_service.update_model(model.id, update_input).await?;
+        let updated_model = services.model_service.update_model(model.id.clone(), update_input).await?;
         println!("Imported model as: {}", updated_model.name);
+        println!("Model ID: {}", updated_model.id);
+        println!("Entities: {}", updated_model.entities.len());
+        println!("Relationships: {}", updated_model.relationships.len());
+        println!("Flows: {}", updated_model.flows.len());
+        println!("Layouts: {}", updated_model.layouts.len());
     } else {
         println!("Imported model: {}", model.name);
+        println!("Model ID: {}", model.id);
+        println!("Entities: {}", model.entities.len());
+        println!("Relationships: {}", model.relationships.len());
+        println!("Flows: {}", model.flows.len());
+        println!("Layouts: {}", model.layouts.len());
     }
-    
-    println!("Model ID: {}", model.id);
-    println!("Entities: {}", model.entities.len());
-    println!("Relationships: {}", model.relationships.len());
-    println!("Flows: {}", model.flows.len());
-    println!("Layouts: {}", model.layouts.len());
     
     Ok(())
 }
@@ -420,7 +424,7 @@ async fn handle_model_delete(config: &Config, model_id: String) -> Result<()> {
         .map_err(|_| anyhow::anyhow!("Invalid model ID format"))?;
     
     // Get model info before deletion
-    let model = services.model_service.get_model(uuid).await?
+    let model = services.model_service.get_model(uuid.clone()).await?
         .ok_or_else(|| anyhow::anyhow!("Model not found"))?;
     
     let deleted = services.model_service.delete_model(uuid).await?;

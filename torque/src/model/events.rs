@@ -102,7 +102,7 @@ impl ModelChangeEvent {
     /// Create a new model created event
     pub fn model_created(model: TorqueModel) -> Self {
         Self::ModelCreated {
-            model_id: model.id,
+            model_id: model.id.clone(),
             model,
             timestamp: UtcDateTime::now(),
         }
@@ -111,7 +111,7 @@ impl ModelChangeEvent {
     /// Create a new model updated event
     pub fn model_updated(model: TorqueModel) -> Self {
         Self::ModelUpdated {
-            model_id: model.id,
+            model_id: model.id.clone(),
             model,
             timestamp: UtcDateTime::now(),
         }
@@ -236,42 +236,42 @@ impl ModelChangeEvent {
     /// Get the model ID associated with this event
     pub fn model_id(&self) -> Uuid {
         match self {
-            Self::ModelCreated { model_id, .. } => *model_id,
-            Self::ModelUpdated { model_id, .. } => *model_id,
-            Self::ModelDeleted { model_id, .. } => *model_id,
-            Self::EntityAdded { model_id, .. } => *model_id,
-            Self::EntityUpdated { model_id, .. } => *model_id,
-            Self::EntityRemoved { model_id, .. } => *model_id,
-            Self::RelationshipAdded { model_id, .. } => *model_id,
-            Self::RelationshipUpdated { model_id, .. } => *model_id,
-            Self::RelationshipRemoved { model_id, .. } => *model_id,
-            Self::FlowAdded { model_id, .. } => *model_id,
-            Self::FlowUpdated { model_id, .. } => *model_id,
-            Self::FlowRemoved { model_id, .. } => *model_id,
-            Self::LayoutAdded { model_id, .. } => *model_id,
-            Self::LayoutUpdated { model_id, .. } => *model_id,
-            Self::LayoutRemoved { model_id, .. } => *model_id,
+            Self::ModelCreated { model_id, .. } => model_id.clone(),
+            Self::ModelUpdated { model_id, .. } => model_id.clone(),
+            Self::ModelDeleted { model_id, .. } => model_id.clone(),
+            Self::EntityAdded { model_id, .. } => model_id.clone(),
+            Self::EntityUpdated { model_id, .. } => model_id.clone(),
+            Self::EntityRemoved { model_id, .. } => model_id.clone(),
+            Self::RelationshipAdded { model_id, .. } => model_id.clone(),
+            Self::RelationshipUpdated { model_id, .. } => model_id.clone(),
+            Self::RelationshipRemoved { model_id, .. } => model_id.clone(),
+            Self::FlowAdded { model_id, .. } => model_id.clone(),
+            Self::FlowUpdated { model_id, .. } => model_id.clone(),
+            Self::FlowRemoved { model_id, .. } => model_id.clone(),
+            Self::LayoutAdded { model_id, .. } => model_id.clone(),
+            Self::LayoutUpdated { model_id, .. } => model_id.clone(),
+            Self::LayoutRemoved { model_id, .. } => model_id.clone(),
         }
     }
 
     /// Get the timestamp of this event
     pub fn timestamp(&self) -> UtcDateTime {
         match self {
-            Self::ModelCreated { timestamp, .. } => *timestamp,
-            Self::ModelUpdated { timestamp, .. } => *timestamp,
-            Self::ModelDeleted { timestamp, .. } => *timestamp,
-            Self::EntityAdded { timestamp, .. } => *timestamp,
-            Self::EntityUpdated { timestamp, .. } => *timestamp,
-            Self::EntityRemoved { timestamp, .. } => *timestamp,
-            Self::RelationshipAdded { timestamp, .. } => *timestamp,
-            Self::RelationshipUpdated { timestamp, .. } => *timestamp,
-            Self::RelationshipRemoved { timestamp, .. } => *timestamp,
-            Self::FlowAdded { timestamp, .. } => *timestamp,
-            Self::FlowUpdated { timestamp, .. } => *timestamp,
-            Self::FlowRemoved { timestamp, .. } => *timestamp,
-            Self::LayoutAdded { timestamp, .. } => *timestamp,
-            Self::LayoutUpdated { timestamp, .. } => *timestamp,
-            Self::LayoutRemoved { timestamp, .. } => *timestamp,
+            Self::ModelCreated { timestamp, .. } => timestamp.clone(),
+            Self::ModelUpdated { timestamp, .. } => timestamp.clone(),
+            Self::ModelDeleted { timestamp, .. } => timestamp.clone(),
+            Self::EntityAdded { timestamp, .. } => timestamp.clone(),
+            Self::EntityUpdated { timestamp, .. } => timestamp.clone(),
+            Self::EntityRemoved { timestamp, .. } => timestamp.clone(),
+            Self::RelationshipAdded { timestamp, .. } => timestamp.clone(),
+            Self::RelationshipUpdated { timestamp, .. } => timestamp.clone(),
+            Self::RelationshipRemoved { timestamp, .. } => timestamp.clone(),
+            Self::FlowAdded { timestamp, .. } => timestamp.clone(),
+            Self::FlowUpdated { timestamp, .. } => timestamp.clone(),
+            Self::FlowRemoved { timestamp, .. } => timestamp.clone(),
+            Self::LayoutAdded { timestamp, .. } => timestamp.clone(),
+            Self::LayoutUpdated { timestamp, .. } => timestamp.clone(),
+            Self::LayoutRemoved { timestamp, .. } => timestamp.clone(),
         }
     }
 

@@ -99,7 +99,7 @@ pub async fn get_entity(
     Path(id): Path<Uuid>,
     State(state): State<AppState>,
 ) -> Result<Json<EntityResponse>, StatusCode> {
-    match state.services.entity_service.get_entity(id).await {
+    match state.services.entity_service.get_entity(id.clone()).await {
         Ok(Some(entity)) => {
             let response = EntityResponse {
                 id: entity.id,
@@ -126,7 +126,7 @@ pub async fn update_entity(
     State(state): State<AppState>,
     Json(request): Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityResponse>, StatusCode> {
-    match state.services.entity_service.update_entity(id, request).await {
+    match state.services.entity_service.update_entity(id.clone(), request).await {
         Ok(Some(entity)) => {
             let response = EntityResponse {
                 id: entity.id,
@@ -152,7 +152,7 @@ pub async fn delete_entity(
     Path(id): Path<Uuid>,
     State(state): State<AppState>,
 ) -> Result<Json<Value>, StatusCode> {
-    match state.services.entity_service.delete_entity(id).await {
+    match state.services.entity_service.delete_entity(id.clone()).await {
         Ok(true) => {
             let response = json!({
                 "id": id,

@@ -23,6 +23,11 @@ impl UtcDateTime {
         &self.0
     }
 
+    /// Convert to chrono DateTime (consuming self)
+    pub fn into_chrono(self) -> DateTime<Utc> {
+        self.0
+    }
+
     /// Convert to ISO 8601 string
     pub fn to_iso8601(&self) -> String {
         self.0.to_rfc3339()

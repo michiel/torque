@@ -62,7 +62,7 @@ async fn test_cache_operations() {
     assert!(cache.get_entity(&test_id).is_none());
     
     // Test cache set and hit
-    cache.set_entity(test_id, test_data.clone());
+    cache.set_entity(test_id.clone(), test_data.clone());
     assert_eq!(cache.get_entity(&test_id), Some(test_data));
     
     // Test cache stats
@@ -115,7 +115,7 @@ async fn test_entity_service() {
     assert_eq!(entity.entity_type, "test_entity");
     
     // Test entity retrieval
-    let retrieved = services.entity_service.get_entity(entity.id).await.unwrap();
+    let retrieved = services.entity_service.get_entity(entity.id.clone()).await.unwrap();
     assert!(retrieved.is_some());
     
     // Test entity update
@@ -123,13 +123,13 @@ async fn test_entity_service() {
         data: serde_json::json!({"name": "updated", "value": 456}),
     };
     
-    let updated = services.entity_service.update_entity(entity.id, update_request).await.unwrap();
+    let updated = services.entity_service.update_entity(entity.id.clone(), update_request).await.unwrap();
     assert!(updated.is_some());
     let updated_entity = updated.unwrap();
     assert_eq!(updated_entity.data["name"], "updated");
     
     // Test entity deletion
-    let deleted = services.entity_service.delete_entity(entity.id).await.unwrap();
+    let deleted = services.entity_service.delete_entity(entity.id.clone()).await.unwrap();
     assert!(deleted);
     
     // Verify entity is gone

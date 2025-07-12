@@ -64,11 +64,11 @@ impl EntityService {
         
         // Create entity model (placeholder - would use actual sea-orm entity)
         let entity = Entity {
-            id,
+            id: id.clone(),
             application_id: request.application_id,
             entity_type: request.entity_type,
             data: request.data,
-            created_at: now,
+            created_at: now.clone(),
             updated_at: now,
         };
 
@@ -78,7 +78,7 @@ impl EntityService {
 
         // Cache the entity immediately
         let cache_data = serde_json::to_value(&entity).map_err(Error::Serialization)?;
-        self.cache.set_entity(id, cache_data);
+        self.cache.set_entity(id.clone(), cache_data);
 
         // Record metrics
         self.metrics.record_request_time(start.elapsed());
@@ -125,7 +125,7 @@ impl EntityService {
         let start = Instant::now();
 
         // Get existing entity
-        let existing = self.get_entity(id).await?;
+        let existing = self.get_entity(id.clone()).await?;
         let mut entity = match existing {
             Some(e) => e,
             None => return Ok(None),
@@ -140,7 +140,7 @@ impl EntityService {
 
         // Update cache
         let cache_data = serde_json::to_value(&entity).map_err(Error::Serialization)?;
-        self.cache.set_entity(id, cache_data);
+        self.cache.set_entity(id.clone(), cache_data);
 
         // Invalidate related query caches
         self.invalidate_query_cache(&entity.application_id, &entity.entity_type);
@@ -162,7 +162,7 @@ impl EntityService {
         let start = Instant::now();
 
         // Get entity for cleanup
-        let entity = self.get_entity(id).await?;
+        let entity = self.get_entity(id.clone()).await?;
         let exists = entity.is_some();
 
         if exists {
@@ -295,7 +295,7 @@ impl EntityService {
         // Create deterministic cache key from query parameters
         let mut key_parts = Vec::new();
         
-        if let Some(app_id) = query.application_id {
+        if let Some(ref app_id) = query.application_id {
             key_parts.push(format!("app:{}", app_id));
         }
         if let Some(entity_type) = &query.entity_type {

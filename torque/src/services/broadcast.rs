@@ -181,8 +181,8 @@ impl BroadcastService {
             // Check model filter
             let clients = self.clients.read().await;
             if let Some(client) = clients.get(client_id) {
-                if let Some(filter_model) = client.model_filter {
-                    if filter_model != message.event.model_id() {
+                if let Some(ref filter_model) = client.model_filter {
+                    if *filter_model != message.event.model_id() {
                         debug!("Skipping client {} due to model filter", client_id);
                         continue;
                     }

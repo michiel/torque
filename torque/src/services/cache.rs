@@ -210,7 +210,7 @@ mod tests {
         assert!(cache.get_entity(&id).is_none());
         
         // Test set and hit
-        cache.set_entity(id, data.clone());
+        cache.set_entity(id.clone(), data.clone());
         assert_eq!(cache.get_entity(&id), Some(data));
         
         // Test stats
