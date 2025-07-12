@@ -76,7 +76,7 @@ impl ModelService {
 
     /// Get all models with caching
     pub async fn get_models(&self) -> Result<Vec<TorqueModel>, Error> {
-        use sea_orm::{EntityTrait, DbErr};
+        use sea_orm::DbErr;
         
         // Try to get from database first
         match self.get_models_from_db().await {

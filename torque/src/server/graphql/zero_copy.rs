@@ -53,24 +53,28 @@ impl ModelWrapper {
             .collect()
     }
 
-    async fn relationships(&self) -> serde_json::Value {
-        // Return relationships as JSON to avoid complex conversions
-        serde_json::to_value(&self.inner.relationships).unwrap_or_default()
+    async fn relationships(&self) -> Vec<RelationshipWrapper> {
+        self.inner.relationships.iter()
+            .map(|r| RelationshipWrapper { inner: r.clone() })
+            .collect()
     }
 
-    async fn flows(&self) -> serde_json::Value {
-        // Return flows as JSON to avoid complex conversions
-        serde_json::to_value(&self.inner.flows).unwrap_or_default()
+    async fn flows(&self) -> Vec<FlowWrapper> {
+        self.inner.flows.iter()
+            .map(|f| FlowWrapper { inner: f.clone() })
+            .collect()
     }
 
-    async fn layouts(&self) -> serde_json::Value {
-        // Return layouts as JSON to avoid complex conversions
-        serde_json::to_value(&self.inner.layouts).unwrap_or_default()
+    async fn layouts(&self) -> Vec<LayoutWrapper> {
+        self.inner.layouts.iter()
+            .map(|l| LayoutWrapper { inner: l.clone() })
+            .collect()
     }
 
-    async fn validations(&self) -> serde_json::Value {
-        // Return validations as JSON to avoid complex conversions
-        serde_json::to_value(&self.inner.validations).unwrap_or_default()
+    async fn validations(&self) -> Vec<ValidationWrapper> {
+        self.inner.validations.iter()
+            .map(|v| ValidationWrapper { inner: v.clone() })
+            .collect()
     }
 }
 
@@ -178,6 +182,148 @@ impl FieldWrapper {
 
     async fn ui_config(&self) -> serde_json::Value {
         serde_json::to_value(&self.inner.ui_config).unwrap_or_default()
+    }
+}
+
+pub struct RelationshipWrapper {
+    pub inner: model::ModelRelationship,
+}
+
+#[Object]
+impl RelationshipWrapper {
+    async fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    async fn name(&self) -> &str {
+        &self.inner.name
+    }
+
+    async fn relationship_type(&self) -> String {
+        format!("{:?}", self.inner.relationship_type)
+    }
+
+    async fn from_entity(&self) -> String {
+        self.inner.from_entity.to_string()
+    }
+
+    async fn to_entity(&self) -> String {
+        self.inner.to_entity.to_string()
+    }
+
+    async fn from_field(&self) -> &str {
+        &self.inner.from_field
+    }
+
+    async fn to_field(&self) -> &str {
+        &self.inner.to_field
+    }
+
+    async fn cascade(&self) -> String {
+        format!("{:?}", self.inner.cascade)
+    }
+
+    async fn ui_config(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.ui_config).unwrap_or_default()
+    }
+}
+
+pub struct FlowWrapper {
+    pub inner: model::ModelFlow,
+}
+
+#[Object]
+impl FlowWrapper {
+    async fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    async fn name(&self) -> &str {
+        &self.inner.name
+    }
+
+    async fn flow_type(&self) -> String {
+        format!("{:?}", self.inner.flow_type)
+    }
+
+    async fn trigger(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.trigger).unwrap_or_default()
+    }
+
+    async fn steps(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.steps).unwrap_or_default()
+    }
+
+    async fn error_handling(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.error_handling).unwrap_or_default()
+    }
+}
+
+pub struct LayoutWrapper {
+    pub inner: model::ModelLayout,
+}
+
+#[Object]
+impl LayoutWrapper {
+    async fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    async fn name(&self) -> &str {
+        &self.inner.name
+    }
+
+    async fn layout_type(&self) -> String {
+        format!("{:?}", self.inner.layout_type)
+    }
+
+    async fn target_entities(&self) -> Vec<String> {
+        self.inner.target_entities.iter()
+            .map(|id| id.to_string())
+            .collect()
+    }
+
+    async fn components(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.components).unwrap_or_default()
+    }
+
+    async fn responsive(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.responsive).unwrap_or_default()
+    }
+}
+
+pub struct ValidationWrapper {
+    pub inner: model::ModelValidation,
+}
+
+#[Object]
+impl ValidationWrapper {
+    async fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    async fn name(&self) -> &str {
+        &self.inner.name
+    }
+
+    async fn validation_type(&self) -> String {
+        format!("{:?}", self.inner.validation_type)
+    }
+
+    async fn scope(&self) -> String {
+        format!("{:?}", self.inner.scope)
+    }
+
+    async fn rule(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.rule).unwrap_or_default()
+    }
+
+    async fn message(&self) -> &str {
+        &self.inner.message
+    }
+
+    async fn severity(&self) -> String {
+        format!("{:?}", self.inner.severity)
     }
 }
 
