@@ -46,7 +46,11 @@ export const LayoutEditorPage: React.FC = () => {
 
   // Transform loaded layout data to LayoutEditor format
   useEffect(() => {
+    console.log('Layout data effect triggered:', { layout, layoutId });
+    
     if (layout && layout.components) {
+      console.log('Layout components to transform:', layout.components);
+      
       const transformedComponents: LayoutEditorComponent[] = layout.components.map((comp: any) => ({
         id: comp.id,
         type: comp.componentType,
@@ -61,15 +65,27 @@ export const LayoutEditorPage: React.FC = () => {
         entityBinding: comp.properties?.entityId || null
       }));
       
+      console.log('Transformed components:', transformedComponents);
       setInitialComponents(transformedComponents);
     } else if (!layoutId) {
       // Clear components for new layout
+      console.log('Clearing components for new layout');
       setInitialComponents([]);
+    } else {
+      console.log('No layout data to transform');
     }
   }, [layout, layoutId]);
 
   const handleSave = async (components: LayoutEditorComponent[]) => {
-    if (!modelId) return;
+    if (!modelId) {
+      console.error('No modelId provided');
+      return;
+    }
+
+    console.log('Starting save with components:', components);
+    console.log('ModelId:', modelId, 'LayoutId:', layoutId);
+    console.log('Layout:', layout);
+    console.log('Model:', model);
 
     setIsLoading(true);
     try {
@@ -82,10 +98,12 @@ export const LayoutEditorPage: React.FC = () => {
         )
       );
 
+      console.log('Target entities:', targetEntities);
+
       // Convert components to GraphQL LayoutComponent format
       const layoutData = {
         name: layoutId ? layout?.name || `${model?.name} Layout` : 'New Layout',
-        layoutType: 'Custom', // Try Custom as fallback
+        layoutType: layoutId && layout?.layoutType ? layout.layoutType : 'List', // Preserve existing type or try List as simplest
         modelId,
         targetEntities,
         components: components.map(component => ({
@@ -95,7 +113,7 @@ export const LayoutEditorPage: React.FC = () => {
           properties: component.configuration || {},
           styling: {} // Default empty styling
         })),
-        responsive: {
+        responsive: layout?.responsive || {
           breakpoints: [
             { name: 'mobile', minWidth: 0, columns: 1 },
             { name: 'tablet', minWidth: 768, columns: 2 },
@@ -103,6 +121,8 @@ export const LayoutEditorPage: React.FC = () => {
           ]
         }
       };
+
+      console.log('Layout data before save:', JSON.stringify(layoutData, null, 2));
 
       if (layoutId) {
         // Update existing layout
@@ -140,7 +160,7 @@ export const LayoutEditorPage: React.FC = () => {
       }
     } catch (error) {
       // Log the exact payload being sent for debugging
-      console.error('Layout save failed with payload:', layoutData);
+      console.error('Layout save failed with payload:', JSON.stringify(layoutData, null, 2));
       console.error('Failed to save layout:', error);
       
       notifications.show({
