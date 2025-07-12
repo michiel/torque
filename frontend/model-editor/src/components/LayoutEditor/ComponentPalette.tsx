@@ -19,7 +19,9 @@ import {
   IconSearch,
 } from '@tabler/icons-react';
 import { useDraggable } from '@dnd-kit/core';
-import { ComponentPaletteItem, ComponentType } from './types';
+import { ComponentType } from './types';
+import { useComponentRegistry } from '../../hooks/useComponentRegistry';
+import { ComponentPlugin } from './ComponentRegistry';
 
 interface ComponentPaletteProps {
   onComponentSelect?: (type: ComponentType) => void;
@@ -27,56 +29,13 @@ interface ComponentPaletteProps {
   onSearchChange?: (query: string) => void;
 }
 
-const COMPONENT_PALETTE_ITEMS: ComponentPaletteItem[] = [
-  {
-    type: 'DataGrid',
-    icon: 'table',
-    label: 'Data Grid',
-    description: 'Display and manage entity data in a table format',
-    category: 'data'
-  },
-  {
-    type: 'TorqueForm',
-    icon: 'forms',
-    label: 'Form',
-    description: 'Create and edit entity instances with validation',
-    category: 'forms'
-  },
-  {
-    type: 'TorqueButton',
-    icon: 'click',
-    label: 'Button',
-    description: 'Interactive button with configurable actions',
-    category: 'actions'
-  },
-  {
-    type: 'Text',
-    icon: 'typography',
-    label: 'Text',
-    description: 'Display formatted text content',
-    category: 'layout'
-  },
-  {
-    type: 'Container',
-    icon: 'box',
-    label: 'Container',
-    description: 'Layout container for organizing components',
-    category: 'layout'
-  },
-  {
-    type: 'Modal',
-    icon: 'modal',
-    label: 'Modal',
-    description: 'Overlay dialog for forms and detailed views',
-    category: 'actions'
-  }
-];
-
 const CATEGORY_LABELS = {
   data: 'Data Components',
   forms: 'Form Components',
   layout: 'Layout Components',
-  actions: 'Action Components'
+  actions: 'Action Components',
+  media: 'Media Components',
+  custom: 'Custom Components'
 };
 
 const getComponentIcon = (iconName: string) => {
@@ -92,7 +51,7 @@ const getComponentIcon = (iconName: string) => {
 };
 
 interface DraggableComponentItemProps {
-  item: ComponentPaletteItem;
+  item: ComponentPlugin;
   onClick?: () => void;
 }
 
@@ -157,19 +116,21 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
   searchQuery = '',
   onSearchChange
 }) => {
+  const { plugins } = useComponentRegistry();
+
   const filteredItems = React.useMemo(() => {
-    if (!searchQuery) return COMPONENT_PALETTE_ITEMS;
+    if (!searchQuery) return plugins;
     
     const query = searchQuery.toLowerCase();
-    return COMPONENT_PALETTE_ITEMS.filter(item =>
+    return plugins.filter(item =>
       item.label.toLowerCase().includes(query) ||
       item.description.toLowerCase().includes(query) ||
       item.category.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [searchQuery, plugins]);
 
   const itemsByCategory = React.useMemo(() => {
-    const categories: Record<string, ComponentPaletteItem[]> = {};
+    const categories: Record<string, ComponentPlugin[]> = {};
     filteredItems.forEach(item => {
       if (!categories[item.category]) {
         categories[item.category] = [];

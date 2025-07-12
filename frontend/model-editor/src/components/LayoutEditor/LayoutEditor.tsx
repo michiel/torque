@@ -35,6 +35,7 @@ import {
   ComponentConfiguration,
   ValidationResult
 } from './types';
+import { useComponentRegistry } from '../../hooks/useComponentRegistry';
 
 interface LayoutEditorProps {
   modelId: string;
@@ -44,7 +45,22 @@ interface LayoutEditorProps {
   entities?: Array<{ id: string; name: string; displayName: string; fields: any[] }>;
 }
 
-const createDefaultConfiguration = (type: ComponentType): ComponentConfiguration => {
+// Helper function to create default configuration using plugin registry
+const createDefaultConfigurationFromPlugin = (
+  type: ComponentType, 
+  getPluginById: (id: string) => any
+): ComponentConfiguration => {
+  // Find plugin by type
+  const plugin = getPluginById(type.toLowerCase()) || 
+                 getPluginById('datagrid') || // fallback for DataGrid
+                 getPluginById('torqueform') || // fallback for TorqueForm 
+                 getPluginById('torquebutton'); // fallback for TorqueButton
+  
+  if (plugin && plugin.defaultConfiguration) {
+    return plugin.defaultConfiguration;
+  }
+
+  // Fallback to original implementation if plugin not found
   switch (type) {
     case 'DataGrid':
       return {
@@ -152,6 +168,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   onPreview,
   entities = []
 }) => {
+  const { getById } = useComponentRegistry();
   const [components, setComponents] = useState<LayoutEditorComponent[]>([]);
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -214,7 +231,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
           column: targetColumn,
           ...size
         },
-        configuration: createDefaultConfiguration(componentType),
+        configuration: createDefaultConfigurationFromPlugin(componentType, getById),
         validation: []
       };
 
