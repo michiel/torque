@@ -85,7 +85,7 @@ export const LayoutEditorPage: React.FC = () => {
       // Convert components to GraphQL LayoutComponent format
       const layoutData = {
         name: layoutId ? layout?.name || `${model?.name} Layout` : 'New Layout',
-        layoutType: LayoutType.Dashboard, // Default to Dashboard for component-based layouts
+        layoutType: 'Custom', // Try Custom as fallback
         modelId,
         targetEntities,
         components: components.map(component => ({
@@ -139,12 +139,15 @@ export const LayoutEditorPage: React.FC = () => {
         }
       }
     } catch (error) {
+      // Log the exact payload being sent for debugging
+      console.error('Layout save failed with payload:', layoutData);
+      console.error('Failed to save layout:', error);
+      
       notifications.show({
         title: 'Save Failed',
-        message: 'Failed to save layout. Please try again.',
+        message: `Failed to save layout: ${error.message}`,
         color: 'red'
       });
-      console.error('Failed to save layout:', error);
     } finally {
       setIsLoading(false);
     }
