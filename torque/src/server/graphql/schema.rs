@@ -3,7 +3,7 @@ use async_graphql::{
 };
 use futures_util::Stream;
 use serde_json::Value;
-use uuid::Uuid;
+use crate::common::Uuid;
 
 use crate::model::types::*;
 use crate::server::AppState;
@@ -178,7 +178,7 @@ impl Mutation {
                     FieldTypeEnum::Json => crate::model::types::FieldType::Json,
                     FieldTypeEnum::Binary => crate::model::types::FieldType::Binary,
                     FieldTypeEnum::Enum => crate::model::types::FieldType::Enum { values: vec![] },
-                    FieldTypeEnum::Reference => crate::model::types::FieldType::Reference { entity_id: uuid::Uuid::new_v4() },
+                    FieldTypeEnum::Reference => crate::model::types::FieldType::Reference { entity_id: Uuid::new_v4() },
                     FieldTypeEnum::Array => crate::model::types::FieldType::Array { element_type: Box::new(crate::model::types::FieldType::String { max_length: None }) },
                 },
                 required: f.required,
@@ -906,8 +906,8 @@ impl From<TorqueModel> for Model {
             name: model.name,
             description: model.description,
             version: model.version,
-            created_at: model.created_at.to_rfc3339(),
-            updated_at: model.updated_at.to_rfc3339(),
+            created_at: model.created_at.to_iso8601(),
+            updated_at: model.updated_at.to_iso8601(),
             created_by: model.created_by,
             config: serde_json::to_value(model.config).unwrap_or_default(),
             entities: model.entities.into_iter().map(Entity::from).collect(),

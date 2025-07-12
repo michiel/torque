@@ -1,6 +1,5 @@
+use crate::common::{Uuid, UtcDateTime};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 /// Core model definition representing a complete application model
@@ -10,8 +9,8 @@ pub struct TorqueModel {
     pub name: String,
     pub description: Option<String>,
     pub version: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: UtcDateTime,
+    pub updated_at: UtcDateTime,
     pub created_by: String,
     
     // Model configuration

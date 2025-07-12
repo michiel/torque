@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
+use crate::common::Uuid;
+use crate::common::UtcDateTime;
+use chrono::Utc;
 use dashmap::DashMap;
 use serde_json::Value;
 use tracing;
@@ -24,7 +25,7 @@ pub struct ModelService {
 #[derive(Clone)]
 pub struct CacheEntry<T> {
     pub data: T,
-    pub created_at: DateTime<Utc>,
+    pub created_at: UtcDateTime,
     pub ttl_seconds: u64,
 }
 
@@ -337,7 +338,7 @@ impl ModelService {
 
         // Add entity to model
         model.entities.push(entity.clone());
-        model.updated_at = chrono::Utc::now();
+        model.updated_at = UtcDateTime::now();
 
         // Update cache with modified model
         self.model_cache.insert(
@@ -397,7 +398,7 @@ impl ModelService {
         }
 
         // Update model timestamp
-        model.updated_at = chrono::Utc::now();
+        model.updated_at = UtcDateTime::now();
 
         // Get the updated entity for returning
         let updated_entity = model.entities[entity_index].clone();
@@ -453,7 +454,7 @@ impl ModelService {
 
         // Add relationship to model
         model.relationships.push(relationship.clone());
-        model.updated_at = chrono::Utc::now();
+        model.updated_at = UtcDateTime::now();
 
         // Update cache with modified model
         self.model_cache.insert(
@@ -502,7 +503,7 @@ impl ModelService {
 
         // Add flow to model
         model.flows.push(flow.clone());
-        model.updated_at = chrono::Utc::now();
+        model.updated_at = UtcDateTime::now();
 
         // Update cache with modified model
         self.model_cache.insert(
@@ -557,7 +558,7 @@ impl ModelService {
 
         // Add layout to model
         model.layouts.push(layout.clone());
-        model.updated_at = chrono::Utc::now();
+        model.updated_at = UtcDateTime::now();
 
         // Update cache with modified model
         self.model_cache.insert(
@@ -724,9 +725,9 @@ impl ModelService {
         };
         
         // Create a basic model structure
-        let now = chrono::Utc::now();
+        let now = UtcDateTime::now();
         let model = TorqueModel {
-            id: uuid::Uuid::new_v4(),
+            id: Uuid::new_v4(),
             name,
             description,
             version,
@@ -814,7 +815,7 @@ impl ModelService {
         };
         
         Ok(ModelEntity {
-            id: uuid::Uuid::new_v4(),
+            id: Uuid::new_v4(),
             name,
             display_name,
             description,
@@ -856,7 +857,7 @@ impl ModelService {
         };
         
         Ok(EntityField {
-            id: uuid::Uuid::new_v4(),
+            id: Uuid::new_v4(),
             name,
             display_name,
             field_type,
@@ -908,7 +909,7 @@ impl ModelService {
             "Reference" => {
                 let entity_name = field_type_data.get("entity").and_then(|v| v.as_str()).unwrap_or("");
                 // For now, use a dummy UUID - in a real implementation, we'd need to resolve entity names to IDs
-                Ok(FieldType::Reference { entity_id: uuid::Uuid::new_v4() })
+                Ok(FieldType::Reference { entity_id: Uuid::new_v4() })
             }
             "Array" => {
                 let element_type = field_type_data.get("element_type")
@@ -953,7 +954,7 @@ impl ModelService {
             "PrimaryKey" => ConstraintType::PrimaryKey,
             "UniqueKey" => ConstraintType::UniqueKey,
             "ForeignKey" => ConstraintType::ForeignKey { 
-                reference_entity: uuid::Uuid::new_v4(),
+                reference_entity: Uuid::new_v4(),
                 reference_field: "id".to_string(),
             },
             "Check" => ConstraintType::Check("".to_string()),
@@ -1013,9 +1014,9 @@ impl ModelService {
         
         // Find entity IDs by name
         let from_entity = entities.iter().find(|e| e.name == from_entity_name)
-            .map(|e| e.id).unwrap_or_else(|| uuid::Uuid::new_v4());
+            .map(|e| e.id).unwrap_or_else(|| Uuid::new_v4());
         let to_entity = entities.iter().find(|e| e.name == to_entity_name)
-            .map(|e| e.id).unwrap_or_else(|| uuid::Uuid::new_v4());
+            .map(|e| e.id).unwrap_or_else(|| Uuid::new_v4());
         
         let from_field = rel_data["from_field"].as_str().unwrap_or("").to_string();
         let to_field = rel_data["to_field"].as_str().unwrap_or("").to_string();
@@ -1035,7 +1036,7 @@ impl ModelService {
         };
         
         Ok(ModelRelationship {
-            id: uuid::Uuid::new_v4(),
+            id: Uuid::new_v4(),
             name,
             relationship_type,
             from_entity,
@@ -1060,7 +1061,7 @@ impl ModelService {
         };
         
         let trigger = FlowTrigger::EntityEvent {
-            entity_id: uuid::Uuid::new_v4(),
+            entity_id: Uuid::new_v4(),
             event: LifecycleEvent::AfterUpdate,
         };
         let error_handling = ErrorHandling {
@@ -1079,7 +1080,7 @@ impl ModelService {
         };
         
         Ok(ModelFlow {
-            id: uuid::Uuid::new_v4(),
+            id: Uuid::new_v4(),
             name,
             flow_type,
             trigger,
@@ -1112,7 +1113,7 @@ impl ModelService {
         };
         
         Ok(FlowStep {
-            id: uuid::Uuid::new_v4(),
+            id: Uuid::new_v4(),
             name,
             step_type,
             condition,
@@ -1134,7 +1135,7 @@ impl ModelService {
         };
         
         let target_entities = layout_data["target_entities"].as_array()
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| uuid::Uuid::new_v4())).collect())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| Uuid::new_v4())).collect())
             .unwrap_or_default();
         
         let responsive = ResponsiveLayout {
@@ -1152,7 +1153,7 @@ impl ModelService {
         };
         
         Ok(ModelLayout {
-            id: uuid::Uuid::new_v4(),
+            id: Uuid::new_v4(),
             name,
             layout_type,
             target_entities,
@@ -1182,7 +1183,7 @@ impl ModelService {
         };
         
         Ok(LayoutComponent {
-            id: uuid::Uuid::new_v4(),
+            id: Uuid::new_v4(),
             component_type,
             position,
             properties,

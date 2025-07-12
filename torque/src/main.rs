@@ -340,7 +340,7 @@ async fn handle_model_create(config: &Config, name: String, description: Option<
 }
 
 async fn handle_model_export(config: &Config, model_id: String, output: PathBuf) -> Result<()> {
-    use uuid::Uuid;
+    use torque::common::Uuid;
     use std::io::Write;
     
     let db = database::setup_database(config).await?;
@@ -411,7 +411,7 @@ async fn handle_model_import(config: &Config, input: PathBuf, name_override: Opt
 }
 
 async fn handle_model_delete(config: &Config, model_id: String) -> Result<()> {
-    use uuid::Uuid;
+    use torque::common::Uuid;
     
     let db = database::setup_database(config).await?;
     let services = Arc::new(ServiceRegistry::new(db, config.clone()).await?);

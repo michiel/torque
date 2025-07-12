@@ -19,11 +19,11 @@ pub fn health_routes() -> Router<AppState> {
 
 /// Route utilities and helpers
 pub mod utils {
-    use uuid::Uuid;
+    use crate::common::Uuid;
     
     /// Validate UUID path parameter
     pub fn validate_uuid(id: &str) -> Result<Uuid, String> {
-        Uuid::parse_str(id).map_err(|_| "Invalid UUID format".to_string())
+        Uuid::parse(id).map_err(|_| "Invalid UUID format".to_string())
     }
     
     /// Extract pagination parameters
@@ -37,7 +37,7 @@ pub mod utils {
 #[cfg(test)]
 mod tests {
     use super::utils::*;
-    use uuid::Uuid;
+    use crate::common::Uuid;
 
     #[test]
     fn test_validate_uuid() {

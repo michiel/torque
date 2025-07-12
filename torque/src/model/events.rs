@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
+use crate::common::Uuid;
+use crate::common::UtcDateTime;
 use crate::model::types::TorqueModel;
 
 /// Event types for model changes
@@ -11,90 +11,90 @@ pub enum ModelChangeEvent {
     ModelCreated {
         model_id: Uuid,
         model: TorqueModel,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A model was updated
     ModelUpdated {
         model_id: Uuid,
         model: TorqueModel,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A model was deleted
     ModelDeleted {
         model_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// An entity was added to a model
     EntityAdded {
         model_id: Uuid,
         entity_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// An entity was updated in a model
     EntityUpdated {
         model_id: Uuid,
         entity_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// An entity was removed from a model
     EntityRemoved {
         model_id: Uuid,
         entity_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A relationship was added to a model
     RelationshipAdded {
         model_id: Uuid,
         relationship_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A relationship was updated in a model
     RelationshipUpdated {
         model_id: Uuid,
         relationship_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A relationship was removed from a model
     RelationshipRemoved {
         model_id: Uuid,
         relationship_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A flow was added to a model
     FlowAdded {
         model_id: Uuid,
         flow_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A flow was updated in a model
     FlowUpdated {
         model_id: Uuid,
         flow_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A flow was removed from a model
     FlowRemoved {
         model_id: Uuid,
         flow_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A layout was added to a model
     LayoutAdded {
         model_id: Uuid,
         layout_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A layout was updated in a model
     LayoutUpdated {
         model_id: Uuid,
         layout_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
     /// A layout was removed from a model
     LayoutRemoved {
         model_id: Uuid,
         layout_id: Uuid,
-        timestamp: DateTime<Utc>,
+        timestamp: UtcDateTime,
     },
 }
 
@@ -104,7 +104,7 @@ impl ModelChangeEvent {
         Self::ModelCreated {
             model_id: model.id,
             model,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -113,7 +113,7 @@ impl ModelChangeEvent {
         Self::ModelUpdated {
             model_id: model.id,
             model,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -121,7 +121,7 @@ impl ModelChangeEvent {
     pub fn model_deleted(model_id: Uuid) -> Self {
         Self::ModelDeleted {
             model_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -130,7 +130,7 @@ impl ModelChangeEvent {
         Self::EntityAdded {
             model_id,
             entity_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -139,7 +139,7 @@ impl ModelChangeEvent {
         Self::EntityUpdated {
             model_id,
             entity_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -148,7 +148,7 @@ impl ModelChangeEvent {
         Self::EntityRemoved {
             model_id,
             entity_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -157,7 +157,7 @@ impl ModelChangeEvent {
         Self::RelationshipAdded {
             model_id,
             relationship_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -166,7 +166,7 @@ impl ModelChangeEvent {
         Self::RelationshipUpdated {
             model_id,
             relationship_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -175,7 +175,7 @@ impl ModelChangeEvent {
         Self::RelationshipRemoved {
             model_id,
             relationship_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -184,7 +184,7 @@ impl ModelChangeEvent {
         Self::FlowAdded {
             model_id,
             flow_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -193,7 +193,7 @@ impl ModelChangeEvent {
         Self::FlowUpdated {
             model_id,
             flow_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -202,7 +202,7 @@ impl ModelChangeEvent {
         Self::FlowRemoved {
             model_id,
             flow_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -211,7 +211,7 @@ impl ModelChangeEvent {
         Self::LayoutAdded {
             model_id,
             layout_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -220,7 +220,7 @@ impl ModelChangeEvent {
         Self::LayoutUpdated {
             model_id,
             layout_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -229,7 +229,7 @@ impl ModelChangeEvent {
         Self::LayoutRemoved {
             model_id,
             layout_id,
-            timestamp: Utc::now(),
+            timestamp: UtcDateTime::now(),
         }
     }
 
@@ -255,7 +255,7 @@ impl ModelChangeEvent {
     }
 
     /// Get the timestamp of this event
-    pub fn timestamp(&self) -> DateTime<Utc> {
+    pub fn timestamp(&self) -> UtcDateTime {
         match self {
             Self::ModelCreated { timestamp, .. } => *timestamp,
             Self::ModelUpdated { timestamp, .. } => *timestamp,

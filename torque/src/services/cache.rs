@@ -2,7 +2,7 @@ use crate::Config;
 use dashmap::DashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use uuid::Uuid;
+use crate::common::Uuid;
 use parking_lot::RwLock;
 
 #[derive(Debug, Clone)]

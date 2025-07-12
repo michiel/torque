@@ -7,7 +7,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use uuid::Uuid;
+use crate::common::{Uuid, UtcDateTime};
 
 #[derive(Debug, Deserialize)]
 pub struct ListEntitiesQuery {
@@ -49,15 +49,15 @@ pub async fn list_entities(
                     application_id: e.application_id,
                     entity_type: e.entity_type,
                     data: e.data,
-                    created_at: e.created_at.to_rfc3339(),
-                    updated_at: e.updated_at.to_rfc3339(),
+                    created_at: e.created_at.to_iso8601(),
+                    updated_at: e.updated_at.to_iso8601(),
                 })
                 .collect();
 
             let response = json!({
                 "entities": entity_responses,
                 "total": entity_responses.len(),
-                "timestamp": chrono::Utc::now().to_rfc3339()
+                "timestamp": UtcDateTime::now().to_iso8601()
             });
 
             Ok(Json(response))
@@ -81,8 +81,8 @@ pub async fn create_entity(
                 application_id: entity.application_id,
                 entity_type: entity.entity_type,
                 data: entity.data,
-                created_at: entity.created_at.to_rfc3339(),
-                updated_at: entity.updated_at.to_rfc3339(),
+                created_at: entity.created_at.to_iso8601(),
+                updated_at: entity.updated_at.to_iso8601(),
             };
 
             Ok(Json(response))
@@ -106,8 +106,8 @@ pub async fn get_entity(
                 application_id: entity.application_id,
                 entity_type: entity.entity_type,
                 data: entity.data,
-                created_at: entity.created_at.to_rfc3339(),
-                updated_at: entity.updated_at.to_rfc3339(),
+                created_at: entity.created_at.to_iso8601(),
+                updated_at: entity.updated_at.to_iso8601(),
             };
 
             Ok(Json(response))
@@ -133,8 +133,8 @@ pub async fn update_entity(
                 application_id: entity.application_id,
                 entity_type: entity.entity_type,
                 data: entity.data,
-                created_at: entity.created_at.to_rfc3339(),
-                updated_at: entity.updated_at.to_rfc3339(),
+                created_at: entity.created_at.to_iso8601(),
+                updated_at: entity.updated_at.to_iso8601(),
             };
 
             Ok(Json(response))
@@ -157,7 +157,7 @@ pub async fn delete_entity(
             let response = json!({
                 "id": id,
                 "deleted": true,
-                "timestamp": chrono::Utc::now().to_rfc3339()
+                "timestamp": UtcDateTime::now().to_iso8601()
             });
 
             Ok(Json(response))

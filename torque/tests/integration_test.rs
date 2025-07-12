@@ -55,7 +55,7 @@ async fn test_cache_operations() {
     let config = Config::default();
     let cache = torque::services::cache::CacheService::new(&config);
     
-    let test_id = uuid::Uuid::new_v4();
+    let test_id = torque::common::Uuid::new_v4();
     let test_data = serde_json::json!({"test": "data"});
     
     // Test cache miss
@@ -106,7 +106,7 @@ async fn test_entity_service() {
     
     // Test entity creation
     let request = torque::services::entity::CreateEntityRequest {
-        application_id: uuid::Uuid::new_v4(),
+        application_id: torque::common::Uuid::new_v4(),
         entity_type: "test_entity".to_string(),
         data: serde_json::json!({"name": "test", "value": 123}),
     };
@@ -148,7 +148,7 @@ async fn test_performance_requirements() {
     let start = std::time::Instant::now();
     
     let request = torque::services::entity::CreateEntityRequest {
-        application_id: uuid::Uuid::new_v4(),
+        application_id: torque::common::Uuid::new_v4(),
         entity_type: "perf_test".to_string(),
         data: serde_json::json!({"test": "performance"}),
     };

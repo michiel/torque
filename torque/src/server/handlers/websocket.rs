@@ -8,7 +8,7 @@ use axum::{
 use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 use tracing::{info, warn, error, debug};
-use uuid::Uuid;
+use crate::common::{Uuid, UtcDateTime};
 use std::sync::Arc;
 
 use crate::server::AppState;
@@ -174,8 +174,8 @@ pub async fn ping_websocket_clients(state: AppState) -> Result<()> {
         name: "Ping Test".to_string(),
         description: Some("WebSocket connectivity test".to_string()),
         version: "1.0.0".to_string(),
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
+        created_at: UtcDateTime::now(),
+        updated_at: UtcDateTime::now(),
         created_by: "system".to_string(),
         config: crate::model::types::ModelConfig::default(),
         entities: vec![],

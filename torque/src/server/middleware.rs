@@ -6,6 +6,7 @@ use axum::{
 };
 use std::time::Instant;
 use crate::server::AppState;
+use crate::common::Uuid;
 
 /// Request timing middleware - records request duration metrics
 pub async fn timing_middleware(
@@ -41,7 +42,7 @@ pub async fn request_id_middleware(
     mut request: Request,
     next: Next,
 ) -> Response {
-    let request_id = uuid::Uuid::new_v4().to_string();
+    let request_id = Uuid::new_v4().to_string();
     
     // Add request ID to headers for downstream services
     request.headers_mut().insert(
@@ -142,9 +143,9 @@ mod tests {
     async fn test_request_id_generation() {
         // This would need proper test setup with mock middleware stack
         // For now, just test that UUID generation works
-        let request_id = uuid::Uuid::new_v4().to_string();
+        let request_id = Uuid::new_v4().to_string();
         assert!(request_id.len() > 0);
-        assert!(uuid::Uuid::parse_str(&request_id).is_ok());
+        assert!(Uuid::parse(&request_id).is_ok());
     }
 
     #[test]

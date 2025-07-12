@@ -2,7 +2,7 @@ use crate::{Result, Error};
 use crate::services::{cache::CacheService, metrics::MetricsService};
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
-use uuid::Uuid;
+use crate::common::{Uuid, UtcDateTime};
 use serde::{Serialize, Deserialize};
 use std::time::Instant;
 use std::collections::HashMap;
@@ -13,8 +13,8 @@ pub struct Entity {
     pub application_id: Uuid,
     pub entity_type: String,
     pub data: serde_json::Value,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: UtcDateTime,
+    pub updated_at: UtcDateTime,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,7 +60,7 @@ impl EntityService {
         
         // Generate ID and timestamps
         let id = Uuid::new_v4();
-        let now = chrono::Utc::now();
+        let now = UtcDateTime::now();
         
         // Create entity model (placeholder - would use actual sea-orm entity)
         let entity = Entity {
@@ -133,7 +133,7 @@ impl EntityService {
 
         // Update entity
         entity.data = request.data;
-        entity.updated_at = chrono::Utc::now();
+        entity.updated_at = UtcDateTime::now();
 
         // TODO: Replace with actual sea-orm update
         tokio::time::sleep(tokio::time::Duration::from_millis(2)).await;

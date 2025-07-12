@@ -1,5 +1,6 @@
 // Core library modules for Torque platform
 
+pub mod common;
 pub mod config;
 pub mod database;
 pub mod entity;

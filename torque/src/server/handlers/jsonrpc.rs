@@ -6,7 +6,7 @@ use axum::{
     response::Json,
 };
 use serde_json::{json, Value};
-use uuid::Uuid;
+use crate::common::{Uuid, UtcDateTime};
 
 /// JSON-RPC endpoint handler for TorqueApp Runtime
 pub async fn jsonrpc_handler(
@@ -83,7 +83,7 @@ async fn dispatch_method(
         "getModelMetadata" => get_model_metadata(state, params).await,
         
         // Health and introspection
-        "ping" => Ok(json!({"status": "ok", "timestamp": chrono::Utc::now()})),
+        "ping" => Ok(json!({"status": "ok", "timestamp": UtcDateTime::now()})),
         "getCapabilities" => get_capabilities().await,
         
         _ => Err((-32601, format!("Method '{}' not found", method)))
@@ -101,7 +101,7 @@ async fn load_page(state: &AppState, params: &Value) -> Result<Value, (i32, Stri
         .unwrap_or("main");
     
     // Parse model ID
-    let model_uuid = Uuid::parse_str(model_id)
+    let model_uuid = Uuid::parse(model_id)
         .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
     
     // Get model from service
@@ -119,7 +119,7 @@ async fn load_page(state: &AppState, params: &Value) -> Result<Value, (i32, Stri
         "metadata": {
             "modelName": model.name,
             "modelVersion": model.version,
-            "loadedAt": chrono::Utc::now()
+            "loadedAt": UtcDateTime::now()
         }
     }))
 }
@@ -168,7 +168,7 @@ async fn get_form_definition(state: &AppState, params: &Value) -> Result<Value, 
         .ok_or((-32602, "Missing required parameter: entityName".to_string()))?;
     
     // Parse model ID
-    let model_uuid = Uuid::parse_str(model_id)
+    let model_uuid = Uuid::parse(model_id)
         .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
     
     // Get model from service
@@ -213,7 +213,7 @@ async fn create_entity(_state: &AppState, params: &Value) -> Result<Value, (i32,
         "modelId": model_id,
         "entityName": entity_name,
         "data": entity_data,
-        "createdAt": chrono::Utc::now()
+        "createdAt": UtcDateTime::now()
     }))
 }
 
@@ -231,7 +231,7 @@ async fn update_entity(_state: &AppState, params: &Value) -> Result<Value, (i32,
     Ok(json!({
         "id": entity_id,
         "data": entity_data,
-        "updatedAt": chrono::Utc::now()
+        "updatedAt": UtcDateTime::now()
     }))
 }
 
@@ -246,7 +246,7 @@ async fn delete_entity(_state: &AppState, params: &Value) -> Result<Value, (i32,
     Ok(json!({
         "id": entity_id,
         "deleted": true,
-        "deletedAt": chrono::Utc::now()
+        "deletedAt": UtcDateTime::now()
     }))
 }
 
@@ -322,7 +322,7 @@ async fn get_model_metadata(state: &AppState, params: &Value) -> Result<Value, (
         .ok_or((-32602, "Missing required parameter: modelId".to_string()))?;
     
     // Parse model ID
-    let model_uuid = Uuid::parse_str(model_id)
+    let model_uuid = Uuid::parse(model_id)
         .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
     
     // Get model from service

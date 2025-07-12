@@ -8,11 +8,12 @@ repository = "https://github.com/michiel/torque"
 authors = ["Torque Contributors"]
 
 [features]
-default = ["sqlite"]
+default = ["sqlite", "graphql"]
 sqlite = ["sea-orm/sqlx-sqlite"]
 postgres = ["sea-orm/sqlx-postgres"]
 simd = ["simd-json"]
 mimalloc = ["dep:mimalloc"]
+graphql = []
 
 [dependencies]
 # Core runtime - using workspace dependencies

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
-use uuid::Uuid;
+use crate::common::{Uuid, UtcDateTime};
 use axum::extract::ws::{WebSocket, Message};
 use futures_util::{stream::SplitSink, SinkExt};
 use tracing::{info, warn, debug, error};
@@ -17,7 +17,7 @@ const BROADCAST_CHANNEL_SIZE: usize = 1000;
 #[derive(Debug, Clone)]
 pub struct WebSocketClient {
     pub client_id: String,
-    pub connected_at: chrono::DateTime<chrono::Utc>,
+    pub connected_at: UtcDateTime,
     pub model_filter: Option<Uuid>, // Optional filter for specific model
 }
 
@@ -90,7 +90,7 @@ impl BroadcastService {
     pub async fn register_client(&self, client_id: String, model_filter: Option<Uuid>) -> Result<()> {
         let client = WebSocketClient {
             client_id: client_id.clone(),
-            connected_at: chrono::Utc::now(),
+            connected_at: UtcDateTime::now(),
             model_filter,
         };
 

@@ -7,6 +7,7 @@ use axum::{
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Instant;
+use crate::common::UtcDateTime;
 
 /// Health check endpoint - returns system health status
 pub async fn health_check(State(state): State<AppState>) -> Result<Json<Value>, StatusCode> {
@@ -21,7 +22,7 @@ pub async fn health_check(State(state): State<AppState>) -> Result<Json<Value>, 
             
             let response = json!({
                 "status": "healthy",
-                "timestamp": chrono::Utc::now().to_rfc3339(),
+                "timestamp": UtcDateTime::now().to_iso8601(),
                 "response_time_ms": response_time.as_millis(),
                 "services": health_data,
                 "version": env!("CARGO_PKG_VERSION")
@@ -46,7 +47,7 @@ pub async fn health_check(State(state): State<AppState>) -> Result<Json<Value>, 
             
             let _response = json!({
                 "status": "unhealthy",
-                "timestamp": chrono::Utc::now().to_rfc3339(),
+                "timestamp": UtcDateTime::now().to_iso8601(),
                 "error": e.to_string(),
                 "version": env!("CARGO_PKG_VERSION")
             });
@@ -75,7 +76,7 @@ pub async fn metrics(State(state): State<AppState>) -> Json<Value> {
     let custom_metrics = state.services.metrics.get_custom_metrics(Some(50));
     
     let response = json!({
-        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "timestamp": UtcDateTime::now().to_iso8601(),
         "requests": {
             "total": request_metrics.total_requests,
             "successful": request_metrics.successful_requests,
@@ -119,7 +120,7 @@ pub async fn status(State(state): State<AppState>) -> Json<Value> {
     
     let response = json!({
         "status": "running",
-        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "timestamp": UtcDateTime::now().to_iso8601(),
         "uptime_seconds": uptime.as_secs(),
         "version": env!("CARGO_PKG_VERSION"),
         "memory_usage": get_memory_usage(),
