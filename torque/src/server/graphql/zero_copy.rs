@@ -302,8 +302,8 @@ impl LayoutComponentWrapper {
         &self.inner.component_type
     }
 
-    async fn position(&self) -> ComponentPositionWrapper {
-        ComponentPositionWrapper { inner: self.inner.position.clone() }
+    async fn position(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.position).unwrap_or_default()
     }
 
     async fn properties(&self) -> serde_json::Value {
@@ -312,29 +312,6 @@ impl LayoutComponentWrapper {
 
     async fn styling(&self) -> serde_json::Value {
         serde_json::to_value(&self.inner.styling).unwrap_or_default()
-    }
-}
-
-pub struct ComponentPositionWrapper {
-    pub inner: model::ComponentPosition,
-}
-
-#[Object]
-impl ComponentPositionWrapper {
-    async fn row(&self) -> i32 {
-        self.inner.row as i32
-    }
-
-    async fn column(&self) -> i32 {
-        self.inner.column as i32
-    }
-
-    async fn width(&self) -> i32 {
-        self.inner.width as i32
-    }
-
-    async fn height(&self) -> i32 {
-        self.inner.height as i32
     }
 }
 
