@@ -5,7 +5,7 @@ import { useQuery, useMutation } from '@apollo/client';
 import { notifications } from '@mantine/notifications';
 import { LayoutEditor } from '../components/LayoutEditor';
 import { LayoutEditorComponent } from '../components/LayoutEditor/types';
-import { GET_MODEL, GET_ENTITIES } from '../graphql/queries';
+import { GET_MODEL, GET_ENTITIES, GET_LAYOUT } from '../graphql/queries';
 import { CREATE_LAYOUT, UPDATE_LAYOUT } from '../graphql/mutations';
 
 interface RouteParams {
@@ -17,6 +17,7 @@ export const LayoutEditorPage: React.FC = () => {
   const { modelId, layoutId } = useParams<RouteParams>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [initialComponents, setInitialComponents] = useState<LayoutEditorComponent[]>([]);
 
   // GraphQL queries
   const { data: modelData, loading: modelLoading, error: modelError } = useQuery(GET_MODEL, {
@@ -29,12 +30,42 @@ export const LayoutEditorPage: React.FC = () => {
     skip: !modelId
   });
 
+  const { data: layoutData, loading: layoutLoading, error: layoutError } = useQuery(GET_LAYOUT, {
+    variables: { id: layoutId },
+    skip: !layoutId
+  });
+
   // GraphQL mutations
   const [createLayout] = useMutation(CREATE_LAYOUT);
   const [updateLayout] = useMutation(UPDATE_LAYOUT);
 
   const entities = entitiesData?.entities || [];
   const model = modelData?.model;
+  const layout = layoutData?.layout;
+
+  // Transform loaded layout data to LayoutEditor format
+  useEffect(() => {
+    if (layout && layout.components) {
+      const transformedComponents: LayoutEditorComponent[] = layout.components.map((comp: any) => ({
+        id: comp.id,
+        type: comp.componentType,
+        position: comp.position || {
+          row: 0,
+          column: 0,
+          rowSpan: 2,
+          colSpan: 4
+        },
+        configuration: comp.properties || {},
+        validation: [],
+        entityBinding: comp.properties?.entityId || null
+      }));
+      
+      setInitialComponents(transformedComponents);
+    } else if (!layoutId) {
+      // Clear components for new layout
+      setInitialComponents([]);
+    }
+  }, [layout, layoutId]);
 
   const handleSave = async (components: LayoutEditorComponent[]) => {
     if (!modelId) return;
@@ -135,7 +166,11 @@ export const LayoutEditorPage: React.FC = () => {
     window.open(previewUrl, '_blank', 'width=1200,height=800');
   };
 
-  if (modelLoading || entitiesLoading) {
+  const handleBack = () => {
+    navigate(`/models/${modelId}`);
+  };
+
+  if (modelLoading || entitiesLoading || (layoutId && layoutLoading)) {
     return (
       <Container size="100%" p="md">
         <LoadingOverlay visible />
@@ -148,6 +183,16 @@ export const LayoutEditorPage: React.FC = () => {
       <Container size="md" p="md">
         <Alert color="red" title="Error">
           Failed to load model: {modelError.message}
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (layoutError) {
+    return (
+      <Container size="md" p="md">
+        <Alert color="red" title="Error">
+          Failed to load layout: {layoutError.message}
         </Alert>
       </Container>
     );
@@ -171,7 +216,9 @@ export const LayoutEditorPage: React.FC = () => {
         layoutId={layoutId}
         onSave={handleSave}
         onPreview={handlePreview}
+        onBack={handleBack}
         entities={entities}
+        initialComponents={initialComponents}
       />
     </div>
   );

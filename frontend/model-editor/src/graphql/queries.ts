@@ -1,5 +1,28 @@
 import { gql } from '@apollo/client'
 
+// Query to get a specific layout
+export const GET_LAYOUT = gql`
+  query GetLayout($id: String!) {
+    layout(id: $id) {
+      id
+      name
+      description
+      layoutType
+      targetEntities
+      components {
+        id
+        componentType
+        position
+        properties
+        styling
+      }
+      responsive
+      createdAt
+      updatedAt
+    }
+  }
+`
+
 // Query to get all models
 export const GET_MODELS = gql`
   query GetModels {

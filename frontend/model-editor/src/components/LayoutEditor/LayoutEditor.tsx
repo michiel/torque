@@ -8,7 +8,9 @@ import {
   Container,
   Paper,
   Alert,
+  ActionIcon,
 } from '@mantine/core';
+import { IconArrowLeft } from '@tabler/icons-react';
 import {
   DndContext,
   DragOverlay,
@@ -42,7 +44,9 @@ interface LayoutEditorProps {
   layoutId?: string;
   onSave?: (components: LayoutEditorComponent[]) => void;
   onPreview?: (components: LayoutEditorComponent[]) => void;
+  onBack?: () => void;
   entities?: Array<{ id: string; name: string; displayName: string; fields: any[] }>;
+  initialComponents?: LayoutEditorComponent[];
 }
 
 // Helper function to create default configuration using plugin registry
@@ -166,14 +170,22 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   layoutId,
   onSave,
   onPreview,
-  entities = []
+  onBack,
+  entities = [],
+  initialComponents = []
 }) => {
   const { getById } = useComponentRegistry();
-  const [components, setComponents] = useState<LayoutEditorComponent[]>([]);
+  const [components, setComponents] = useState<LayoutEditorComponent[]>(initialComponents);
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [draggedItem, setDraggedItem] = useState<any>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Update components when initialComponents changes
+  React.useEffect(() => {
+    setComponents(initialComponents);
+    setHasUnsavedChanges(false);
+  }, [initialComponents]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -368,14 +380,26 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         {/* Header */}
         <Paper p="md" withBorder>
           <Group justify="space-between">
-            <Stack gap={4}>
-              <Text size="xl" fw={700}>
-                Layout Editor
-              </Text>
-              <Text size="sm" color="dimmed">
-                Design your application interface with drag-and-drop components
-              </Text>
-            </Stack>
+            <Group align="flex-start">
+              {onBack && (
+                <ActionIcon
+                  variant="subtle"
+                  onClick={onBack}
+                  size="lg"
+                  aria-label="Go back to model editor"
+                >
+                  <IconArrowLeft size={20} />
+                </ActionIcon>
+              )}
+              <Stack gap={4}>
+                <Text size="xl" fw={700}>
+                  Layout Editor
+                </Text>
+                <Text size="sm" color="dimmed">
+                  Design your application interface with drag-and-drop components
+                </Text>
+              </Stack>
+            </Group>
 
             <Group gap="sm">
               <Button
@@ -388,10 +412,10 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={!hasUnsavedChanges}
+                disabled={!hasUnsavedChanges && !layoutId}
                 data-testid="save-layout"
               >
-                Save Layout
+                {layoutId ? 'Update Layout' : 'Save Layout'}
               </Button>
             </Group>
           </Group>
