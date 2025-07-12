@@ -87,42 +87,47 @@ export const LayoutEditorPage: React.FC = () => {
     console.log('Layout:', layout);
     console.log('Model:', model);
 
+    // Get unique entity IDs from components for targetEntities
+    const targetEntities = Array.from(
+      new Set(
+        components
+          .map(comp => comp.entityBinding)
+          .filter(entityId => entityId) // Remove null/undefined
+      )
+    );
+
+    console.log('Target entities:', targetEntities);
+
+    // Convert components to GraphQL LayoutComponent format
+    const baseLayoutData = {
+      name: layoutId ? layout?.name || `${model?.name} Layout` : 'New Layout',
+      modelId,
+      targetEntities,
+      components: components.map(component => ({
+        id: component.id,
+        componentType: component.type,
+        position: component.position,
+        properties: component.configuration || {},
+        styling: {} // Default empty styling
+      })),
+      responsive: layout?.responsive || {
+        breakpoints: [
+          { name: 'mobile', minWidth: 0, columns: 1 },
+          { name: 'tablet', minWidth: 768, columns: 2 },
+          { name: 'desktop', minWidth: 1024, columns: 3 }
+        ]
+      }
+    };
+
+    // Only add layoutType for new layouts (CREATE), not for updates
+    const layoutData = layoutId 
+      ? baseLayoutData 
+      : { ...baseLayoutData, layoutType: 'List' };
+
+    console.log('Layout data before save:', JSON.stringify(layoutData, null, 2));
+
     setIsLoading(true);
     try {
-      // Get unique entity IDs from components for targetEntities
-      const targetEntities = Array.from(
-        new Set(
-          components
-            .map(comp => comp.entityBinding)
-            .filter(entityId => entityId) // Remove null/undefined
-        )
-      );
-
-      console.log('Target entities:', targetEntities);
-
-      // Convert components to GraphQL LayoutComponent format
-      const layoutData = {
-        name: layoutId ? layout?.name || `${model?.name} Layout` : 'New Layout',
-        layoutType: layoutId && layout?.layoutType ? layout.layoutType : 'List', // Preserve existing type or try List as simplest
-        modelId,
-        targetEntities,
-        components: components.map(component => ({
-          id: component.id,
-          componentType: component.type,
-          position: component.position,
-          properties: component.configuration || {},
-          styling: {} // Default empty styling
-        })),
-        responsive: layout?.responsive || {
-          breakpoints: [
-            { name: 'mobile', minWidth: 0, columns: 1 },
-            { name: 'tablet', minWidth: 768, columns: 2 },
-            { name: 'desktop', minWidth: 1024, columns: 3 }
-          ]
-        }
-      };
-
-      console.log('Layout data before save:', JSON.stringify(layoutData, null, 2));
 
       if (layoutId) {
         // Update existing layout
