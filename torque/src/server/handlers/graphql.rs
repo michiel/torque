@@ -1,11 +1,11 @@
 use crate::server::AppState;
-use crate::server::graphql::create_schema;
+use crate::server::graphql::{create_schema, GraphQLConfig, GraphQLSchema};
 use axum::{
     extract::State,
     http::StatusCode,
     response::{Html, Json},
 };
-use async_graphql::{http::GraphQLPlaygroundConfig, Request, Response};
+use async_graphql::{http::GraphQLPlaygroundConfig, Request};
 use serde_json::{json, Value};
 
 /// GraphQL endpoint handler
@@ -32,8 +32,13 @@ pub async fn graphql_handler(
         }
     };
     
-    let schema = create_schema();
-    let response = schema.execute(request.data(state)).await;
+    let config = GraphQLConfig::default();
+    let schema = create_schema(&config);
+    
+    let response = match schema {
+        GraphQLSchema::Standard(s) => s.execute(request.data(state)).await,
+        GraphQLSchema::Optimized(s) => s.execute(request.data(state)).await,
+    };
     
     // Convert the response to JSON
     let json_response: Value = serde_json::to_value(response)

@@ -227,7 +227,7 @@ impl Mutation {
     }
 
     /// Delete an entity
-    async fn delete_entity(&self, ctx: &Context<'_>, id: String) -> Result<bool> {
+    async fn delete_entity(&self, ctx: &Context<'_>, _id: String) -> Result<bool> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement entity deletion
         Ok(false)
@@ -266,14 +266,14 @@ impl Mutation {
     }
 
     /// Update an existing relationship
-    async fn update_relationship(&self, ctx: &Context<'_>, id: String, input: UpdateRelationshipInput) -> Result<Relationship> {
+    async fn update_relationship(&self, ctx: &Context<'_>, _id: String, _input: UpdateRelationshipInput) -> Result<Relationship> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement relationship update
         unimplemented!("Relationship update not yet implemented")
     }
 
     /// Delete a relationship
-    async fn delete_relationship(&self, ctx: &Context<'_>, id: String) -> Result<bool> {
+    async fn delete_relationship(&self, ctx: &Context<'_>, _id: String) -> Result<bool> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement relationship deletion
         Ok(false)
@@ -317,14 +317,14 @@ impl Mutation {
     }
 
     /// Update an existing flow
-    async fn update_flow(&self, ctx: &Context<'_>, id: String, input: UpdateFlowInput) -> Result<Flow> {
+    async fn update_flow(&self, ctx: &Context<'_>, _id: String, _input: UpdateFlowInput) -> Result<Flow> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement flow update
         unimplemented!("Flow update not yet implemented")
     }
 
     /// Delete a flow
-    async fn delete_flow(&self, ctx: &Context<'_>, id: String) -> Result<bool> {
+    async fn delete_flow(&self, ctx: &Context<'_>, _id: String) -> Result<bool> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement flow deletion
         Ok(false)
@@ -362,14 +362,14 @@ impl Mutation {
     }
 
     /// Update an existing layout
-    async fn update_layout(&self, ctx: &Context<'_>, id: String, input: UpdateLayoutInput) -> Result<Layout> {
+    async fn update_layout(&self, ctx: &Context<'_>, _id: String, _input: UpdateLayoutInput) -> Result<Layout> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement layout update
         unimplemented!("Layout update not yet implemented")
     }
 
     /// Delete a layout
-    async fn delete_layout(&self, ctx: &Context<'_>, id: String) -> Result<bool> {
+    async fn delete_layout(&self, ctx: &Context<'_>, _id: String) -> Result<bool> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement layout deletion
         Ok(false)

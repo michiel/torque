@@ -76,7 +76,7 @@ impl ModelService {
 
     /// Get all models with caching
     pub async fn get_models(&self) -> Result<Vec<TorqueModel>, Error> {
-        use sea_orm::{EntityTrait, QueryOrder, DbErr};
+        use sea_orm::{EntityTrait, DbErr};
         
         // Try to get from database first
         match self.get_models_from_db().await {
@@ -757,7 +757,7 @@ impl ModelService {
     
     /// Parse entity from JSON
     fn parse_entity_from_json(&self, entity_data: &serde_json::Value) -> Result<ModelEntity, Error> {
-        use serde_json::Value;
+        
         
         let name = entity_data["name"].as_str().unwrap_or("").to_string();
         let display_name = entity_data["display_name"].as_str().unwrap_or(&name).to_string();
@@ -830,7 +830,7 @@ impl ModelService {
     
     /// Parse field from JSON
     fn parse_field_from_json(&self, field_data: &serde_json::Value) -> Result<EntityField, Error> {
-        use serde_json::Value;
+        
         
         let name = field_data["name"].as_str().unwrap_or("").to_string();
         let display_name = field_data["display_name"].as_str().unwrap_or(&name).to_string();
@@ -850,7 +850,7 @@ impl ModelService {
         };
         
         // Parse UI config
-        let ui_config = if let Some(ui_config_data) = field_data.get("ui_config") {
+        let _ui_config = if let Some(ui_config_data) = field_data.get("ui_config") {
             ui_config_data.clone()
         } else {
             serde_json::Value::Object(serde_json::Map::new())
@@ -870,7 +870,7 @@ impl ModelService {
     
     /// Parse field type from JSON
     fn parse_field_type_from_json(&self, field_type_data: &serde_json::Value) -> Result<FieldType, Error> {
-        use serde_json::Value;
+        
         
         let type_str = if let Some(type_obj) = field_type_data.as_object() {
             type_obj.get("type").and_then(|v| v.as_str()).unwrap_or("String")
@@ -907,7 +907,7 @@ impl ModelService {
                 Ok(FieldType::Enum { values })
             }
             "Reference" => {
-                let entity_name = field_type_data.get("entity").and_then(|v| v.as_str()).unwrap_or("");
+                let _entity_name = field_type_data.get("entity").and_then(|v| v.as_str()).unwrap_or("");
                 // For now, use a dummy UUID - in a real implementation, we'd need to resolve entity names to IDs
                 Ok(FieldType::Reference { entity_id: Uuid::new_v4() })
             }
@@ -1135,7 +1135,7 @@ impl ModelService {
         };
         
         let target_entities = layout_data["target_entities"].as_array()
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| Uuid::new_v4())).collect())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|_s| Uuid::new_v4())).collect())
             .unwrap_or_default();
         
         let responsive = ResponsiveLayout {

@@ -1,5 +1,5 @@
 use crate::server::AppState;
-use crate::model::types::{TorqueModel, ModelEntity, EntityField, FieldType};
+// Model types imported as needed in specific handlers
 use crate::jsonrpc::direct_mapping::DirectMapping;
 use axum::{
     extract::State,

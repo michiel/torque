@@ -159,7 +159,7 @@ impl CacheService {
         if cache.len() >= self.max_entries {
             // Remove oldest entry (simple eviction strategy)
             if let Some(entry) = cache.iter().next() {
-                let key_to_remove = entry.key().clone();
+                let key_to_remove = entry.key();
                 cache.remove(&key_to_remove);
                 self.record_eviction();
             }

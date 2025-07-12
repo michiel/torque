@@ -9,10 +9,9 @@ use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 use tracing::{info, warn, error, debug};
 use crate::common::{Uuid, UtcDateTime};
-use std::sync::Arc;
 
 use crate::server::AppState;
-use crate::model::events::{ModelChangeEvent, ModelEventMessage};
+use crate::model::events::ModelChangeEvent;
 use crate::Result;
 
 /// Query parameters for WebSocket connection

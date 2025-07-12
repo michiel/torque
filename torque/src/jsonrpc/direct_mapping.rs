@@ -1,7 +1,7 @@
 use serde_json::{Value, Map};
 use crate::common::{Uuid, UtcDateTime};
 use crate::services::entity::{Entity, CreateEntityRequest, UpdateEntityRequest};
-use crate::model::types::{ModelEntity, EntityField, FieldType, EntityUiConfig, EntityBehavior};
+use crate::model::types::{ModelEntity, FieldType};
 
 /// Direct JSONB mapping for TorqueApp - no transformations
 /// Entity data is stored exactly as it will be consumed by frontend components
