@@ -228,6 +228,33 @@ impl RelationshipWrapper {
     }
 }
 
+pub struct FlowStepWrapper {
+    pub inner: model::FlowStep,
+}
+
+#[Object]
+impl FlowStepWrapper {
+    async fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    async fn name(&self) -> &str {
+        &self.inner.name
+    }
+
+    async fn step_type(&self) -> String {
+        format!("{:?}", self.inner.step_type)
+    }
+
+    async fn condition(&self) -> Option<&str> {
+        self.inner.condition.as_deref()
+    }
+
+    async fn configuration(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.configuration).unwrap_or_default()
+    }
+}
+
 pub struct FlowWrapper {
     pub inner: model::ModelFlow,
 }
@@ -250,12 +277,64 @@ impl FlowWrapper {
         serde_json::to_value(&self.inner.trigger).unwrap_or_default()
     }
 
-    async fn steps(&self) -> serde_json::Value {
-        serde_json::to_value(&self.inner.steps).unwrap_or_default()
+    async fn steps(&self) -> Vec<FlowStepWrapper> {
+        self.inner.steps.iter()
+            .map(|s| FlowStepWrapper { inner: s.clone() })
+            .collect()
     }
 
     async fn error_handling(&self) -> serde_json::Value {
         serde_json::to_value(&self.inner.error_handling).unwrap_or_default()
+    }
+}
+
+pub struct LayoutComponentWrapper {
+    pub inner: model::LayoutComponent,
+}
+
+#[Object]
+impl LayoutComponentWrapper {
+    async fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    async fn component_type(&self) -> &str {
+        &self.inner.component_type
+    }
+
+    async fn position(&self) -> ComponentPositionWrapper {
+        ComponentPositionWrapper { inner: self.inner.position.clone() }
+    }
+
+    async fn properties(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.properties).unwrap_or_default()
+    }
+
+    async fn styling(&self) -> serde_json::Value {
+        serde_json::to_value(&self.inner.styling).unwrap_or_default()
+    }
+}
+
+pub struct ComponentPositionWrapper {
+    pub inner: model::ComponentPosition,
+}
+
+#[Object]
+impl ComponentPositionWrapper {
+    async fn row(&self) -> i32 {
+        self.inner.row as i32
+    }
+
+    async fn column(&self) -> i32 {
+        self.inner.column as i32
+    }
+
+    async fn width(&self) -> i32 {
+        self.inner.width as i32
+    }
+
+    async fn height(&self) -> i32 {
+        self.inner.height as i32
     }
 }
 
@@ -283,8 +362,10 @@ impl LayoutWrapper {
             .collect()
     }
 
-    async fn components(&self) -> serde_json::Value {
-        serde_json::to_value(&self.inner.components).unwrap_or_default()
+    async fn components(&self) -> Vec<LayoutComponentWrapper> {
+        self.inner.components.iter()
+            .map(|c| LayoutComponentWrapper { inner: c.clone() })
+            .collect()
     }
 
     async fn responsive(&self) -> serde_json::Value {
