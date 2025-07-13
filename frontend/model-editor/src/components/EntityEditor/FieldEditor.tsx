@@ -36,6 +36,12 @@ interface FieldEditorProps {
 export function FieldEditor({ field, onChange, onRemove, entityNames = [] }: FieldEditorProps) {
   const [expanded, { toggle }] = useDisclosure(false)
   const [validationExpanded, { toggle: toggleValidation }] = useDisclosure(false)
+  
+  // Ensure validation is always an array
+  const normalizedField = {
+    ...field,
+    validation: Array.isArray(field.validation) ? field.validation : []
+  }
 
   const handleFieldChange = (key: keyof Field, value: any) => {
     onChange({ ...field, [key]: value })
@@ -47,17 +53,17 @@ export function FieldEditor({ field, onChange, onRemove, entityNames = [] }: Fie
       message: 'This field is required',
       severity: ValidationSeverity.Error,
     }
-    handleFieldChange('validation', [...(field.validation || []), newRule])
+    handleFieldChange('validation', [...normalizedField.validation, newRule])
   }
 
   const handleValidationRuleChange = (index: number, rule: FieldValidationRule) => {
-    const newValidation = [...(field.validation || [])]
+    const newValidation = [...normalizedField.validation]
     newValidation[index] = rule
     handleFieldChange('validation', newValidation)
   }
 
   const handleValidationRuleRemove = (index: number) => {
-    const newValidation = (field.validation || []).filter((_, i) => i !== index)
+    const newValidation = normalizedField.validation.filter((_, i) => i !== index)
     handleFieldChange('validation', newValidation)
   }
 
@@ -266,7 +272,7 @@ export function FieldEditor({ field, onChange, onRemove, entityNames = [] }: Fie
 
               <Collapse in={validationExpanded}>
                 <Stack gap="xs">
-                  {(field.validation || []).map((rule, index) => (
+                  {normalizedField.validation.map((rule, index) => (
                     <ValidationRuleEditor
                       key={index}
                       rule={rule}
@@ -275,7 +281,7 @@ export function FieldEditor({ field, onChange, onRemove, entityNames = [] }: Fie
                       onRemove={() => handleValidationRuleRemove(index)}
                     />
                   ))}
-                  {(!field.validation || field.validation.length === 0) && (
+                  {normalizedField.validation.length === 0 && (
                     <Text size="sm" c="dimmed" ta="center" py="sm">
                       No validation rules defined
                     </Text>

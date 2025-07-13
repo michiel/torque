@@ -55,11 +55,7 @@ export const CREATE_ENTITY = gql`
         fieldType
         required
         defaultValue
-        validation {
-          validationType
-          message
-          severity
-        }
+        validation
         uiConfig
       }
       uiConfig

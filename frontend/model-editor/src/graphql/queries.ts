@@ -101,11 +101,7 @@ export const GET_MODEL = gql`
           fieldType
           required
           defaultValue
-          validation {
-            validationType
-            message
-            severity
-          }
+          validation
           uiConfig
         }
         uiConfig
@@ -179,11 +175,7 @@ export const GET_ENTITIES = gql`
         fieldType
         required
         defaultValue
-        validation {
-          validationType
-          message
-          severity
-        }
+        validation
         uiConfig
       }
       uiConfig

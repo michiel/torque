@@ -36,7 +36,7 @@ export interface Field {
   fieldType: FieldType
   required: boolean
   defaultValue?: any
-  validation: FieldValidationRule[]
+  validation: FieldValidationRule[] | any // Can be array or JSON from backend
   uiConfig: Record<string, any>
 }
 

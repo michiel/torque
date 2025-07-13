@@ -172,12 +172,17 @@ export function ModelEditorPage() {
 
   const handleEditEntity = (entity: Entity) => {
     setEditingEntity(entity)
+    // Normalize fields to ensure validation is always an array
+    const normalizedFields = (entity.fields || []).map(field => ({
+      ...field,
+      validation: Array.isArray(field.validation) ? field.validation : []
+    }))
     entityForm.setValues({
       name: entity.name,
       displayName: entity.displayName,
       description: entity.description || '',
       entityType: entity.entityType,
-      fields: entity.fields || [],
+      fields: normalizedFields,
     })
     openEntityModal()
   }
