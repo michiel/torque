@@ -18,6 +18,7 @@ import {
   TextInput,
   Textarea,
   Select,
+  Divider,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
@@ -41,8 +42,9 @@ import {
 
 import { GET_MODEL } from '../graphql/queries'
 import { CREATE_ENTITY, UPDATE_ENTITY } from '../graphql/mutations'
-import { Model, Entity } from '../types/model'
+import { Model, Entity, Field } from '../types/model'
 import { ModelExportDialog, ModelImportDialog } from '../components/ModelImportExport'
+import { EntityFieldsEditor } from '../components/EntityEditor'
 
 export function ModelEditorPage() {
   const { id } = useParams<{ id: string }>()
@@ -103,6 +105,7 @@ export function ModelEditorPage() {
       displayName: '',
       description: '',
       entityType: 'Data',
+      fields: [] as Field[],
     },
     validate: {
       name: (value) => (!value ? 'Name is required' : null),
@@ -139,8 +142,19 @@ export function ModelEditorPage() {
         variables: {
           input: {
             modelId: id,
-            ...values,
-            fields: [], // Start with empty fields
+            name: values.name,
+            displayName: values.displayName,
+            description: values.description,
+            entityType: values.entityType,
+            fields: values.fields.map(field => ({
+              name: field.name,
+              displayName: field.displayName,
+              fieldType: field.fieldType,
+              required: field.required,
+              defaultValue: field.defaultValue,
+              validation: field.validation,
+              uiConfig: field.uiConfig,
+            })),
             uiConfig: {},
             behavior: {},
           },
@@ -163,6 +177,7 @@ export function ModelEditorPage() {
       displayName: entity.displayName,
       description: entity.description || '',
       entityType: entity.entityType,
+      fields: entity.fields || [],
     })
     openEntityModal()
   }
@@ -336,7 +351,8 @@ export function ModelEditorPage() {
         opened={entityModalOpened}
         onClose={closeEntityModal}
         title={editingEntity ? "Edit Entity" : "Create New Entity"}
-        size="md"
+        size="xl"
+        fullScreen={false}
       >
         <form onSubmit={entityForm.onSubmit(handleSaveEntity)}>
           <Stack>
@@ -370,6 +386,14 @@ export function ModelEditorPage() {
                 { value: 'View', label: 'View' },
               ]}
               {...entityForm.getInputProps('entityType')}
+            />
+            
+            <Divider my="md" label="Fields" labelPosition="left" />
+            
+            <EntityFieldsEditor
+              fields={entityForm.values.fields}
+              onChange={(fields) => entityForm.setFieldValue('fields', fields)}
+              entityNames={model?.entities?.map(e => e.name) || []}
             />
             
             <Group justify="flex-end" mt="md">

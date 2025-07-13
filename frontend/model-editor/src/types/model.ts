@@ -249,5 +249,6 @@ export interface CreateFieldInput {
   fieldType: FieldType
   required: boolean
   defaultValue?: any
+  validation?: FieldValidationRule[]
   uiConfig?: Record<string, any>
 }

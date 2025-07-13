@@ -101,6 +101,11 @@ export const GET_MODEL = gql`
           fieldType
           required
           defaultValue
+          validation {
+            validationType
+            message
+            severity
+          }
           uiConfig
         }
         uiConfig
