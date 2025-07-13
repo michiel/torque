@@ -34,6 +34,19 @@ fn parse_field_type(field_type_str: &str) -> model::FieldType {
     }
 }
 
+/// Parse layout type from string representation
+fn parse_layout_type(layout_type_str: &str) -> model::LayoutType {
+    match layout_type_str {
+        "List" => model::LayoutType::List,
+        "Grid" => model::LayoutType::Grid,
+        "Dashboard" => model::LayoutType::Dashboard,
+        "Form" => model::LayoutType::Form,
+        "Detail" => model::LayoutType::Detail,
+        "Custom" => model::LayoutType::Custom,
+        _ => model::LayoutType::Dashboard,
+    }
+}
+
 /// Optimized GraphQL wrappers that minimize conversions
 /// Key optimizations:
 /// 1. Avoid string conversions where possible
@@ -646,6 +659,95 @@ impl OptimizedMutation {
             errors,
         })
     }
+    
+    /// Create a new layout
+    async fn create_layout(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateLayoutInput
+    ) -> Result<LayoutWrapper> {
+        let state = ctx.data::<AppState>()?;
+        
+        let service_input = crate::services::model::CreateLayoutInput {
+            model_id: input.model_id,
+            name: input.name,
+            layout_type: parse_layout_type(&input.layout_type),
+            target_entities: input.target_entities,
+            components: input.components.into_iter().map(|c| {
+                crate::services::model::CreateLayoutComponentInput {
+                    component_type: c.component_type,
+                    position: model::ComponentPosition {
+                        row: c.position.row as u32,
+                        column: c.position.column as u32,
+                        width: c.position.width as u32,
+                        height: c.position.height as u32,
+                    },
+                    properties: c.properties,
+                    styling: c.styling,
+                }
+            }).collect(),
+            responsive: input.responsive,
+        };
+        
+        let layout = state.services.model_service.create_layout(service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create layout: {}", e)))?;
+            
+        Ok(LayoutWrapper { inner: layout })
+    }
+    
+    /// Update an existing layout
+    async fn update_layout(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+        input: UpdateLayoutInput
+    ) -> Result<LayoutWrapper> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+            
+        // For now, we'll delete and recreate the layout
+        // TODO: Implement proper update logic
+        let _deleted = state.services.model_service.delete_layout(uuid).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to update layout: {}", e)))?;
+            
+        // Create the updated layout
+        let service_input = crate::services::model::CreateLayoutInput {
+            model_id: input.model_id,
+            name: input.name,
+            layout_type: parse_layout_type(&input.layout_type),
+            target_entities: input.target_entities,
+            components: input.components.into_iter().map(|c| {
+                crate::services::model::CreateLayoutComponentInput {
+                    component_type: c.component_type,
+                    position: model::ComponentPosition {
+                        row: c.position.row as u32,
+                        column: c.position.column as u32,
+                        width: c.position.width as u32,
+                        height: c.position.height as u32,
+                    },
+                    properties: c.properties,
+                    styling: c.styling,
+                }
+            }).collect(),
+            responsive: input.responsive,
+        };
+        
+        let layout = state.services.model_service.create_layout(service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create updated layout: {}", e)))?;
+            
+        Ok(LayoutWrapper { inner: layout })
+    }
+    
+    /// Delete a layout
+    async fn delete_layout(&self, ctx: &Context<'_>, id: String) -> Result<bool> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        let result = state.services.model_service.delete_layout(uuid).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to delete layout: {}", e)))?;
+        Ok(result)
+    }
 }
 
 impl OptimizedMutation {
@@ -739,6 +841,42 @@ pub struct UpdateFieldInput {
     pub default_value: Option<serde_json::Value>,
     pub validation: Option<serde_json::Value>,
     pub ui_config: Option<serde_json::Value>,
+}
+
+#[derive(InputObject)]
+pub struct CreateLayoutInput {
+    pub model_id: String,
+    pub name: String,
+    pub layout_type: String,
+    pub target_entities: Vec<String>,
+    pub components: Vec<LayoutComponentInput>,
+    pub responsive: Option<serde_json::Value>,
+}
+
+#[derive(InputObject)]
+pub struct UpdateLayoutInput {
+    pub model_id: String,
+    pub name: String,
+    pub layout_type: String,
+    pub target_entities: Vec<String>,
+    pub components: Vec<LayoutComponentInput>,
+    pub responsive: Option<serde_json::Value>,
+}
+
+#[derive(InputObject)]
+pub struct LayoutComponentInput {
+    pub component_type: String,
+    pub position: ComponentPositionInput,
+    pub properties: serde_json::Value,
+    pub styling: Option<serde_json::Value>,
+}
+
+#[derive(InputObject)]
+pub struct ComponentPositionInput {
+    pub row: i32,
+    pub column: i32,
+    pub width: i32,
+    pub height: i32,
 }
 
 // Output types

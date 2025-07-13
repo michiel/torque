@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Stack, Alert, LoadingOverlay } from '@mantine/core';
+import { Container, Alert, LoadingOverlay } from '@mantine/core';
 import { useQuery, useMutation } from '@apollo/client';
 import { notifications } from '@mantine/notifications';
 import { LayoutEditor } from '../components/LayoutEditor';
 import { LayoutEditorComponent } from '../components/LayoutEditor/types';
 import { GET_MODEL, GET_ENTITIES, GET_LAYOUT } from '../graphql/queries';
 import { CREATE_LAYOUT, UPDATE_LAYOUT } from '../graphql/mutations';
-import { LayoutType } from '../types/model';
 
-interface RouteParams {
+interface RouteParams extends Record<string, string | undefined> {
   modelId: string;
   layoutId?: string;
 }
@@ -54,7 +53,12 @@ export const LayoutEditorPage: React.FC = () => {
       const transformedComponents: LayoutEditorComponent[] = layout.components.map((comp: any) => ({
         id: comp.id,
         type: comp.componentType,
-        position: comp.position || {
+        position: comp.position ? {
+          row: comp.position.row || 0,
+          column: comp.position.column || 0,
+          rowSpan: comp.position.height || 2,
+          colSpan: comp.position.width || 4
+        } : {
           row: 0,
           column: 0,
           rowSpan: 2,
@@ -62,7 +66,11 @@ export const LayoutEditorPage: React.FC = () => {
         },
         configuration: comp.properties || {},
         validation: [],
-        entityBinding: comp.properties?.entityId || null
+        entityBinding: comp.properties?.entityId ? {
+          entityId: comp.properties.entityId,
+          fields: comp.properties.fields || [],
+          relationships: comp.properties.relationships || []
+        } : undefined
       }));
       
       console.log('Transformed components:', transformedComponents);
@@ -91,7 +99,7 @@ export const LayoutEditorPage: React.FC = () => {
     const targetEntities = Array.from(
       new Set(
         components
-          .map(comp => comp.entityBinding)
+          .map(comp => comp.entityBinding?.entityId)
           .filter(entityId => entityId) // Remove null/undefined
       )
     );
@@ -106,7 +114,12 @@ export const LayoutEditorPage: React.FC = () => {
       components: components.map(component => ({
         id: component.id,
         componentType: component.type,
-        position: component.position,
+        position: {
+          row: component.position.row,
+          column: component.position.column,
+          width: component.position.colSpan,
+          height: component.position.rowSpan
+        },
         properties: component.configuration || {},
         styling: {} // Default empty styling
       })),
@@ -170,7 +183,7 @@ export const LayoutEditorPage: React.FC = () => {
       
       notifications.show({
         title: 'Save Failed',
-        message: `Failed to save layout: ${error.message}`,
+        message: `Failed to save layout: ${error instanceof Error ? error.message : String(error)}`,
         color: 'red'
       });
     } finally {

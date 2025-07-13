@@ -654,10 +654,54 @@ impl ModelService {
             CacheEntry::new(model.clone(), 3600),
         );
 
+        // Persist to database
+        self.persist_model_to_database(&model).await?;
+
         // Emit layout added event
         self.emit_event(ModelChangeEvent::layout_added(model_id.clone(), layout.id.clone()));
 
         Ok(layout)
+    }
+    
+    /// Delete a layout from a model
+    pub async fn delete_layout(&self, layout_id: Uuid) -> Result<bool, Error> {
+        // Find the model containing this layout
+        let mut model_with_layout = None;
+        for entry in self.model_cache.iter() {
+            let model = &entry.value().data;
+            if model.layouts.iter().any(|l| l.id == layout_id) {
+                model_with_layout = Some(model.clone());
+                break;
+            }
+        }
+
+        let mut model = model_with_layout
+            .ok_or_else(|| Error::NotFound(format!("Layout with id {} not found", layout_id)))?;
+
+        // Remove the layout
+        let initial_count = model.layouts.len();
+        model.layouts.retain(|l| l.id != layout_id);
+        
+        if model.layouts.len() == initial_count {
+            return Ok(false); // Layout was not found
+        }
+
+        // Update model timestamp
+        model.updated_at = UtcDateTime::now();
+
+        // Update cache with modified model
+        self.model_cache.insert(
+            model.id.clone(),
+            CacheEntry::new(model.clone(), 3600), // 1 hour TTL
+        );
+
+        // Persist to database
+        self.persist_model_to_database(&model).await?;
+
+        // Emit layout removed event
+        self.emit_event(ModelChangeEvent::layout_removed(model.id.clone(), layout_id));
+
+        Ok(true)
     }
 
     /// Search models by name or description
