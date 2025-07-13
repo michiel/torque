@@ -25,6 +25,7 @@ import {
   IconTrash,
   IconDownload,
   IconAlertCircle,
+  IconExternalLink,
 } from '@tabler/icons-react'
 
 import { GET_MODELS } from '../graphql/queries'
@@ -159,6 +160,15 @@ function ModelCard({ model }: ModelCardProps) {
                   leftSection={<IconEdit size={14} />}
                 >
                   Edit
+                </Menu.Item>
+                <Menu.Item
+                  component="a"
+                  href={`http://localhost:3002/app/${model.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  leftSection={<IconExternalLink size={14} />}
+                >
+                  Open in TorqueApp
                 </Menu.Item>
                 <Menu.Item
                   leftSection={<IconDownload size={14} />}

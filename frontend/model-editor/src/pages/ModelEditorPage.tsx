@@ -36,6 +36,7 @@ import {
   IconPlus,
   IconFileImport,
   IconFileExport,
+  IconExternalLink,
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
@@ -243,6 +244,16 @@ export function ModelEditorPage() {
         </Stack>
 
         <Group>
+          <Button 
+            leftSection={<IconExternalLink size={16} />} 
+            variant="filled"
+            component="a"
+            href={`http://localhost:3002/app/${model.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open in TorqueApp
+          </Button>
           <Button leftSection={<IconEdit size={16} />} variant="light">
             Edit Details
           </Button>
