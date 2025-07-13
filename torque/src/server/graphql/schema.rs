@@ -215,6 +215,7 @@ impl Mutation {
                 EntityTypeEnum::Temporary => crate::model::types::EntityType::Temporary,
                 EntityTypeEnum::View => crate::model::types::EntityType::View,
             }),
+            fields: None, // TODO: Add field support to standard GraphQL schema
             ui_config: input.ui_config.map(|config| serde_json::from_value(config).unwrap_or_default()),
             behavior: input.behavior.map(|behavior| serde_json::from_value(behavior).unwrap_or_default()),
         };

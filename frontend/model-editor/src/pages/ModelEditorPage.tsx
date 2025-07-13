@@ -131,6 +131,16 @@ export function ModelEditorPage() {
             name: values.name,
             displayName: values.displayName,
             description: values.description,
+            fields: values.fields.map(field => ({
+              id: field.id,
+              name: field.name,
+              displayName: field.displayName,
+              fieldType: field.fieldType,
+              required: field.required,
+              defaultValue: field.defaultValue,
+              validation: field.validation,
+              uiConfig: field.uiConfig,
+            })),
           },
         },
       })

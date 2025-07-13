@@ -183,9 +183,36 @@ impl ModelService {
             }
         }
 
-        // TODO: Query from database
-        // For now, return None
-        Ok(None)
+        // Query from database
+        use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+        
+        let model_record = torque_models::Entity::find()
+            .filter(torque_models::Column::Id.eq(id.to_string()))
+            .one(self.database.as_ref())
+            .await?;
+
+        if let Some(record) = model_record {
+            // Convert the database record to TorqueModel
+            match serde_json::from_value::<TorqueModel>(record.model_json.clone()) {
+                Ok(model) => {
+                    tracing::debug!("Retrieved model '{}' from database", model.name);
+                    
+                    // Update cache
+                    self.model_cache.insert(
+                        id,
+                        CacheEntry::new(model.clone(), 3600), // 1 hour TTL
+                    );
+                    
+                    Ok(Some(model))
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to deserialize model {}: {}", id, e);
+                    Err(Error::Serialization(e))
+                }
+            }
+        } else {
+            Ok(None)
+        }
     }
 
     /// Get a model by name and version
@@ -269,7 +296,24 @@ impl ModelService {
         }
         model.updated_at = UtcDateTime::from_chrono(Utc::now());
 
-        // TODO: Persist to database
+        // Persist to database
+        use sea_orm::{ActiveModelTrait, Set};
+        
+        let model_json = serde_json::to_value(&model)?;
+        let schema_json = serde_json::to_value(&model)?; // For now, use same as model_json
+        let active_model = torque_models::ActiveModel {
+            id: Set(model.id.to_string()),
+            name: Set(model.name.clone()),
+            description: Set(model.description.clone()),
+            version: Set(model.version.clone()),
+            model_json: Set(model_json),
+            schema_json: Set(schema_json),
+            created_at: Set(model.created_at.clone().into_chrono().naive_utc()),
+            updated_at: Set(model.updated_at.clone().into_chrono().naive_utc()),
+        };
+        
+        active_model.update(self.database.as_ref()).await?;
+        tracing::info!("Updated model '{}' in database", model.name);
 
         // Update cache
         self.model_cache.insert(
@@ -349,7 +393,8 @@ impl ModelService {
         // Emit entity added event
         self.emit_event(ModelChangeEvent::entity_added(model_id, entity.id.clone()));
 
-        // TODO: Persist to database
+        // Persist to database
+        self.persist_model_to_database(&model).await?;
 
         Ok(entity)
     }
@@ -389,6 +434,9 @@ impl ModelService {
             if let Some(entity_type) = input.entity_type {
                 entity.entity_type = entity_type;
             }
+            if let Some(fields) = input.fields {
+                entity.fields = fields;
+            }
             if let Some(ui_config) = input.ui_config {
                 entity.ui_config = ui_config;
             }
@@ -412,7 +460,8 @@ impl ModelService {
         // Emit entity updated event
         self.emit_event(ModelChangeEvent::entity_updated(model.id.clone(), entity_id));
 
-        // TODO: Persist to database
+        // Persist to database
+        self.persist_model_to_database(&model).await?;
 
         Ok(updated_entity)
     }
@@ -1229,6 +1278,28 @@ impl ModelService {
             styling,
         })
     }
+    
+    /// Helper method to persist a model to the database
+    async fn persist_model_to_database(&self, model: &TorqueModel) -> Result<(), Error> {
+        use sea_orm::{ActiveModelTrait, Set};
+        
+        let model_json = serde_json::to_value(model)?;
+        let schema_json = serde_json::to_value(model)?; // For now, use same as model_json
+        let active_model = torque_models::ActiveModel {
+            id: Set(model.id.to_string()),
+            name: Set(model.name.clone()),
+            description: Set(model.description.clone()),
+            version: Set(model.version.clone()),
+            model_json: Set(model_json),
+            schema_json: Set(schema_json),
+            created_at: Set(model.created_at.clone().into_chrono().naive_utc()),
+            updated_at: Set(model.updated_at.clone().into_chrono().naive_utc()),
+        };
+        
+        active_model.update(self.database.as_ref()).await?;
+        tracing::info!("Persisted model '{}' to database", model.name);
+        Ok(())
+    }
 }
 
 // Input types for the service layer
@@ -1264,6 +1335,7 @@ pub struct UpdateEntityInput {
     pub display_name: Option<String>,
     pub description: Option<String>,
     pub entity_type: Option<EntityType>,
+    pub fields: Option<Vec<EntityField>>,
     pub ui_config: Option<EntityUiConfig>,
     pub behavior: Option<EntityBehavior>,
 }

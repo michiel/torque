@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Torque Development Server Script
-# Starts the Rust backend with in-memory SQLite and React Model Editor frontend
+# Starts the Rust backend with SQLite database and React frontends (Model Editor & TorqueApp)
 
 set -e
 
@@ -15,8 +15,28 @@ NC='\033[0m' # No Color
 # Configuration
 BACKEND_PORT=8080
 FRONTEND_PORT=3000
+TORQUE_CLIENT_PORT=3002
 BACKEND_DIR="torque"
 FRONTEND_DIR="frontend/model-editor"
+TORQUE_CLIENT_DIR="frontend/torque-client"
+
+# Parse command line arguments
+TORQUE_CLIENT_MODE="dev" # Default to dev mode
+for arg in "$@"; do
+    case $arg in
+        --production-client)
+            TORQUE_CLIENT_MODE="production"
+            shift
+            ;;
+        --help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --production-client  Run TorqueApp client in production mode (faster loading)"
+            echo "  --help              Show this help message"
+            exit 0
+            ;;
+    esac
+done
 
 # Function to print colored output
 log() {
@@ -45,6 +65,7 @@ cleanup() {
     # Kill any processes on our ports
     lsof -ti:$BACKEND_PORT | xargs -r kill -9 2>/dev/null || true
     lsof -ti:$FRONTEND_PORT | xargs -r kill -9 2>/dev/null || true
+    lsof -ti:$TORQUE_CLIENT_PORT | xargs -r kill -9 2>/dev/null || true
     
     success "Development servers stopped"
     exit 0
@@ -101,7 +122,7 @@ start_backend() {
     # Wait for backend to be ready
     log "Waiting for backend to start on port $BACKEND_PORT..."
     
-    for i in {1..120}; do
+    for i in {1..180}; do
         if curl -s http://localhost:$BACKEND_PORT/graphql -H "Content-Type: application/json" -d '{"query":"{ __schema { queryType { name } } }"}' >/dev/null 2>&1; then
             success "Backend server started successfully on http://localhost:$BACKEND_PORT"
             return 0
@@ -109,7 +130,7 @@ start_backend() {
         sleep 1
     done
     
-    error "Backend server failed to start within 120 seconds"
+    error "Backend server failed to start within 180 seconds"
     return 1
 }
 
@@ -143,6 +164,48 @@ start_frontend() {
     done
     
     error "Frontend server failed to start within 30 seconds"
+    return 1
+}
+
+# Start the TorqueApp client
+start_torque_client() {
+    log "Starting TorqueApp client..."
+    
+    cd $TORQUE_CLIENT_DIR
+    
+    # Install dependencies if node_modules doesn't exist
+    if [ ! -d "node_modules" ]; then
+        log "Installing TorqueApp client dependencies..."
+        npm install
+    fi
+    
+    # Start the client based on mode
+    if [ "$TORQUE_CLIENT_MODE" = "production" ]; then
+        log "Building TorqueApp client for production mode..."
+        npm run build
+        log "Starting TorqueApp client in production mode..."
+        npm run preview &
+        TORQUE_CLIENT_PID=$!
+    else
+        log "Starting TorqueApp client in development mode..."
+        npm run dev &
+        TORQUE_CLIENT_PID=$!
+    fi
+    
+    cd ../..
+    
+    # Wait for client to be ready
+    log "Waiting for TorqueApp client to start on port $TORQUE_CLIENT_PORT..."
+    
+    for i in {1..60}; do
+        if curl -s http://localhost:$TORQUE_CLIENT_PORT >/dev/null 2>&1; then
+            success "TorqueApp client started successfully on http://localhost:$TORQUE_CLIENT_PORT"
+            return 0
+        fi
+        sleep 1
+    done
+    
+    error "TorqueApp client failed to start within 60 seconds"
     return 1
 }
 
@@ -180,24 +243,33 @@ main() {
     check_dependencies
     check_port $BACKEND_PORT "Torque backend"
     check_port $FRONTEND_PORT "Model Editor frontend"
+    check_port $TORQUE_CLIENT_PORT "TorqueApp client"
     
     # Start services
     start_backend
     start_frontend
+    start_torque_client
     test_graphql
     
     echo ""
     success "🎉 Development environment is ready!"
     echo ""
     echo "📍 Services:"
-    echo "   • Backend:  http://localhost:$BACKEND_PORT"
-    echo "   • Frontend: http://localhost:$FRONTEND_PORT"
-    echo "   • GraphQL:  http://localhost:$BACKEND_PORT/graphql"
-    echo "   • Health:   http://localhost:$BACKEND_PORT/health"
+    echo "   • Backend:      http://localhost:$BACKEND_PORT"
+    echo "   • Model Editor: http://localhost:$FRONTEND_PORT"
+    echo "   • TorqueApp:    http://localhost:$TORQUE_CLIENT_PORT"
+    echo "   • GraphQL:      http://localhost:$BACKEND_PORT/graphql"
+    echo "   • JSON-RPC:     http://localhost:$BACKEND_PORT/rpc"
+    echo "   • Health:       http://localhost:$BACKEND_PORT/health"
     echo ""
     echo "💡 Tips:"
-    echo "   • The backend uses an in-memory SQLite database"
+    echo "   • The backend uses SQLite database at data/dev.db"
     echo "   • Frontend has hot module replacement enabled"
+    if [ "$TORQUE_CLIENT_MODE" = "production" ]; then
+        echo "   • TorqueApp is running in production mode (faster loading)"
+    else
+        echo "   • TorqueApp is running in dev mode (use --production-client for faster loading)"
+    fi
     echo "   • Press Ctrl+C to stop all services"
     echo ""
     

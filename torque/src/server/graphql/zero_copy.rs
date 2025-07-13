@@ -3,6 +3,37 @@ use crate::common::Uuid;
 use crate::model::types as model;
 use crate::server::AppState;
 
+/// Parse field type from string representation
+fn parse_field_type(field_type_str: &str) -> model::FieldType {
+    match field_type_str {
+        "String" => model::FieldType::String { max_length: None },
+        "Integer" => model::FieldType::Integer { min: None, max: None },
+        "Float" => model::FieldType::Float { min: None, max: None },
+        "Boolean" => model::FieldType::Boolean,
+        "DateTime" => model::FieldType::DateTime,
+        "Date" => model::FieldType::Date,
+        "Time" => model::FieldType::Time,
+        "Json" => model::FieldType::Json,
+        "Binary" => model::FieldType::Binary,
+        _ if field_type_str.starts_with("String(") => {
+            // Parse String(100) format
+            let len_str = field_type_str.trim_start_matches("String(").trim_end_matches(")");
+            let max_length = len_str.parse::<usize>().ok();
+            model::FieldType::String { max_length }
+        },
+        _ if field_type_str.starts_with("Reference(") => {
+            // Parse Reference(entity_id) format
+            let entity_str = field_type_str.trim_start_matches("Reference(").trim_end_matches(")");
+            if let Ok(entity_id) = entity_str.parse::<Uuid>() {
+                model::FieldType::Reference { entity_id }
+            } else {
+                model::FieldType::String { max_length: None }
+            }
+        },
+        _ => model::FieldType::String { max_length: None },
+    }
+}
+
 /// Optimized GraphQL wrappers that minimize conversions
 /// Key optimizations:
 /// 1. Avoid string conversions where possible
@@ -542,11 +573,32 @@ impl OptimizedMutation {
         let uuid = id.parse::<Uuid>()
             .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
         
+        // Convert fields if provided
+        let fields = if let Some(input_fields) = input.fields {
+            Some(input_fields.into_iter().map(|f| {
+                use crate::model::types::EntityField;
+                
+                EntityField {
+                    id: f.id.and_then(|id| id.parse::<Uuid>().ok()).unwrap_or_else(Uuid::new_v4),
+                    name: f.name,
+                    display_name: f.display_name,
+                    field_type: parse_field_type(&f.field_type),
+                    required: f.required,
+                    default_value: f.default_value,
+                    validation: f.validation.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default(),
+                    ui_config: f.ui_config.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default(),
+                }
+            }).collect())
+        } else {
+            None
+        };
+        
         let entity_input = crate::services::model::UpdateEntityInput {
             name: input.name,
             display_name: input.display_name,
             description: input.description,
             entity_type: None,
+            fields,
             ui_config: None,
             behavior: None,
         };
@@ -661,12 +713,25 @@ pub struct UpdateEntityInput {
     pub name: Option<String>,
     pub display_name: Option<String>,
     pub description: Option<String>,
+    pub fields: Option<Vec<UpdateFieldInput>>,
     pub ui_config: Option<serde_json::Value>,
     pub behavior: Option<serde_json::Value>,
 }
 
 #[derive(InputObject)]
 pub struct CreateFieldInput {
+    pub name: String,
+    pub display_name: String,
+    pub field_type: String,
+    pub required: bool,
+    pub default_value: Option<serde_json::Value>,
+    pub validation: Option<serde_json::Value>,
+    pub ui_config: Option<serde_json::Value>,
+}
+
+#[derive(InputObject)]
+pub struct UpdateFieldInput {
+    pub id: Option<String>,
     pub name: String,
     pub display_name: String,
     pub field_type: String,

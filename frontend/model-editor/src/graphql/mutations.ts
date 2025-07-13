@@ -73,6 +73,16 @@ export const UPDATE_ENTITY = gql`
       displayName
       description
       entityType
+      fields {
+        id
+        name
+        displayName
+        fieldType
+        required
+        defaultValue
+        validation
+        uiConfig
+      }
       uiConfig
       behavior
     }
