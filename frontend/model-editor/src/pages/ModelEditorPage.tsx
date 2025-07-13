@@ -104,7 +104,6 @@ export function ModelEditorPage() {
       name: '',
       displayName: '',
       description: '',
-      entityType: 'Data',
       fields: [] as Field[],
     },
     validate: {
@@ -132,7 +131,6 @@ export function ModelEditorPage() {
             name: values.name,
             displayName: values.displayName,
             description: values.description,
-            entityType: values.entityType,
           },
         },
       })
@@ -145,7 +143,6 @@ export function ModelEditorPage() {
             name: values.name,
             displayName: values.displayName,
             description: values.description,
-            entityType: values.entityType,
             fields: values.fields.map(field => ({
               name: field.name,
               displayName: field.displayName,
@@ -181,7 +178,6 @@ export function ModelEditorPage() {
       name: entity.name,
       displayName: entity.displayName,
       description: entity.description || '',
-      entityType: entity.entityType,
       fields: normalizedFields,
     })
     openEntityModal()
@@ -379,18 +375,6 @@ export function ModelEditorPage() {
               label="Description"
               placeholder="Describe what this entity represents..."
               {...entityForm.getInputProps('description')}
-            />
-            
-            <Select
-              label="Entity Type"
-              data={[
-                { value: 'Data', label: 'Data' },
-                { value: 'Lookup', label: 'Lookup' },
-                { value: 'Audit', label: 'Audit' },
-                { value: 'Temporary', label: 'Temporary' },
-                { value: 'View', label: 'View' },
-              ]}
-              {...entityForm.getInputProps('entityType')}
             />
             
             <Divider my="md" label="Fields" labelPosition="left" />

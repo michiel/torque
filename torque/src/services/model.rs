@@ -417,6 +417,45 @@ impl ModelService {
         Ok(updated_entity)
     }
 
+    /// Delete an entity from a model
+    pub async fn delete_entity(&self, entity_id: Uuid) -> Result<bool, Error> {
+        // Find the model containing this entity
+        let mut model_with_entity = None;
+        for entry in self.model_cache.iter() {
+            let model = &entry.value().data;
+            if model.entities.iter().any(|e| e.id == entity_id) {
+                model_with_entity = Some(model.clone());
+                break;
+            }
+        }
+
+        let mut model = model_with_entity
+            .ok_or_else(|| Error::NotFound(format!("Entity with id {} not found", entity_id)))?;
+
+        // Remove the entity
+        let initial_count = model.entities.len();
+        model.entities.retain(|e| e.id != entity_id);
+        
+        if model.entities.len() == initial_count {
+            return Ok(false); // Entity was not found
+        }
+
+        model.updated_at = UtcDateTime::now();
+
+        // Update cache with modified model
+        self.model_cache.insert(
+            model.id.clone(),
+            CacheEntry::new(model.clone(), 3600),
+        );
+
+        // Emit entity removed event
+        self.emit_event(ModelChangeEvent::entity_removed(model.id.clone(), entity_id));
+
+        // TODO: Persist to database
+
+        Ok(true)
+    }
+
     /// Get relationships for a specific model
     pub async fn get_relationships(&self, model_id: Uuid) -> Result<Vec<ModelRelationship>, Error> {
         if let Some(model) = self.get_model(model_id).await? {

@@ -508,6 +508,64 @@ impl OptimizedMutation {
         Ok(ModelWrapper { inner: model })
     }
 
+    /// Create a new entity
+    async fn create_entity(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateEntityInput
+    ) -> Result<EntityWrapper> {
+        let state = ctx.data::<AppState>()?;
+        let entity_input = crate::services::model::CreateEntityInput {
+            model_id: input.model_id,
+            name: input.name,
+            display_name: input.display_name,
+            description: input.description,
+            entity_type: model::EntityType::Data, // Always use Data type
+            fields: vec![],
+            ui_config: None,
+            behavior: None,
+        };
+        
+        let entity = state.services.model_service.create_entity(entity_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create entity: {}", e)))?;
+        Ok(EntityWrapper { inner: entity })
+    }
+
+    /// Update an existing entity
+    async fn update_entity(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+        input: UpdateEntityInput
+    ) -> Result<EntityWrapper> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        
+        let entity_input = crate::services::model::UpdateEntityInput {
+            name: input.name,
+            display_name: input.display_name,
+            description: input.description,
+            entity_type: None,
+            ui_config: None,
+            behavior: None,
+        };
+        
+        let entity = state.services.model_service.update_entity(uuid, entity_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to update entity: {}", e)))?;
+        Ok(EntityWrapper { inner: entity })
+    }
+
+    /// Delete an entity
+    async fn delete_entity(&self, ctx: &Context<'_>, id: String) -> Result<bool> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        let result = state.services.model_service.delete_entity(uuid).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to delete entity: {}", e)))?;
+        Ok(result)
+    }
+
     /// Batch operations for performance
     async fn batch_create_entities(
         &self,
@@ -551,7 +609,7 @@ impl OptimizedMutation {
             name: input.name,
             display_name: input.display_name,
             description: input.description,
-            entity_type: model::EntityType::Data,
+            entity_type: model::EntityType::Data, // Always use Data type
             fields: vec![],
             ui_config: None,
             behavior: None,
@@ -589,9 +647,33 @@ pub struct UpdateModelInput {
 
 #[derive(InputObject)]
 pub struct CreateEntityInput {
+    pub model_id: String,
     pub name: String,
     pub display_name: String,
     pub description: Option<String>,
+    pub fields: Vec<CreateFieldInput>,
+    pub ui_config: Option<serde_json::Value>,
+    pub behavior: Option<serde_json::Value>,
+}
+
+#[derive(InputObject)]
+pub struct UpdateEntityInput {
+    pub name: Option<String>,
+    pub display_name: Option<String>,
+    pub description: Option<String>,
+    pub ui_config: Option<serde_json::Value>,
+    pub behavior: Option<serde_json::Value>,
+}
+
+#[derive(InputObject)]
+pub struct CreateFieldInput {
+    pub name: String,
+    pub display_name: String,
+    pub field_type: String,
+    pub required: bool,
+    pub default_value: Option<serde_json::Value>,
+    pub validation: Option<serde_json::Value>,
+    pub ui_config: Option<serde_json::Value>,
 }
 
 // Output types
