@@ -373,6 +373,10 @@ impl LayoutWrapper {
         &self.inner.name
     }
 
+    async fn description(&self) -> Option<&str> {
+        self.inner.description.as_deref()
+    }
+
     async fn layout_type(&self) -> String {
         format!("{:?}", self.inner.layout_type)
     }
@@ -391,6 +395,14 @@ impl LayoutWrapper {
 
     async fn responsive(&self) -> serde_json::Value {
         serde_json::to_value(&self.inner.responsive).unwrap_or_default()
+    }
+
+    async fn created_at(&self) -> String {
+        self.inner.created_at.to_iso8601()
+    }
+
+    async fn updated_at(&self) -> String {
+        self.inner.updated_at.to_iso8601()
     }
 }
 
@@ -469,6 +481,24 @@ impl OptimizedQuery {
         let models = state.services.model_service.search_models(query).await
             .map_err(|e| async_graphql::Error::new(format!("Failed to search models: {}", e)))?;
         Ok(models.into_iter().map(|m| ModelWrapper { inner: m }).collect())
+    }
+
+    /// Get a specific layout by ID
+    async fn layout(&self, ctx: &Context<'_>, id: String) -> Result<Option<LayoutWrapper>> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        
+        // Search through all models to find the layout
+        let models = state.services.model_service.get_models().await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to get models: {}", e)))?;
+        
+        for model in models {
+            if let Some(layout) = model.layouts.iter().find(|l| l.id == uuid) {
+                return Ok(Some(LayoutWrapper { inner: layout.clone() }));
+            }
+        }
+        Ok(None)
     }
 
     /// Get model statistics

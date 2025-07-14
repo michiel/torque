@@ -97,6 +97,24 @@ impl Query {
         Ok(layouts.into_iter().map(Layout::from).collect())
     }
 
+    /// Get a specific layout by ID
+    async fn layout(&self, ctx: &Context<'_>, id: String) -> Result<Option<Layout>> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        
+        // Search through all models to find the layout
+        let models = state.services.model_service.get_models().await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to get models: {}", e)))?;
+        
+        for model in models {
+            if let Some(layout) = model.layouts.iter().find(|l| l.id == uuid) {
+                return Ok(Some(Layout::from(layout.clone())));
+            }
+        }
+        Ok(None)
+    }
+
     /// Search models by name or description
     async fn search_models(&self, ctx: &Context<'_>, query: String) -> Result<Vec<Model>> {
         let state = ctx.data::<AppState>()?;
@@ -522,12 +540,17 @@ pub struct FlowStep {
 pub struct Layout {
     pub id: UuidString,
     pub name: String,
+    pub description: Option<String>,
     #[graphql(name = "layoutType")]
     pub layout_type: LayoutTypeEnum,
     #[graphql(name = "targetEntities")]
     pub target_entities: Vec<UuidString>,
     pub components: Vec<LayoutComponent>,
     pub responsive: JSON,
+    #[graphql(name = "createdAt")]
+    pub created_at: String,
+    #[graphql(name = "updatedAt")]
+    pub updated_at: String,
 }
 
 /// Layout component representation for GraphQL
@@ -998,10 +1021,13 @@ impl From<ModelLayout> for Layout {
         Self {
             id: layout.id.to_string(),
             name: layout.name,
+            description: layout.description,
             layout_type: layout.layout_type.into(),
             target_entities: layout.target_entities.into_iter().map(|id| id.to_string()).collect(),
             components: layout.components.into_iter().map(LayoutComponent::from).collect(),
             responsive: serde_json::to_value(layout.responsive).unwrap_or_default(),
+            created_at: layout.created_at.to_iso8601(),
+            updated_at: layout.updated_at.to_iso8601(),
         }
     }
 }

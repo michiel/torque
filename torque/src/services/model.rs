@@ -629,9 +629,11 @@ impl ModelService {
         let target_entities = target_entities
             .map_err(|_| Error::InvalidInput("Invalid target entity ID format".to_string()))?;
 
+        let now = UtcDateTime::now();
         let layout = ModelLayout {
             id: Uuid::new_v4(),
             name: input.name.clone(),
+            description: None, // TODO: Add description field to CreateLayoutInput
             layout_type: input.layout_type,
             target_entities,
             components: input.components.into_iter().map(|c| crate::model::types::LayoutComponent {
@@ -642,6 +644,8 @@ impl ModelService {
                 styling: serde_json::from_value(c.styling.unwrap_or_default()).unwrap_or_default(),
             }).collect(),
             responsive: serde_json::from_value(input.responsive.unwrap_or_default()).unwrap_or_default(),
+            created_at: now.clone(),
+            updated_at: now,
         };
 
         // Add layout to model
@@ -1284,13 +1288,17 @@ impl ModelService {
             vec![]
         };
         
+        let now = UtcDateTime::now();
         Ok(ModelLayout {
             id: Uuid::new_v4(),
             name,
+            description: layout_data["description"].as_str().map(|s| s.to_string()),
             layout_type,
             target_entities,
             components,
             responsive,
+            created_at: now.clone(),
+            updated_at: now,
         })
     }
     

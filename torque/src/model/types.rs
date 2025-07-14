@@ -574,10 +574,13 @@ pub enum ErrorAction {
 pub struct ModelLayout {
     pub id: Uuid,
     pub name: String,
+    pub description: Option<String>,
     pub layout_type: LayoutType,
     pub target_entities: Vec<Uuid>,
     pub components: Vec<LayoutComponent>,
     pub responsive: ResponsiveLayout,
+    pub created_at: UtcDateTime,
+    pub updated_at: UtcDateTime,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
