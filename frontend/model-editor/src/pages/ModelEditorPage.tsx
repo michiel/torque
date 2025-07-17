@@ -154,7 +154,11 @@ export function ModelEditorPage() {
           >
             Open in TorqueApp
           </Button>
-          <Button leftSection={<IconEdit size={16} />} variant="light">
+          <Button 
+            leftSection={<IconEdit size={16} />} 
+            variant="light"
+            onClick={() => navigate(`/models/${id}/details`)}
+          >
             Edit Details
           </Button>
           <Button leftSection={<IconUpload size={16} />} variant="light" onClick={openImportModal}>

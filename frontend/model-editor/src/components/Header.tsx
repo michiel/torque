@@ -53,7 +53,9 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
         }
       }
       
-      if (segments[2] === 'entities') {
+      if (segments[2] === 'details') {
+        breadcrumbs.push({ title: 'Edit Details' })
+      } else if (segments[2] === 'entities') {
         breadcrumbs.push({ title: 'Entities' })
         
         if (segments[3] === 'new') {

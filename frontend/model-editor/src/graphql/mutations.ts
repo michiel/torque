@@ -32,6 +32,22 @@ export const UPDATE_MODEL = gql`
   }
 `
 
+// Mutation to update model configuration
+export const UPDATE_MODEL_CONFIG = gql`
+  mutation UpdateModelConfig($id: String!, $input: UpdateModelConfigInput!) {
+    updateModelConfig(id: $id, input: $input) {
+      id
+      name
+      description
+      version
+      createdAt
+      updatedAt
+      createdBy
+      config
+    }
+  }
+`
+
 // Mutation to delete a model
 export const DELETE_MODEL = gql`
   mutation DeleteModel($id: String!) {

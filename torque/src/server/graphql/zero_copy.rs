@@ -582,6 +582,48 @@ impl OptimizedMutation {
         Ok(ModelWrapper { inner: model })
     }
 
+    /// Update model configuration
+    async fn update_model_config(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+        input: UpdateModelConfigInput
+    ) -> Result<ModelWrapper> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        
+        // Get the existing model
+        let mut model = state.services.model_service.get_model(uuid.clone()).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to get model: {}", e)))?
+            .ok_or_else(|| async_graphql::Error::new("Model not found"))?;
+        
+        // Update the config
+        if let Some(start_page_layout_id) = input.start_page_layout_id {
+            if start_page_layout_id.is_empty() {
+                // Remove the start page layout if empty string is provided
+                model.config.custom.remove("startPageLayoutId");
+            } else {
+                model.config.custom.insert(
+                    "startPageLayoutId".to_string(),
+                    serde_json::Value::String(start_page_layout_id)
+                );
+            }
+        }
+        
+        // Save the updated model
+        let service_input = crate::services::model::UpdateModelInput {
+            name: None,
+            description: None,
+            config: Some(model.config.clone()),
+        };
+        
+        let updated_model = state.services.model_service.update_model(uuid, service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to update model config: {}", e)))?;
+        
+        Ok(ModelWrapper { inner: updated_model })
+    }
+    
     /// Delete a model
     async fn delete_model(&self, ctx: &Context<'_>, id: String) -> Result<bool> {
         let state = ctx.data::<AppState>()?;
@@ -968,6 +1010,11 @@ pub struct CreateModelInput {
 pub struct UpdateModelInput {
     pub name: Option<String>,
     pub description: Option<String>,
+}
+
+#[derive(InputObject)]
+pub struct UpdateModelConfigInput {
+    pub start_page_layout_id: Option<String>,
 }
 
 #[derive(InputObject)]
