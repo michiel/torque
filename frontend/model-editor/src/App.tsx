@@ -8,6 +8,7 @@ import { ModelEditorPage } from './pages/ModelEditorPage'
 import { CreateModelPage } from './pages/CreateModelPage'
 import { LayoutEditorPage } from './pages/LayoutEditorPage'
 import { EntityEditorPage } from './pages/EntityEditorPage'
+import { RelationshipEditorPage } from './pages/RelationshipEditorPage'
 
 function App() {
   return (
@@ -27,6 +28,8 @@ function App() {
           <Route path="/models/:id" element={<ModelEditorPage />} />
           <Route path="/models/:modelId/entities/new" element={<EntityEditorPage />} />
           <Route path="/models/:modelId/entities/:entityId" element={<EntityEditorPage />} />
+          <Route path="/models/:modelId/relationships/new" element={<RelationshipEditorPage />} />
+          <Route path="/models/:modelId/relationships/:relationshipId" element={<RelationshipEditorPage />} />
           <Route path="/models/:modelId/layouts/new" element={<LayoutEditorPage />} />
           <Route path="/models/:modelId/layouts/:layoutId" element={<LayoutEditorPage />} />
         </Routes>

@@ -223,7 +223,7 @@ export function ModelEditorPage() {
         </Tabs.Panel>
 
         <Tabs.Panel value="relationships" pt="md">
-          <RelationshipsPanel model={model} />
+          <RelationshipsPanel model={model} navigate={navigate} />
         </Tabs.Panel>
 
         <Tabs.Panel value="layouts" pt="md">
@@ -311,13 +311,35 @@ function EntitiesPanel({ model, onAddEntity, onEditEntity }: EntitiesPanelProps)
   )
 }
 
-function RelationshipsPanel({ model }: ModelPanelProps) {
+interface RelationshipsPanelProps extends ModelPanelProps {
+  navigate: (path: string) => void
+}
+
+function RelationshipsPanel({ model, navigate }: RelationshipsPanelProps) {
+  const handleCreateRelationship = () => {
+    navigate(`/models/${model.id}/relationships/new`)
+  }
+
+  const handleEditRelationship = (relationshipId: string) => {
+    navigate(`/models/${model.id}/relationships/${relationshipId}`)
+  }
+
+  // Helper function to get entity name by ID
+  const getEntityName = (entityId: string) => {
+    const entity = model.entities?.find(e => e.id === entityId)
+    return entity?.displayName || entity?.name || entityId
+  }
+
   return (
     <Paper p="md" withBorder>
       <Stack>
         <Group justify="space-between">
           <Text fw={500}>Relationships</Text>
-          <Button size="sm" leftSection={<IconBolt size={14} />}>
+          <Button 
+            size="sm" 
+            leftSection={<IconBolt size={14} />}
+            onClick={handleCreateRelationship}
+          >
             Add Relationship
           </Button>
         </Group>
@@ -330,10 +352,14 @@ function RelationshipsPanel({ model }: ModelPanelProps) {
                   <Stack gap={4}>
                     <Text fw={500}>{relationship.name}</Text>
                     <Text size="sm" c="dimmed">
-                      {relationship.relationshipType} • {relationship.fromEntity} → {relationship.toEntity}
+                      {relationship.relationshipType} • {getEntityName(relationship.fromEntity)} → {getEntityName(relationship.toEntity)}
                     </Text>
                   </Stack>
-                  <Button size="xs" variant="light">
+                  <Button 
+                    size="xs" 
+                    variant="light"
+                    onClick={() => handleEditRelationship(relationship.id)}
+                  >
                     Edit
                   </Button>
                 </Group>

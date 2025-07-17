@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@apollo/client'
 import {
@@ -12,7 +12,6 @@ import {
   Group,
   Alert,
   Loader,
-  Text,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
@@ -21,7 +20,7 @@ import { IconAlertCircle } from '@tabler/icons-react'
 import { GET_MODEL } from '../graphql/queries'
 import { CREATE_ENTITY, UPDATE_ENTITY } from '../graphql/mutations'
 import { EntityFieldsEditor } from '../components/EntityEditor'
-import { Model, Entity, Field } from '../types/model'
+import { Model, Field } from '../types/model'
 
 export function EntityEditorPage() {
   const { modelId, entityId } = useParams<{ modelId: string; entityId?: string }>()
@@ -29,7 +28,7 @@ export function EntityEditorPage() {
   const isEditMode = !!entityId
   
   // Fetch model data
-  const { data, loading, error, refetch } = useQuery(GET_MODEL, {
+  const { data, loading, error } = useQuery(GET_MODEL, {
     variables: { id: modelId },
     skip: !modelId,
   })
@@ -134,7 +133,6 @@ export function EntityEditorPage() {
               required: field.required,
               validation: field.validation || [],
               defaultValue: field.defaultValue,
-              description: field.description,
             })),
           },
         },
@@ -154,7 +152,6 @@ export function EntityEditorPage() {
               required: field.required,
               validation: field.validation || [],
               defaultValue: field.defaultValue,
-              description: field.description,
             })),
           },
         },
@@ -169,7 +166,7 @@ export function EntityEditorPage() {
   if (loading) {
     return (
       <Container size="xl" py="xl">
-        <Group position="center">
+        <Group justify="center">
           <Loader size="lg" />
         </Group>
       </Container>

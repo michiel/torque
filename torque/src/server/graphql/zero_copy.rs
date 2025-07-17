@@ -47,6 +47,26 @@ fn parse_layout_type(layout_type_str: &str) -> model::LayoutType {
     }
 }
 
+fn parse_relationship_type(relationship_type_str: &str) -> model::RelationshipType {
+    match relationship_type_str {
+        "OneToOne" => model::RelationshipType::OneToOne,
+        "OneToMany" => model::RelationshipType::OneToMany,
+        "ManyToOne" => model::RelationshipType::ManyToOne,
+        "ManyToMany" => model::RelationshipType::ManyToMany,
+        _ => model::RelationshipType::OneToMany,
+    }
+}
+
+fn parse_cascade_action(cascade_str: &str) -> model::CascadeAction {
+    match cascade_str {
+        "None" => model::CascadeAction::None,
+        "Delete" => model::CascadeAction::Delete,
+        "SetNull" => model::CascadeAction::SetNull,
+        "Restrict" => model::CascadeAction::Restrict,
+        _ => model::CascadeAction::None,
+    }
+}
+
 /// Optimized GraphQL wrappers that minimize conversions
 /// Key optimizations:
 /// 1. Avoid string conversions where possible
@@ -778,6 +798,127 @@ impl OptimizedMutation {
             .map_err(|e| async_graphql::Error::new(format!("Failed to delete layout: {}", e)))?;
         Ok(result)
     }
+    
+    /// Create a new relationship
+    async fn create_relationship(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateRelationshipInput
+    ) -> Result<RelationshipWrapper> {
+        let state = ctx.data::<AppState>()?;
+        
+        let service_input = crate::services::model::CreateRelationshipInput {
+            model_id: input.model_id,
+            name: input.name,
+            relationship_type: parse_relationship_type(&input.relationship_type),
+            from_entity: input.from_entity,
+            to_entity: input.to_entity,
+            from_field: input.from_field,
+            to_field: input.to_field,
+            cascade: parse_cascade_action(&input.cascade),
+            ui_config: input.ui_config.and_then(|v| serde_json::from_value(v).ok()),
+        };
+        
+        let relationship = state.services.model_service.create_relationship(service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create relationship: {}", e)))?;
+            
+        Ok(RelationshipWrapper { inner: relationship })
+    }
+    
+    /// Update an existing relationship
+    async fn update_relationship(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+        input: UpdateRelationshipInput
+    ) -> Result<RelationshipWrapper> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+            
+        // For now, we'll implement update by modifying the model directly
+        // TODO: Add a dedicated update_relationship method to ModelService
+        let models = state.services.model_service.get_models().await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to get models: {}", e)))?;
+            
+        for model in models {
+            if let Some(_relationship) = model.relationships.iter().find(|r| r.id == uuid) {
+                // Found the relationship, update it
+                let mut updated_model = model.clone();
+                for rel in &mut updated_model.relationships {
+                    if rel.id == uuid {
+                        rel.name = input.name.clone();
+                        rel.relationship_type = parse_relationship_type(&input.relationship_type);
+                        rel.from_entity = input.from_entity.parse()
+                            .map_err(|_| async_graphql::Error::new("Invalid from_entity UUID"))?;
+                        rel.to_entity = input.to_entity.parse()
+                            .map_err(|_| async_graphql::Error::new("Invalid to_entity UUID"))?;
+                        rel.from_field = input.from_field.parse()
+                            .map_err(|_| async_graphql::Error::new("Invalid from_field UUID"))?;
+                        rel.to_field = input.to_field.parse()
+                            .map_err(|_| async_graphql::Error::new("Invalid to_field UUID"))?;
+                        rel.cascade = parse_cascade_action(&input.cascade);
+                        if let Some(ref ui_config_json) = input.ui_config {
+                            if let Ok(ui_config) = serde_json::from_value(ui_config_json.clone()) {
+                                rel.ui_config = ui_config;
+                            }
+                        }
+                        break;
+                    }
+                }
+                
+                // Save the updated model
+                let update_input = crate::services::model::UpdateModelInput {
+                    name: Some(updated_model.name.clone()),
+                    description: updated_model.description.clone(),
+                    config: None,
+                };
+                
+                state.services.model_service.update_model(model.id, update_input).await
+                    .map_err(|e| async_graphql::Error::new(format!("Failed to update model: {}", e)))?;
+                
+                // Return the updated relationship
+                if let Some(updated_rel) = updated_model.relationships.iter().find(|r| r.id == uuid) {
+                    return Ok(RelationshipWrapper { inner: updated_rel.clone() });
+                }
+            }
+        }
+        
+        Err(async_graphql::Error::new("Relationship not found"))
+    }
+    
+    /// Delete a relationship
+    async fn delete_relationship(&self, ctx: &Context<'_>, id: String) -> Result<bool> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+            
+        // TODO: Implement relationship deletion
+        let models = state.services.model_service.get_models().await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to get models: {}", e)))?;
+            
+        for model in models {
+            if model.relationships.iter().any(|r| r.id == uuid) {
+                // Found the model containing the relationship
+                let mut updated_model = model.clone();
+                updated_model.relationships.retain(|r| r.id != uuid);
+                
+                // Save the updated model
+                let update_input = crate::services::model::UpdateModelInput {
+                    name: Some(updated_model.name.clone()),
+                    description: updated_model.description.clone(),
+                    config: None,
+                };
+                
+                state.services.model_service.update_model(model.id, update_input).await
+                    .map_err(|e| async_graphql::Error::new(format!("Failed to update model: {}", e)))?;
+                    
+                return Ok(true);
+            }
+        }
+        
+        Ok(false)
+    }
 }
 
 impl OptimizedMutation {
@@ -907,6 +1048,31 @@ pub struct ComponentPositionInput {
     pub column: i32,
     pub width: i32,
     pub height: i32,
+}
+
+#[derive(InputObject)]
+pub struct CreateRelationshipInput {
+    pub model_id: String,
+    pub name: String,
+    pub relationship_type: String,
+    pub from_entity: String,
+    pub to_entity: String,
+    pub from_field: String,
+    pub to_field: String,
+    pub cascade: String,
+    pub ui_config: Option<serde_json::Value>,
+}
+
+#[derive(InputObject)]
+pub struct UpdateRelationshipInput {
+    pub name: String,
+    pub relationship_type: String,
+    pub from_entity: String,
+    pub to_entity: String,
+    pub from_field: String,
+    pub to_field: String,
+    pub cascade: String,
+    pub ui_config: Option<serde_json::Value>,
 }
 
 // Output types

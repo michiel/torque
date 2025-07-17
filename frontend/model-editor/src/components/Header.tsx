@@ -61,6 +61,14 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
         } else if (segments[3]) {
           breadcrumbs.push({ title: 'Edit Entity' })
         }
+      } else if (segments[2] === 'relationships') {
+        breadcrumbs.push({ title: 'Relationships' })
+        
+        if (segments[3] === 'new') {
+          breadcrumbs.push({ title: 'Create Relationship' })
+        } else if (segments[3]) {
+          breadcrumbs.push({ title: 'Edit Relationship' })
+        }
       } else if (segments[2] === 'layouts') {
         breadcrumbs.push({ title: 'Layouts' })
         
