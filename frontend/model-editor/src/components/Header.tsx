@@ -26,9 +26,11 @@ interface BreadcrumbItem {
   href?: string
 }
 
-function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
+function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
   const segments = pathname.split('/').filter(Boolean)
   const breadcrumbs: BreadcrumbItem[] = [{ title: 'Home', href: '/' }]
+  const searchParams = new URLSearchParams(search)
+  const tab = searchParams.get('tab')
 
   if (segments[0] === 'models') {
     breadcrumbs.push({ title: 'Models', href: '/models' })
@@ -39,7 +41,27 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
       // Model ID - we could fetch the model name here
       breadcrumbs.push({ title: 'Model Editor', href: `/models/${segments[1]}` })
       
-      if (segments[2] === 'layouts') {
+      // Add tab to breadcrumb if present
+      if (tab && tab !== 'entities') {
+        const tabTitles: Record<string, string> = {
+          relationships: 'Relationships',
+          layouts: 'Layouts',
+          flows: 'Flows'
+        }
+        if (tabTitles[tab]) {
+          breadcrumbs.push({ title: tabTitles[tab] })
+        }
+      }
+      
+      if (segments[2] === 'entities') {
+        breadcrumbs.push({ title: 'Entities' })
+        
+        if (segments[3] === 'new') {
+          breadcrumbs.push({ title: 'Create Entity' })
+        } else if (segments[3]) {
+          breadcrumbs.push({ title: 'Edit Entity' })
+        }
+      } else if (segments[2] === 'layouts') {
         breadcrumbs.push({ title: 'Layouts' })
         
         if (segments[3] === 'new') {
@@ -56,7 +78,7 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
 
 export function Header() {
   const location = useLocation()
-  const breadcrumbs = getBreadcrumbs(location.pathname)
+  const breadcrumbs = getBreadcrumbs(location.pathname, location.search)
 
   return (
     <Box>

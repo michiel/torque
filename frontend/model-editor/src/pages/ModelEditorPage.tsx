@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@apollo/client'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@apollo/client'
 import {
   Stack,
   Title,
@@ -14,15 +14,9 @@ import {
   Text,
   ActionIcon,
   Menu,
-  Modal,
-  TextInput,
-  Textarea,
-  Select,
-  Divider,
   Container,
   Box,
 } from '@mantine/core'
-import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
@@ -43,17 +37,17 @@ import {
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
-import { CREATE_ENTITY, UPDATE_ENTITY } from '../graphql/mutations'
-import { Model, Entity, Field } from '../types/model'
+import { Model, Entity } from '../types/model'
 import { ModelExportDialog, ModelImportDialog } from '../components/ModelImportExport'
-import { EntityFieldsEditor } from '../components/EntityEditor'
 
 export function ModelEditorPage() {
   const { id } = useParams<{ id: string }>()
-  const [entityModalOpened, { open: openEntityModal, close: closeEntityModal }] = useDisclosure(false)
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'entities'
+  
   const [exportModalOpened, { open: openExportModal, close: closeExportModal }] = useDisclosure(false)
   const [importModalOpened, { open: openImportModal, close: closeImportModal }] = useDisclosure(false)
-  const [editingEntity, setEditingEntity] = useState<Entity | null>(null)
   
   const { data, loading, error, refetch } = useQuery(GET_MODEL, {
     variables: { id },
@@ -61,138 +55,14 @@ export function ModelEditorPage() {
     errorPolicy: 'all',
   })
 
-  const [createEntity, { loading: creatingEntity }] = useMutation(CREATE_ENTITY, {
-    refetchQueries: [{ query: GET_MODEL, variables: { id } }],
-    onCompleted: () => {
-      notifications.show({
-        title: 'Success',
-        message: 'Entity created successfully',
-        color: 'green',
-      })
-      closeEntityModal()
-      setEditingEntity(null)
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'Error',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
 
-  const [updateEntity, { loading: updatingEntity }] = useMutation(UPDATE_ENTITY, {
-    refetchQueries: [{ query: GET_MODEL, variables: { id } }],
-    onCompleted: () => {
-      notifications.show({
-        title: 'Success',
-        message: 'Entity updated successfully',
-        color: 'green',
-      })
-      closeEntityModal()
-      setEditingEntity(null)
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'Error',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
 
-  const entityForm = useForm({
-    initialValues: {
-      name: '',
-      displayName: '',
-      description: '',
-      fields: [] as Field[],
-    },
-    validate: {
-      name: (value) => (!value ? 'Name is required' : null),
-      displayName: (value) => (!value ? 'Display name is required' : null),
-    },
-  })
-
-  const handleSaveEntity = async (values: typeof entityForm.values) => {
-    if (!id) {
-      notifications.show({
-        title: 'Error',
-        message: 'Model ID not found',
-        color: 'red',
-      })
-      return
-    }
-
-    if (editingEntity) {
-      // Update existing entity
-      await updateEntity({
-        variables: {
-          id: editingEntity.id,
-          input: {
-            name: values.name,
-            displayName: values.displayName,
-            description: values.description,
-            fields: values.fields.map(field => ({
-              id: field.id,
-              name: field.name,
-              displayName: field.displayName,
-              fieldType: field.fieldType,
-              required: field.required,
-              defaultValue: field.defaultValue,
-              validation: field.validation,
-              uiConfig: field.uiConfig,
-            })),
-          },
-        },
-      })
-    } else {
-      // Create new entity
-      await createEntity({
-        variables: {
-          input: {
-            modelId: id,
-            name: values.name,
-            displayName: values.displayName,
-            description: values.description,
-            fields: values.fields.map(field => ({
-              name: field.name,
-              displayName: field.displayName,
-              fieldType: field.fieldType,
-              required: field.required,
-              defaultValue: field.defaultValue,
-              validation: field.validation,
-              uiConfig: field.uiConfig,
-            })),
-            uiConfig: {},
-            behavior: {},
-          },
-        },
-      })
-    }
-    entityForm.reset()
-  }
-
-  const handleOpenEntityModal = () => {
-    setEditingEntity(null)
-    entityForm.reset()
-    openEntityModal()
+  const handleCreateEntity = () => {
+    navigate(`/models/${id}/entities/new`)
   }
 
   const handleEditEntity = (entity: Entity) => {
-    setEditingEntity(entity)
-    // Normalize fields to ensure validation is always an array
-    const normalizedFields = (entity.fields || []).map(field => ({
-      ...field,
-      validation: Array.isArray(field.validation) ? field.validation : []
-    }))
-    entityForm.setValues({
-      name: entity.name,
-      displayName: entity.displayName,
-      description: entity.description || '',
-      fields: normalizedFields,
-    })
-    openEntityModal()
+    navigate(`/models/${id}/entities/${entity.id}`)
   }
 
   const handleImportModel = (importedModel: any) => {
@@ -316,7 +186,11 @@ export function ModelEditorPage() {
       </Group>
 
       {/* Tabs */}
-      <Tabs defaultValue="entities" variant="outline">
+      <Tabs 
+        value={activeTab} 
+        onChange={(value) => setSearchParams({ tab: value || 'entities' })}
+        variant="outline"
+      >
         <Tabs.List>
           <Tabs.Tab 
             value="entities" 
@@ -345,7 +219,7 @@ export function ModelEditorPage() {
         </Tabs.List>
 
         <Tabs.Panel value="entities" pt="md">
-          <EntitiesPanel model={model} onAddEntity={handleOpenEntityModal} onEditEntity={handleEditEntity} />
+          <EntitiesPanel model={model} onAddEntity={handleCreateEntity} onEditEntity={handleEditEntity} />
         </Tabs.Panel>
 
         <Tabs.Panel value="relationships" pt="md">
@@ -353,7 +227,7 @@ export function ModelEditorPage() {
         </Tabs.Panel>
 
         <Tabs.Panel value="layouts" pt="md">
-          <LayoutsPanel model={model} />
+          <LayoutsPanel model={model} navigate={navigate} />
         </Tabs.Panel>
 
         <Tabs.Panel value="flows" pt="md">
@@ -361,59 +235,6 @@ export function ModelEditorPage() {
         </Tabs.Panel>
       </Tabs>
 
-      {/* Create/Edit Entity Modal */}
-      <Modal
-        opened={entityModalOpened}
-        onClose={closeEntityModal}
-        title={editingEntity ? "Edit Entity" : "Create New Entity"}
-        size="xl"
-        fullScreen={false}
-      >
-        <form onSubmit={entityForm.onSubmit(handleSaveEntity)}>
-          <Stack>
-            <TextInput
-              label="Name"
-              placeholder="user, product, order"
-              required
-              {...entityForm.getInputProps('name')}
-            />
-            
-            <TextInput
-              label="Display Name"
-              placeholder="User, Product, Order"
-              required
-              {...entityForm.getInputProps('displayName')}
-            />
-            
-            <Textarea
-              label="Description"
-              placeholder="Describe what this entity represents..."
-              {...entityForm.getInputProps('description')}
-            />
-            
-            <Divider my="md" label="Fields" labelPosition="left" />
-            
-            <EntityFieldsEditor
-              fields={entityForm.values.fields}
-              onChange={(fields) => entityForm.setFieldValue('fields', fields)}
-              entityNames={model?.entities?.map(e => e.name) || []}
-            />
-            
-            <Group justify="flex-end" mt="md">
-              <Button variant="outline" onClick={closeEntityModal}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                loading={creatingEntity || updatingEntity}
-                leftSection={<IconPlus size={16} />}
-              >
-                {editingEntity ? 'Update Entity' : 'Create Entity'}
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
 
       {/* Import/Export Modals */}
       <ModelExportDialog
@@ -529,8 +350,11 @@ function RelationshipsPanel({ model }: ModelPanelProps) {
   )
 }
 
-function LayoutsPanel({ model }: ModelPanelProps) {
-  const navigate = useNavigate()
+interface LayoutsPanelProps extends ModelPanelProps {
+  navigate: (path: string) => void
+}
+
+function LayoutsPanel({ model, navigate }: LayoutsPanelProps) {
   
   const handleCreateLayout = () => {
     navigate(`/models/${model.id}/layouts/new`)
