@@ -798,18 +798,12 @@ impl OptimizedMutation {
         let uuid = id.parse::<Uuid>()
             .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
             
-        // For now, we'll delete and recreate the layout
-        // TODO: Implement proper update logic
-        let _deleted = state.services.model_service.delete_layout(uuid).await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to update layout: {}", e)))?;
-            
-        // Create the updated layout
-        let service_input = crate::services::model::CreateLayoutInput {
-            model_id: input.model_id,
-            name: input.name,
-            layout_type: parse_layout_type(&input.layout_type),
-            target_entities: input.target_entities,
-            components: input.components.into_iter().map(|c| {
+        // Use the new update_layout method
+        let service_input = crate::services::model::UpdateLayoutInput {
+            name: Some(input.name),
+            layout_type: Some(parse_layout_type(&input.layout_type)),
+            target_entities: Some(input.target_entities),
+            components: Some(input.components.into_iter().map(|c| {
                 crate::services::model::CreateLayoutComponentInput {
                     component_type: c.component_type,
                     position: model::ComponentPosition {
@@ -821,12 +815,12 @@ impl OptimizedMutation {
                     properties: c.properties,
                     styling: c.styling,
                 }
-            }).collect(),
+            }).collect()),
             responsive: input.responsive,
         };
         
-        let layout = state.services.model_service.create_layout(service_input).await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create updated layout: {}", e)))?;
+        let layout = state.services.model_service.update_layout(uuid, service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to update layout: {}", e)))?;
             
         Ok(LayoutWrapper { inner: layout })
     }

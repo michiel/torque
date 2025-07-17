@@ -112,7 +112,6 @@ export const LayoutEditorPage: React.FC = () => {
       modelId,
       targetEntities,
       components: components.map(component => ({
-        id: component.id,
         componentType: component.type,
         position: {
           row: component.position.row,
@@ -132,10 +131,11 @@ export const LayoutEditorPage: React.FC = () => {
       }
     };
 
-    // Only add layoutType for new layouts (CREATE), not for updates
-    const layoutData = layoutId 
-      ? baseLayoutData 
-      : { ...baseLayoutData, layoutType: 'List' };
+    // Add layoutType - use existing type for updates or default to 'Dashboard' for new
+    const layoutData = {
+      ...baseLayoutData,
+      layoutType: layout?.layoutType || 'Dashboard'
+    };
 
     console.log('Layout data before save:', JSON.stringify(layoutData, null, 2));
 

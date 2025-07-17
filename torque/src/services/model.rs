@@ -667,6 +667,77 @@ impl ModelService {
         Ok(layout)
     }
     
+    /// Update an existing layout
+    pub async fn update_layout(&self, layout_id: Uuid, input: UpdateLayoutInput) -> Result<ModelLayout, Error> {
+        // Find the model containing this layout
+        let mut model_with_layout = None;
+        for entry in self.model_cache.iter() {
+            let model = &entry.value().data;
+            if model.layouts.iter().any(|l| l.id == layout_id) {
+                model_with_layout = Some(model.clone());
+                break;
+            }
+        }
+        
+        let mut model = model_with_layout
+            .ok_or_else(|| Error::NotFound(format!("Layout with id {} not found", layout_id)))?;
+        
+        // Find and update the layout
+        let layout_index = model.layouts.iter().position(|l| l.id == layout_id)
+            .ok_or_else(|| Error::NotFound(format!("Layout with id {} not found", layout_id)))?;
+        
+        {
+            let layout = &mut model.layouts[layout_index];
+            
+            // Update layout fields based on input
+            if let Some(name) = input.name {
+                layout.name = name;
+            }
+            if let Some(layout_type) = input.layout_type {
+                layout.layout_type = layout_type;
+            }
+            if let Some(target_entities) = input.target_entities {
+                let target_entities: Result<Vec<Uuid>, _> = target_entities.into_iter()
+                    .map(|id| id.parse::<Uuid>())
+                    .collect();
+                layout.target_entities = target_entities
+                    .map_err(|_| Error::InvalidInput("Invalid target entity ID format".to_string()))?;
+            }
+            if let Some(components) = input.components {
+                layout.components = components.into_iter().map(|c| crate::model::types::LayoutComponent {
+                    id: Uuid::new_v4(),
+                    component_type: c.component_type,
+                    position: c.position,
+                    properties: serde_json::from_value(c.properties).unwrap_or_default(),
+                    styling: serde_json::from_value(c.styling.unwrap_or_default()).unwrap_or_default(),
+                }).collect();
+            }
+            if let Some(responsive) = input.responsive {
+                layout.responsive = serde_json::from_value(responsive).unwrap_or_default();
+            }
+            
+            // Update timestamp
+            layout.updated_at = UtcDateTime::now();
+        }
+        
+        // Get the updated layout
+        let updated_layout = model.layouts[layout_index].clone();
+        
+        // Update cache with modified model
+        self.model_cache.insert(
+            model.id.clone(),
+            CacheEntry::new(model.clone(), 3600),
+        );
+        
+        // Persist to database
+        self.persist_model_to_database(&model).await?;
+        
+        // Emit layout updated event
+        self.emit_event(ModelChangeEvent::layout_updated(model.id.clone(), layout_id));
+        
+        Ok(updated_layout)
+    }
+    
     /// Delete a layout from a model
     pub async fn delete_layout(&self, layout_id: Uuid) -> Result<bool, Error> {
         // Find the model containing this layout
@@ -1440,6 +1511,15 @@ pub struct CreateLayoutInput {
     pub layout_type: LayoutType,
     pub target_entities: Vec<String>,
     pub components: Vec<CreateLayoutComponentInput>,
+    pub responsive: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateLayoutInput {
+    pub name: Option<String>,
+    pub layout_type: Option<LayoutType>,
+    pub target_entities: Option<Vec<String>>,
+    pub components: Option<Vec<CreateLayoutComponentInput>>,
     pub responsive: Option<serde_json::Value>,
 }
 

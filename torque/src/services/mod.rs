@@ -43,11 +43,9 @@ impl ServiceRegistry {
         // Initialize broadcast service
         let broadcast = Arc::new(broadcast::BroadcastService::new());
 
-        // Start the broadcast loop in the background
-        let broadcast_loop = broadcast.clone();
-        tokio::spawn(async move {
-            broadcast_loop.start_broadcast_loop().await;
-        });
+        // Note: We don't start the broadcast loop here because WebSocket handlers
+        // already subscribe to the broadcast channel and send messages to their clients.
+        // Starting the loop would cause duplicate sends and "sending after closing" errors.
 
         // Connect model service to broadcast service
         // Create a channel for model events

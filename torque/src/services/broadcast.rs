@@ -22,6 +22,14 @@ pub struct WebSocketClient {
 }
 
 /// High-performance broadcast service for real-time model synchronization
+/// 
+/// Architecture:
+/// 1. Model service emits events to a broadcast channel
+/// 2. WebSocket handlers subscribe to this channel in their send_task
+/// 3. Each WebSocket handler sends messages to its own client
+/// 
+/// Note: The start_broadcast_loop method is NOT used to avoid duplicate sends.
+/// WebSocket handlers already handle message distribution.
 pub struct BroadcastService {
     /// Broadcast sender for model events
     event_sender: broadcast::Sender<ModelEventMessage>,
@@ -107,9 +115,13 @@ impl BroadcastService {
         let mut clients = self.clients.write().await;
         clients.remove(client_id);
 
-        // Remove WebSocket sender
+        // Remove WebSocket sender and close it
         let mut senders = self.websocket_senders.write().await;
-        senders.remove(client_id);
+        if let Some(mut sender) = senders.remove(client_id) {
+            // Close the sender to ensure no more messages are sent
+            let _ = sender.close().await;
+            debug!("Closed WebSocket sender for client: {}", client_id);
+        }
         
         info!("Unregistered WebSocket client: {}", client_id);
         Ok(())
@@ -190,7 +202,12 @@ impl BroadcastService {
             }
 
             if let Err(e) = sender.send(Message::Text(message_json.clone())).await {
-                error!("Failed to send WebSocket message to {}: {}", client_id, e);
+                // Check if this is a "sending after closing" error
+                if e.to_string().contains("Sending after closing") {
+                    debug!("WebSocket {} already closed, removing sender", client_id);
+                } else {
+                    warn!("Failed to send WebSocket message to {}: {}", client_id, e);
+                }
                 failed_clients.push(client_id.clone());
             }
         }
