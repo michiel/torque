@@ -58,17 +58,23 @@ impl BroadcastService {
         // Send to broadcast channel
         match self.event_sender.send(message) {
             Ok(receiver_count) => {
-                debug!(
-                    "Broadcasted {} to {} receivers: {}", 
-                    event.description(),
-                    receiver_count,
-                    serde_json::to_string(&event).unwrap_or_default()
-                );
+                if receiver_count > 0 {
+                    debug!(
+                        "Broadcasted {} to {} receivers: {}", 
+                        event.description(),
+                        receiver_count,
+                        serde_json::to_string(&event).unwrap_or_default()
+                    );
+                } else {
+                    // No receivers yet, this is normal during startup
+                    debug!("No receivers for event: {}", event.description());
+                }
                 Ok(())
             }
-            Err(e) => {
-                warn!("Failed to broadcast event: {}", e);
-                Err(crate::Error::Internal(format!("Broadcast failed: {}", e)))
+            Err(broadcast::error::SendError(_)) => {
+                // Channel has no receivers, this is normal during startup
+                debug!("No active receivers for broadcast event: {}", event.description());
+                Ok(())
             }
         }
     }
@@ -79,17 +85,22 @@ impl BroadcastService {
         
         match self.event_sender.send(message) {
             Ok(receiver_count) => {
-                debug!(
-                    "Broadcasted {} to {} receivers (excluding client): {}", 
-                    event.description(),
-                    receiver_count,
-                    serde_json::to_string(&event).unwrap_or_default()
-                );
+                if receiver_count > 0 {
+                    debug!(
+                        "Broadcasted {} to {} receivers (excluding client): {}", 
+                        event.description(),
+                        receiver_count,
+                        serde_json::to_string(&event).unwrap_or_default()
+                    );
+                } else {
+                    debug!("No receivers for event: {}", event.description());
+                }
                 Ok(())
             }
-            Err(e) => {
-                warn!("Failed to broadcast event: {}", e);
-                Err(crate::Error::Internal(format!("Broadcast failed: {}", e)))
+            Err(broadcast::error::SendError(_)) => {
+                // Channel has no receivers, this is normal during startup
+                debug!("No active receivers for broadcast event: {}", event.description());
+                Ok(())
             }
         }
     }
