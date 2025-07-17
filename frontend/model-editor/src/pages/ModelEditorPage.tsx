@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useQuery } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import {
   Stack,
   Title,
@@ -37,6 +37,7 @@ import {
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
+import { IMPORT_MODEL } from '../graphql/mutations'
 import { Model, Entity } from '../types/model'
 import { ModelExportDialog, ModelImportDialog } from '../components/ModelImportExport'
 
@@ -55,6 +56,24 @@ export function ModelEditorPage() {
     errorPolicy: 'all',
   })
 
+  const [importModel, { loading: importLoading }] = useMutation(IMPORT_MODEL, {
+    onCompleted: (data) => {
+      notifications.show({
+        title: 'Model Imported',
+        message: `Successfully imported model: ${data.importModel.name}`,
+        color: 'green',
+      })
+      navigate(`/models/${data.importModel.id}`)
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Import Failed',
+        message: error.message,
+        color: 'red',
+      })
+    }
+  })
+
 
 
   const handleCreateEntity = () => {
@@ -65,15 +84,17 @@ export function ModelEditorPage() {
     navigate(`/models/${id}/entities/${entity.id}`)
   }
 
-  const handleImportModel = (importedModel: any) => {
-    notifications.show({
-      title: 'Model Imported',
-      message: `Successfully imported model: ${importedModel.name}`,
-      color: 'green',
-    })
-    // In a real implementation, you would save this to the backend
-    // For now, we just show a success message
-    refetch()
+  const handleImportModel = async (importedModel: any, originalJsonString: string) => {
+    try {
+      // Use the original JSON string, not the converted model
+      await importModel({
+        variables: { data: originalJsonString }
+      })
+      closeImportModal()
+    } catch (error) {
+      console.error('Import error:', error)
+      // Error handling is done in the mutation's onError callback
+    }
   }
 
   const prepareModelDataForExport = () => {

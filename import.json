@@ -1,0 +1,352 @@
+{
+  "metadata": {
+    "name": "Customer Order Management",
+    "version": "1.0.0",
+    "exportDate": "2025-07-17T21:09:30.212Z",
+    "exportedBy": "Model Editor",
+    "description": "Complete customer relationship management system with order processing, featuring comprehensive forms, list views, and business logic"
+  },
+  "entities": [
+    {
+      "id": "b00a779e-dddd-47b4-a2b9-1c5e5940f4e2",
+      "name": "customer",
+      "displayName": "Customer",
+      "description": "Customer information and contact details",
+      "fields": [
+        {
+          "id": "f9c3ff51-cd44-4765-a07f-046e8d6eb174",
+          "name": "id",
+          "required": false,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [
+            {
+              "message": "Customer ID is required",
+              "severity": "Error",
+              "validation_type": "Required"
+            }
+          ],
+          "displayName": "Customer ID"
+        },
+        {
+          "id": "169a8bec-5d1a-407a-b0ed-2032f1a59e60",
+          "name": "first_name",
+          "required": true,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [
+            {
+              "message": "First name is required",
+              "severity": "Error",
+              "validation_type": "Required"
+            },
+            {
+              "message": "First name must be at least 2 characters",
+              "severity": "Error",
+              "validation_type": {
+                "MinLength": 2
+              }
+            }
+          ],
+          "displayName": "First Name"
+        },
+        {
+          "id": "2d7c1bdd-a5d7-4fe0-9548-fa3cc38aad87",
+          "name": "last_name",
+          "required": true,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [
+            {
+              "message": "Last name is required",
+              "severity": "Error",
+              "validation_type": "Required"
+            }
+          ],
+          "displayName": "Last Name"
+        },
+        {
+          "id": "b4f12574-b6a2-4e30-9a47-36c293694bb3",
+          "name": "email",
+          "required": true,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [
+            {
+              "message": "Email address is required",
+              "severity": "Error",
+              "validation_type": "Required"
+            },
+            {
+              "message": "Please enter a valid email address",
+              "severity": "Error",
+              "validation_type": {
+                "Pattern": ".*"
+              }
+            }
+          ],
+          "displayName": "Email Address"
+        },
+        {
+          "id": "00af2a94-b96a-4e7e-aef2-bf31172103a6",
+          "name": "phone",
+          "required": false,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [
+            {
+              "message": "Please enter a valid phone number",
+              "severity": "Warning",
+              "validation_type": {
+                "Pattern": ".*"
+              }
+            }
+          ],
+          "displayName": "Phone Number"
+        },
+        {
+          "id": "58fe2126-5a58-46ae-a592-271f400833fd",
+          "name": "address",
+          "required": false,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [],
+          "displayName": "Address"
+        },
+        {
+          "id": "1261545a-3e32-456a-819d-e3581c4d08e3",
+          "name": "active",
+          "required": true,
+          "unique": false,
+          "defaultValue": true,
+          "validation": [],
+          "displayName": "Active"
+        },
+        {
+          "id": "20ea80d3-1211-4051-ac5c-04edc0636da5",
+          "name": "Blork",
+          "required": false,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [],
+          "displayName": "Blork"
+        }
+      ],
+      "relationships": [],
+      "indexes": []
+    },
+    {
+      "id": "e5752ec8-109a-4d4a-9431-ffc7de9cb3cb",
+      "name": "order",
+      "displayName": "Order",
+      "description": "Customer orders with items and payment information",
+      "fields": [
+        {
+          "id": "ddada1a3-b3b6-4e2f-929d-5a28dd8a5ee2",
+          "name": "id",
+          "required": true,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [
+            {
+              "message": "Order ID is required",
+              "severity": "Error",
+              "validation_type": "Required"
+            }
+          ],
+          "displayName": "Order ID"
+        },
+        {
+          "id": "b44512e0-5047-4721-9fee-3e7b8eb5ce28",
+          "name": "customer_id",
+          "required": true,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [
+            {
+              "message": "Customer is required",
+              "severity": "Error",
+              "validation_type": "Required"
+            }
+          ],
+          "displayName": "Customer"
+        },
+        {
+          "id": "f0ab6c5f-eb61-452c-a6a4-febd32c33a31",
+          "name": "order_date",
+          "required": true,
+          "unique": false,
+          "defaultValue": "now()",
+          "validation": [],
+          "displayName": "Order Date"
+        },
+        {
+          "id": "f467a766-d428-4167-95a0-af40ef2ff536",
+          "name": "status",
+          "required": true,
+          "unique": false,
+          "defaultValue": "Draft",
+          "validation": [],
+          "displayName": "Order Status"
+        },
+        {
+          "id": "50b04b2d-8269-4a5a-89f4-a39162ff08ff",
+          "name": "total_amount",
+          "required": true,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [
+            {
+              "message": "Total amount must be positive",
+              "severity": "Error",
+              "validation_type": {
+                "Range": {
+                  "max": 100,
+                  "min": 0
+                }
+              }
+            }
+          ],
+          "displayName": "Total Amount"
+        },
+        {
+          "id": "4ab3714c-b3f7-4027-8eac-7cc232518498",
+          "name": "shipping_address",
+          "required": false,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [],
+          "displayName": "Shipping Address"
+        },
+        {
+          "id": "7e0fb0cd-a3e4-4391-b82c-971fe289f4c1",
+          "name": "payment_method",
+          "required": true,
+          "unique": false,
+          "defaultValue": "Credit Card",
+          "validation": [],
+          "displayName": "Payment Method"
+        },
+        {
+          "id": "d1739e0c-f0e4-44ad-9a34-50fbe6af2d8d",
+          "name": "payment_status",
+          "required": true,
+          "unique": false,
+          "defaultValue": "Pending",
+          "validation": [],
+          "displayName": "Payment Status"
+        },
+        {
+          "id": "3edaa7b8-d3d6-4bc8-929f-b5e0ac10a979",
+          "name": "notes",
+          "required": false,
+          "unique": false,
+          "defaultValue": null,
+          "validation": [],
+          "displayName": "Order Notes"
+        },
+        {
+          "id": "0cd29716-0822-41c5-a19e-20dd9f6b1751",
+          "name": "created_at",
+          "required": true,
+          "unique": false,
+          "defaultValue": "now()",
+          "validation": [],
+          "displayName": "Created At"
+        },
+        {
+          "id": "edf6e7ae-0f7b-49f7-8799-57f990d2e28c",
+          "name": "updated_at",
+          "required": true,
+          "unique": false,
+          "defaultValue": "now()",
+          "validation": [],
+          "displayName": "Updated At"
+        }
+      ],
+      "relationships": [],
+      "indexes": []
+    }
+  ],
+  "layouts": [
+    {
+      "id": "2a570003-c428-4145-866f-c00c3fafa2f4",
+      "name": "customer_form",
+      "components": [
+        {
+          "id": "2f8d0328-ca72-4959-99da-09ede54bc748",
+          "position": {
+            "column": 0,
+            "height": 8,
+            "row": 0,
+            "width": 12
+          },
+          "validation": []
+        },
+        {
+          "id": "6ff0725c-4ed0-4958-9a3b-6d943ec35892",
+          "position": {
+            "column": 0,
+            "height": 1,
+            "row": 8,
+            "width": 2
+          },
+          "validation": []
+        }
+      ]
+    },
+    {
+      "id": "b12272d0-cfff-4b4b-8536-4200b5960371",
+      "name": "customer_dashboard",
+      "components": [
+        {
+          "id": "a0c95104-4f18-457b-9500-8c07264d5e34",
+          "position": {
+            "column": 0,
+            "height": 6,
+            "row": 0,
+            "width": 12
+          },
+          "validation": []
+        },
+        {
+          "id": "c3522111-58cc-4248-972a-5fa22e7ee1cd",
+          "position": {
+            "column": 0,
+            "height": 1,
+            "row": 6,
+            "width": 3
+          },
+          "validation": []
+        }
+      ]
+    },
+    {
+      "id": "bbe33d82-e1ce-415a-a04a-27a477348cbd",
+      "name": "order_management",
+      "components": [
+        {
+          "id": "6d00b156-ea14-4678-805c-e42df55d48d7",
+          "position": {
+            "column": 0,
+            "height": 8,
+            "row": 0,
+            "width": 12
+          },
+          "validation": []
+        },
+        {
+          "id": "44a73467-1e97-4971-8717-77d95a3545f4",
+          "position": {
+            "column": 0,
+            "height": 1,
+            "row": 8,
+            "width": 3
+          },
+          "validation": []
+        }
+      ]
+    }
+  ],
+  "customComponents": []
+}

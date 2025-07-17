@@ -37,7 +37,7 @@ import {
 interface ModelImportDialogProps {
   opened: boolean;
   onClose: () => void;
-  onImport: (modelData: any) => void;
+  onImport: (modelData: any, originalJsonString: string) => void;
 }
 
 export const ModelImportDialog: React.FC<ModelImportDialogProps> = ({
@@ -100,7 +100,7 @@ export const ModelImportDialog: React.FC<ModelImportDialogProps> = ({
     }
 
     const internalModel = convertImportedModelToInternal(validationResult.data);
-    onImport(internalModel);
+    onImport(internalModel, jsonText);
     onClose();
   };
 
