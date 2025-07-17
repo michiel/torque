@@ -28,7 +28,7 @@ import {
   IconChevronUp,
   IconX,
 } from '@tabler/icons-react';
-import { LayoutEditorComponent, ValidationResult, ComponentConfiguration } from './types';
+import { LayoutEditorComponent, ValidationResult, ComponentConfiguration, FormFieldType } from './types';
 
 interface ConfigurationPanelProps {
   component?: LayoutEditorComponent | null;
@@ -67,7 +67,7 @@ const BasicConfiguration: React.FC<BasicConfigurationProps> = ({ component, onUp
           <NumberInput
             label="Row"
             value={component.position.row}
-            onChange={(value) => handlePositionChange('row', value || 0)}
+            onChange={(value) => handlePositionChange('row', typeof value === 'number' ? value : 0)}
             min={0}
             max={11}
             size="xs"
@@ -75,7 +75,7 @@ const BasicConfiguration: React.FC<BasicConfigurationProps> = ({ component, onUp
           <NumberInput
             label="Column"
             value={component.position.column}
-            onChange={(value) => handlePositionChange('column', value || 0)}
+            onChange={(value) => handlePositionChange('column', typeof value === 'number' ? value : 0)}
             min={0}
             max={11}
             size="xs"
@@ -85,7 +85,7 @@ const BasicConfiguration: React.FC<BasicConfigurationProps> = ({ component, onUp
           <NumberInput
             label="Height (rows)"
             value={component.position.rowSpan}
-            onChange={(value) => handlePositionChange('rowSpan', value || 1)}
+            onChange={(value) => handlePositionChange('rowSpan', typeof value === 'number' ? value : 1)}
             min={1}
             max={12}
             size="xs"
@@ -93,7 +93,7 @@ const BasicConfiguration: React.FC<BasicConfigurationProps> = ({ component, onUp
           <NumberInput
             label="Width (cols)"
             value={component.position.colSpan}
-            onChange={(value) => handlePositionChange('colSpan', value || 1)}
+            onChange={(value) => handlePositionChange('colSpan', typeof value === 'number' ? value : 1)}
             min={1}
             max={12}
             size="xs"
@@ -156,9 +156,12 @@ const DataGridConfiguration: React.FC<DataGridConfigurationProps> = ({
     const newConfig = {
       ...component.configuration,
       dataGrid: {
-        ...component.configuration.dataGrid,
         entityId,
-        columns: [] // Reset columns when entity changes
+        columns: [],
+        pagination: component.configuration.dataGrid?.pagination || { enabled: true, pageSize: 25 },
+        filtering: component.configuration.dataGrid?.filtering || { enabled: true },
+        sorting: component.configuration.dataGrid?.sorting || { enabled: true },
+        actions: component.configuration.dataGrid?.actions || []
       }
     };
     onUpdate(newConfig);
@@ -200,8 +203,12 @@ const DataGridConfiguration: React.FC<DataGridConfigurationProps> = ({
     const newConfig = {
       ...component.configuration,
       dataGrid: {
-        ...component.configuration.dataGrid,
-        columns: currentColumns.filter(c => c.id !== columnId)
+        entityId: component.configuration.dataGrid?.entityId || selectedEntity,
+        columns: currentColumns.filter(c => c.id !== columnId),
+        pagination: component.configuration.dataGrid?.pagination || { enabled: true, pageSize: 25 },
+        filtering: component.configuration.dataGrid?.filtering || { enabled: true },
+        sorting: component.configuration.dataGrid?.sorting || { enabled: true },
+        actions: component.configuration.dataGrid?.actions || []
       }
     };
     onUpdate(newConfig);
@@ -212,10 +219,14 @@ const DataGridConfiguration: React.FC<DataGridConfigurationProps> = ({
     const newConfig = {
       ...component.configuration,
       dataGrid: {
-        ...component.configuration.dataGrid,
+        entityId: component.configuration.dataGrid?.entityId || selectedEntity,
         columns: currentColumns.map(c => 
           c.id === columnId ? { ...c, ...updates } : c
-        )
+        ),
+        pagination: component.configuration.dataGrid?.pagination || { enabled: true, pageSize: 25 },
+        filtering: component.configuration.dataGrid?.filtering || { enabled: true },
+        sorting: component.configuration.dataGrid?.sorting || { enabled: true },
+        actions: component.configuration.dataGrid?.actions || []
       }
     };
     onUpdate(newConfig);
@@ -229,8 +240,12 @@ const DataGridConfiguration: React.FC<DataGridConfigurationProps> = ({
     const newConfig = {
       ...component.configuration,
       dataGrid: {
-        ...component.configuration.dataGrid,
-        columns: currentColumns
+        entityId: component.configuration.dataGrid?.entityId || selectedEntity,
+        columns: currentColumns,
+        pagination: component.configuration.dataGrid?.pagination || { enabled: true, pageSize: 25 },
+        filtering: component.configuration.dataGrid?.filtering || { enabled: true },
+        sorting: component.configuration.dataGrid?.sorting || { enabled: true },
+        actions: component.configuration.dataGrid?.actions || []
       }
     };
     onUpdate(newConfig);
@@ -255,7 +270,7 @@ const DataGridConfiguration: React.FC<DataGridConfigurationProps> = ({
         label="Entity"
         placeholder="Select an entity"
         value={selectedEntity}
-        onChange={handleEntityChange}
+        onChange={(value) => value && handleEntityChange(value)}
         data={entities.map(e => ({ value: e.id, label: e.displayName }))}
         data-testid="datagrid-entity-select"
       />
@@ -545,9 +560,15 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
     const newConfig = {
       ...component.configuration,
       form: {
-        ...component.configuration.form,
         entityId,
-        fields: [] // Reset fields when entity changes
+        fields: [],
+        validation: component.configuration.form?.validation || { 
+          clientSide: true, 
+          serverSide: true, 
+          realTime: true 
+        },
+        layout: component.configuration.form?.layout || 'single-column',
+        submission: component.configuration.form?.submission || { action: 'create' }
       }
     };
     onUpdate(newConfig);
@@ -564,22 +585,12 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
       id: `field-${Date.now()}`,
       fieldId: field.id,
       label: field.displayName || field.name,
-      inputType,
+      type: inputType as FormFieldType,
       required: field.required || false,
       placeholder: '',
       helpText: '',
-      validation: {
-        required: field.required || false,
-        minLength: fieldType === 'String' ? 0 : undefined,
-        maxLength: fieldType === 'String' ? 255 : undefined,
-        min: ['Int', 'Float'].includes(fieldType) ? 0 : undefined,
-        max: ['Int', 'Float'].includes(fieldType) ? undefined : undefined,
-        pattern: undefined
-      },
-      layoutProps: {
-        span: 12,
-        order: (component.configuration.form?.fields?.length || 0) + 1
-      }
+      validation: [],
+      colSpan: 12
     };
 
     const currentFields = component.configuration.form?.fields || [];
@@ -606,8 +617,15 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
     const newConfig = {
       ...component.configuration,
       form: {
-        ...component.configuration.form,
-        fields: currentFields.filter(f => f.id !== fieldId)
+        entityId: component.configuration.form?.entityId || selectedEntity,
+        fields: currentFields.filter(f => f.id !== fieldId),
+        validation: component.configuration.form?.validation || { 
+          clientSide: true, 
+          serverSide: true, 
+          realTime: true 
+        },
+        layout: component.configuration.form?.layout || 'single-column',
+        submission: component.configuration.form?.submission || { action: 'create' }
       }
     };
     onUpdate(newConfig);
@@ -618,10 +636,17 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
     const newConfig = {
       ...component.configuration,
       form: {
-        ...component.configuration.form,
+        entityId: component.configuration.form?.entityId || selectedEntity,
         fields: currentFields.map(f => 
           f.id === fieldId ? { ...f, ...updates } : f
-        )
+        ),
+        validation: component.configuration.form?.validation || { 
+          clientSide: true, 
+          serverSide: true, 
+          realTime: true 
+        },
+        layout: component.configuration.form?.layout || 'single-column',
+        submission: component.configuration.form?.submission || { action: 'create' }
       }
     };
     onUpdate(newConfig);
@@ -632,16 +657,20 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
     const [moved] = currentFields.splice(fromIndex, 1);
     currentFields.splice(toIndex, 0, moved);
     
-    // Update order values
-    currentFields.forEach((field, index) => {
-      field.layoutProps.order = index + 1;
-    });
+    // Fields maintain their order by array position
     
     const newConfig = {
       ...component.configuration,
       form: {
-        ...component.configuration.form,
-        fields: currentFields
+        entityId: component.configuration.form?.entityId || selectedEntity,
+        fields: currentFields,
+        validation: component.configuration.form?.validation || { 
+          clientSide: true, 
+          serverSide: true, 
+          realTime: true 
+        },
+        layout: component.configuration.form?.layout || 'single-column',
+        submission: component.configuration.form?.submission || { action: 'create' }
       }
     };
     onUpdate(newConfig);
@@ -666,7 +695,7 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
         label="Entity"
         placeholder="Select an entity"
         value={selectedEntity}
-        onChange={handleEntityChange}
+        onChange={(value) => value && handleEntityChange(value)}
         data={entities.map(e => ({ value: e.id, label: e.displayName }))}
         data-testid="form-entity-select"
       />
@@ -695,7 +724,6 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
             <Stack gap="xs">
               <Text size="sm" fw={500}>Form Fields ({configuredFields.length})</Text>
               {configuredFields
-                .sort((a, b) => (a.layoutProps?.order || 0) - (b.layoutProps?.order || 0))
                 .map((field, index) => (
                 <FormFieldConfiguration
                   key={field.id}
@@ -840,9 +868,9 @@ function FormFieldConfiguration({
               
               <NumberInput
                 label="Width (columns)"
-                value={field.layoutProps?.span || 12}
+                value={field.colSpan || 12}
                 onChange={(value) => onUpdate({ 
-                  layoutProps: { ...field.layoutProps, span: value || 12 }
+                  colSpan: typeof value === 'number' ? value : 12
                 })}
                 min={1}
                 max={12}

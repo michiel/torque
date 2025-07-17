@@ -16,6 +16,8 @@ import {
   Loader,
   Alert,
   Paper,
+  Container,
+  Box,
 } from '@mantine/core'
 import {
   IconPlus,
@@ -47,31 +49,37 @@ export function ModelsPage() {
 
   if (loading) {
     return (
-      <Stack align="center" justify="center" h="50vh">
-        <Loader size="xl" />
-        <Text>Loading models...</Text>
-      </Stack>
+      <Container size="xl" py="xl">
+        <Stack align="center" justify="center" h="50vh">
+          <Loader size="xl" />
+          <Text>Loading models...</Text>
+        </Stack>
+      </Container>
     )
   }
 
   if (error) {
     return (
-      <Stack>
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error loading models"
-          color="red"
-          variant="filled"
-        >
-          {error.message}
-        </Alert>
-        <Button onClick={() => refetch()}>Retry</Button>
-      </Stack>
+      <Container size="xl" py="xl">
+        <Stack>
+          <Alert
+            icon={<IconAlertCircle size={16} />}
+            title="Error loading models"
+            color="red"
+            variant="filled"
+          >
+            {error.message}
+          </Alert>
+          <Button onClick={() => refetch()}>Retry</Button>
+        </Stack>
+      </Container>
     )
   }
 
   return (
-    <Stack>
+    <Box style={{ minHeight: 'calc(100vh - 100px)', background: 'var(--mantine-color-gray-0)' }}>
+      <Container size="xl" py="xl">
+        <Stack>
       {/* Header */}
       <Group justify="space-between">
         <Title order={1}>Models</Title>
@@ -127,7 +135,9 @@ export function ModelsPage() {
           ))}
         </Grid>
       )}
-    </Stack>
+        </Stack>
+      </Container>
+    </Box>
   )
 }
 

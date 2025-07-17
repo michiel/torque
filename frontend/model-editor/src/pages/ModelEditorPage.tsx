@@ -19,6 +19,8 @@ import {
   Textarea,
   Select,
   Divider,
+  Container,
+  Box,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
@@ -256,9 +258,11 @@ export function ModelEditorPage() {
   }
 
   return (
-    <Stack>
-      {/* Header */}
-      <Group justify="space-between">
+    <Box style={{ minHeight: 'calc(100vh - 100px)', background: 'var(--mantine-color-gray-0)' }}>
+      <Container size="xl" py="xl">
+        <Stack>
+          {/* Header */}
+          <Group justify="space-between">
         <Stack gap="xs">
           <Group>
             <Title order={1}>{model.name}</Title>
@@ -428,7 +432,9 @@ export function ModelEditorPage() {
         onClose={closeImportModal}
         onImport={handleImportModel}
       />
-    </Stack>
+        </Stack>
+      </Container>
+    </Box>
   )
 }
 

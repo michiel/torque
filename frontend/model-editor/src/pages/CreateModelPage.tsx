@@ -14,6 +14,8 @@ import {
   Group,
   Alert,
   LoadingOverlay,
+  Container,
+  Box,
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { IconCheck, IconAlertCircle } from '@tabler/icons-react'
@@ -81,10 +83,12 @@ export function CreateModelPage() {
   }
 
   return (
-    <Stack>
-      <Title order={1}>Create New Model</Title>
+    <Box style={{ minHeight: 'calc(100vh - 100px)', background: 'var(--mantine-color-gray-0)' }}>
+      <Container size="xl" py="xl">
+        <Stack>
+          <Title order={1}>Create New Model</Title>
 
-      <Paper shadow="sm" p="md" radius="md" withBorder maw={600} pos="relative">
+          <Paper shadow="sm" p="md" radius="md" withBorder maw={600} pos="relative">
         <LoadingOverlay visible={isSubmitting} />
         
         <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -134,6 +138,8 @@ export function CreateModelPage() {
           </Stack>
         </form>
       </Paper>
-    </Stack>
+        </Stack>
+      </Container>
+    </Box>
   )
 }
