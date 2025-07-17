@@ -99,7 +99,7 @@ export function exportModel(modelData: {
       fields: entity.fields?.map((field: any) => ({
         id: field.id,
         name: field.name,
-        type: field.type,
+        type: field.fieldType || field.type, // Handle both fieldType (internal) and type (import)
         required: field.required || false,
         unique: field.unique || false,
         defaultValue: field.defaultValue,
@@ -381,7 +381,7 @@ export function convertImportedModelToInternal(importedModel: ExportedModel) {
       fields: entity.fields.map(field => ({
         id: field.id,
         name: field.name,
-        type: field.type,
+        fieldType: field.type, // Map imported 'type' to internal 'fieldType'
         required: field.required,
         unique: field.unique,
         defaultValue: field.defaultValue,
