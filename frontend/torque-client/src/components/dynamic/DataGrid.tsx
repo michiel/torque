@@ -63,6 +63,14 @@ export const DataGrid = memo(function DataGrid({
 
   const entityData = useMemo(() => data?.data || [], [data?.data])
   const pagination = data?.pagination
+  
+  // Use columns from API if not provided in props
+  const displayColumns = useMemo(() => {
+    if (columns && columns.length > 0) {
+      return columns
+    }
+    return data?.columns || []
+  }, [columns, data?.columns])
 
   return (
     <div style={{ position: 'relative' }}>
@@ -92,7 +100,7 @@ export const DataGrid = memo(function DataGrid({
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
-            {columns.map((column) => (
+            {displayColumns.map((column: DataGridColumn) => (
               <Table.Th key={column.key} style={{ width: column.width }}>
                 {column.title}
               </Table.Th>
@@ -103,14 +111,14 @@ export const DataGrid = memo(function DataGrid({
         <Table.Tbody>
           {entityData.length === 0 ? (
             <Table.Tr>
-              <Table.Td colSpan={columns.length + 1} style={{ textAlign: 'center', padding: '2rem' }}>
+              <Table.Td colSpan={displayColumns.length + 1} style={{ textAlign: 'center', padding: '2rem' }}>
                 No {entityName} records found
               </Table.Td>
             </Table.Tr>
           ) : (
             entityData.map((row: any, index: number) => (
               <Table.Tr key={row.id || index}>
-                {columns.map((column) => (
+                {displayColumns.map((column: DataGridColumn) => (
                   <Table.Td key={column.key}>
                     <CellValue value={row[column.key]} dataType={column.dataType} />
                   </Table.Td>

@@ -7,6 +7,7 @@ use axum::{
     response::Json,
 };
 use serde_json::{json, Value};
+use crate::model::types::LayoutType;
 use crate::common::{Uuid, UtcDateTime};
 use crate::services::entity::EntityQuery;
 use std::collections::HashMap;
@@ -100,8 +101,7 @@ async fn load_page(state: &AppState, params: &Value) -> Result<Value, (i32, Stri
         .ok_or((-32602, "Missing required parameter: modelId".to_string()))?;
     
     let page_name = params.get("pageName")
-        .and_then(|v| v.as_str())
-        .unwrap_or("default");
+        .and_then(|v| v.as_str());
     
     // Parse model ID
     let model_uuid = Uuid::parse(model_id)
@@ -112,34 +112,62 @@ async fn load_page(state: &AppState, params: &Value) -> Result<Value, (i32, Stri
         .map_err(|e| (-32603, format!("Failed to load model: {}", e)))?
         .ok_or((-32604, "Model not found".to_string()))?;
     
-    // TODO: Get actual layout from model
-    // For now, return a default grid layout
-    let layout = json!({
-        "type": "grid",
-        "responsive": true,
-        "components": [
-            {
-                "id": Uuid::new_v4(),
-                "type": "DataGrid",
+    // Determine which layout to load
+    let layout_id = if let Some(page_name) = page_name {
+        // If a specific page is requested, find layout by name
+        model.layouts.iter()
+            .find(|l| l.name.to_lowercase() == page_name.to_lowercase())
+            .map(|l| l.id.clone())
+    } else {
+        // No page specified, use start page layout if configured
+        model.config.custom.get("startPageLayoutId")
+            .and_then(|v| v.as_str())
+            .and_then(|id| Uuid::parse(id).ok())
+    };
+    
+    // Get the layout or use the first one as fallback
+    let layout = if let Some(layout_id) = layout_id {
+        model.layouts.iter().find(|l| l.id == layout_id)
+    } else {
+        model.layouts.first()
+    };
+    
+    let layout_data = if let Some(layout) = layout {
+        // Convert the layout to the expected format
+        json!({
+            "type": match layout.layout_type {
+                LayoutType::List => "list",
+                LayoutType::Grid => "grid", 
+                LayoutType::Dashboard => "dashboard",
+                LayoutType::Form => "form",
+                LayoutType::Detail => "detail",
+                LayoutType::Custom => "custom",
+            },
+            "responsive": true,
+            "components": layout.components.iter().map(|c| json!({
+                "id": c.id,
+                "type": c.component_type,
                 "position": {
-                    "row": 0,
-                    "col": 0,
-                    "span": 12
+                    "row": c.position.row,
+                    "col": c.position.column,
+                    "span": c.position.width
                 },
-                "properties": {
-                    "entityName": model.entities.first().map(|e| &e.name).unwrap_or(&"default".to_string()),
-                    "pageSize": 20,
-                    "enableSorting": true,
-                    "enableFiltering": true
-                }
-            }
-        ]
-    });
+                "properties": c.properties
+            })).collect::<Vec<_>>()
+        })
+    } else {
+        // No layouts defined, return empty layout
+        json!({
+            "type": "grid",
+            "responsive": true,
+            "components": []
+        })
+    };
     
     Ok(json!({
         "modelId": model_id,
-        "pageName": page_name,
-        "layout": layout,
+        "pageName": page_name.unwrap_or("start"),
+        "layout": layout_data,
         "metadata": {
             "modelName": model.name,
             "modelVersion": model.version,

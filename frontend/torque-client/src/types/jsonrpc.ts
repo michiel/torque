@@ -55,6 +55,7 @@ export interface LoadEntityDataResponse {
     total: number
     hasMore: boolean
   }
+  columns?: DataGridColumn[]
 }
 
 export interface GetFormDefinitionParams {

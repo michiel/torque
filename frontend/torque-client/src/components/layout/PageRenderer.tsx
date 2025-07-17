@@ -10,7 +10,7 @@ interface PageRendererProps {
   pageName?: string
 }
 
-export const PageRenderer = memo(function PageRenderer({ modelId, pageName = 'main' }: PageRendererProps) {
+export const PageRenderer = memo(function PageRenderer({ modelId, pageName }: PageRendererProps) {
   const { data, loading, error } = useLoadPage(modelId, pageName)
   const [modalState, setModalState] = useState<{
     opened: boolean

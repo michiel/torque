@@ -22,7 +22,7 @@ export function TorqueApp() {
     <Container size="xl" p="md">
       <PageRenderer 
         modelId={modelId} 
-        pageName={pageName || 'main'} 
+        pageName={pageName} 
       />
     </Container>
   )
