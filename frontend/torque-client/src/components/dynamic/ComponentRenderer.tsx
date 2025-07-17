@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { ComponentConfig } from '../../types/jsonrpc'
 import { DataGrid } from './DataGrid'
 import { TorqueForm } from './TorqueForm'
@@ -12,20 +13,18 @@ interface ComponentRendererProps {
   onAction?: (action: any) => void
 }
 
-export function ComponentRenderer({ config, modelId, onAction }: ComponentRendererProps) {
+export const ComponentRenderer = memo(function ComponentRenderer({ config, modelId, onAction }: ComponentRendererProps) {
   const { type, properties } = config
 
-  const baseProps = {
-    id: config.id,
-    modelId,
-    onAction
-  }
+  // Component props will be spread individually for each component type
 
   switch (type) {
     case 'DataGrid':
       return (
         <DataGrid 
-          {...baseProps}
+          id={config.id}
+          modelId={modelId}
+          onAction={onAction}
           entityName={properties.entityName || 'Unknown'}
           columns={properties.columns || []}
           features={properties.features || []}
@@ -36,7 +35,8 @@ export function ComponentRenderer({ config, modelId, onAction }: ComponentRender
     case 'TorqueForm':
       return (
         <TorqueForm 
-          {...baseProps}
+          id={config.id}
+          modelId={modelId}
           entityName={properties.entityName || 'Unknown'}
           entityId={properties.entityId}
         />
@@ -45,19 +45,20 @@ export function ComponentRenderer({ config, modelId, onAction }: ComponentRender
     case 'TorqueButton':
       return (
         <TorqueButton 
-          {...baseProps}
+          id={config.id}
           text={properties.text || 'Button'}
           variant={properties.variant}
           size={properties.size}
           disabled={properties.disabled}
           action={properties.action}
+          onAction={onAction}
         />
       )
     
     case 'Text':
       return (
         <Text 
-          {...baseProps}
+          id={config.id}
           text={properties.text || 'Text'}
           variant={properties.variant}
           color={properties.color}
@@ -70,7 +71,7 @@ export function ComponentRenderer({ config, modelId, onAction }: ComponentRender
     case 'Container':
       return (
         <Container 
-          {...baseProps}
+          id={config.id}
           maxWidth={properties.maxWidth}
           padding={properties.padding}
           margin={properties.margin}
@@ -87,7 +88,7 @@ export function ComponentRenderer({ config, modelId, onAction }: ComponentRender
     case 'Modal':
       return (
         <Modal 
-          {...baseProps}
+          id={config.id}
           opened={properties.opened || false}
           onClose={properties.onClose || (() => {})}
           title={properties.title}
@@ -112,4 +113,4 @@ export function ComponentRenderer({ config, modelId, onAction }: ComponentRender
         </div>
       )
   }
-}
+})

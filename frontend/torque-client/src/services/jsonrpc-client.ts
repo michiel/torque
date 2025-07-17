@@ -15,6 +15,7 @@ export class JsonRpcClientError extends Error {
 export class JsonRpcClient {
   private baseUrl: string
   private requestId: number = 1
+  private pendingRequests: Map<string, Promise<any>> = new Map()
 
   constructor(baseUrl: string = 'http://localhost:8080') {
     this.baseUrl = baseUrl
@@ -25,6 +26,15 @@ export class JsonRpcClient {
   }
 
   async call<T = any>(method: string, params?: Record<string, any>): Promise<T> {
+    // Create a cache key for request deduplication
+    const cacheKey = `${method}:${JSON.stringify(params || {})}`
+    
+    // Check if an identical request is already pending
+    const pendingRequest = this.pendingRequests.get(cacheKey)
+    if (pendingRequest) {
+      return pendingRequest as Promise<T>
+    }
+
     const request: JsonRpcRequest = {
       jsonrpc: '2.0',
       method,
@@ -32,6 +42,20 @@ export class JsonRpcClient {
       id: this.generateId()
     }
 
+    // Create the request promise and store it for deduplication
+    const requestPromise = this.makeRequest<T>(request)
+    this.pendingRequests.set(cacheKey, requestPromise)
+    
+    try {
+      const result = await requestPromise
+      return result
+    } finally {
+      // Clean up pending request after completion
+      this.pendingRequests.delete(cacheKey)
+    }
+  }
+
+  private async makeRequest<T>(request: JsonRpcRequest): Promise<T> {
     try {
       const response = await fetch(`${this.baseUrl}/rpc`, {
         method: 'POST',

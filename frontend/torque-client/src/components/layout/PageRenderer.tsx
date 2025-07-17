@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { LoadingOverlay, Alert } from '@mantine/core'
 import { useLoadPage } from '../../hooks/useJsonRpc'
 import { GridLayout } from './GridLayout'
@@ -10,7 +10,7 @@ interface PageRendererProps {
   pageName?: string
 }
 
-export function PageRenderer({ modelId, pageName = 'main' }: PageRendererProps) {
+export const PageRenderer = memo(function PageRenderer({ modelId, pageName = 'main' }: PageRendererProps) {
   const { data, loading, error } = useLoadPage(modelId, pageName)
   const [modalState, setModalState] = useState<{
     opened: boolean
@@ -21,7 +21,7 @@ export function PageRenderer({ modelId, pageName = 'main' }: PageRendererProps) 
     opened: false
   })
 
-  const handleAction = (action: any) => {
+  const handleAction = useCallback((action: any) => {
     console.log('Page action:', action)
     
     switch (action.type) {
@@ -60,17 +60,17 @@ export function PageRenderer({ modelId, pageName = 'main' }: PageRendererProps) 
       default:
         console.warn('Unknown action type:', action.type)
     }
-  }
+  }, [])
 
-  const handleFormSuccess = (result: any) => {
+  const handleFormSuccess = useCallback((result: any) => {
     console.log('Form success:', result)
     setModalState({ opened: false })
     // TODO: Refresh data
-  }
+  }, [])
 
-  const handleFormCancel = () => {
+  const handleFormCancel = useCallback(() => {
     setModalState({ opened: false })
-  }
+  }, [])
 
   if (loading) {
     return <LoadingOverlay visible />
@@ -127,7 +127,7 @@ export function PageRenderer({ modelId, pageName = 'main' }: PageRendererProps) 
       </Modal>
     </div>
   )
-}
+})
 
 function getModalTitle(modalState: { type?: string; entityName?: string; entityId?: string }): string {
   if (modalState.type === 'form') {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { jsonRpcClient } from '../services/jsonrpc-client'
 
 interface UseJsonRpcState<T> {
@@ -18,8 +18,17 @@ export function useJsonRpc<T = any>(
     error: null
   })
 
-  // Memoize params to prevent infinite re-renders when object references change
-  const stableParams = useMemo(() => params, [JSON.stringify(params)])
+  // Create stable params reference to prevent infinite loops
+  const paramsStringRef = useRef<string | undefined>(undefined)
+  const currentParamsString = params ? JSON.stringify(params) : 'undefined'
+  
+  const stableParams = useMemo(() => {
+    if (paramsStringRef.current !== currentParamsString) {
+      paramsStringRef.current = currentParamsString
+      return params
+    }
+    return params
+  }, [currentParamsString])
   
   const fetchData = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }))
@@ -36,6 +45,7 @@ export function useJsonRpc<T = any>(
     }
   }, [method, stableParams])
 
+  // Only include dependencies if explicitly provided to avoid re-render loops
   useEffect(() => {
     fetchData()
   }, [fetchData, ...dependencies])
@@ -49,7 +59,7 @@ export function useJsonRpc<T = any>(
 // Specific hooks for common TorqueApp operations
 export function useLoadPage(modelId: string, pageName?: string) {
   const params = useMemo(() => ({ modelId, pageName }), [modelId, pageName])
-  return useJsonRpc('loadPage', params, [modelId, pageName])
+  return useJsonRpc('loadPage', params)
 }
 
 export function useLoadEntityData(
@@ -59,21 +69,17 @@ export function useLoadEntityData(
   limit: number = 20
 ) {
   const params = useMemo(() => ({ modelId, entityName, page, limit }), [modelId, entityName, page, limit])
-  return useJsonRpc(
-    'loadEntityData',
-    params,
-    [modelId, entityName, page, limit]
-  )
+  return useJsonRpc('loadEntityData', params)
 }
 
 export function useFormDefinition(modelId: string, entityName: string) {
   const params = useMemo(() => ({ modelId, entityName }), [modelId, entityName])
-  return useJsonRpc('getFormDefinition', params, [modelId, entityName])
+  return useJsonRpc('getFormDefinition', params)
 }
 
 export function useModelMetadata(modelId: string) {
   const params = useMemo(() => ({ modelId }), [modelId])
-  return useJsonRpc('getModelMetadata', params, [modelId])
+  return useJsonRpc('getModelMetadata', params)
 }
 
 export function useCapabilities() {

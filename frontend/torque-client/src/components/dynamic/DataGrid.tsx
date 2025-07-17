@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, memo, useCallback } from 'react'
 import { Table, Pagination, TextInput, Button, Group, LoadingOverlay } from '@mantine/core'
 import { IconSearch, IconPlus } from '@tabler/icons-react'
 import { useLoadEntityData } from '../../hooks/useJsonRpc'
@@ -14,7 +14,7 @@ interface DataGridProps {
   onAction?: (action: any) => void
 }
 
-export function DataGrid({
+export const DataGrid = memo(function DataGrid({
   modelId,
   entityName,
   columns,
@@ -32,7 +32,7 @@ export function DataGrid({
     pageSize
   )
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     if (onAction) {
       onAction({
         type: 'openModal',
@@ -40,9 +40,9 @@ export function DataGrid({
         entityName
       })
     }
-  }
+  }, [onAction, entityName])
 
-  const handleRowAction = (action: string, rowData: any) => {
+  const handleRowAction = useCallback((action: string, rowData: any) => {
     if (onAction) {
       onAction({
         type: action,
@@ -51,7 +51,7 @@ export function DataGrid({
         data: rowData
       })
     }
-  }
+  }, [onAction, entityName])
 
   if (error) {
     return (
@@ -61,7 +61,7 @@ export function DataGrid({
     )
   }
 
-  const entityData = data?.data || []
+  const entityData = useMemo(() => data?.data || [], [data?.data])
   const pagination = data?.pagination
 
   return (
@@ -112,7 +112,7 @@ export function DataGrid({
               <Table.Tr key={row.id || index}>
                 {columns.map((column) => (
                   <Table.Td key={column.key}>
-                    {formatCellValue(row[column.key], column.dataType)}
+                    <CellValue value={row[column.key]} dataType={column.dataType} />
                   </Table.Td>
                 ))}
                 <Table.Td>
@@ -152,7 +152,12 @@ export function DataGrid({
       )}
     </div>
   )
-}
+})
+
+// Memoized cell component to prevent re-renders
+const CellValue = memo(({ value, dataType }: { value: any; dataType: string }) => {
+  return <>{formatCellValue(value, dataType)}</>
+})
 
 function formatCellValue(value: any, dataType: string): React.ReactNode {
   if (value === null || value === undefined) {
