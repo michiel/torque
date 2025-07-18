@@ -16,3 +16,13 @@
 
  - The visual layout editor allows the user to visually place and size torque app elements on a layout
  - The library for implementing the visual editor is pickeditor.com, with open source code at https://github.com/puckeditor/puck
+
+## Visual ERD editor
+
+ - The model page has a button "Edit ERD" that goes to a new page for editing Entities and Relationships
+ - The ERD editor uses https://github.com/xyflow/xyflow as the diagram editor
+ - The diagram editor shows nodes (Entities) with their name and attributes. Clicking on a node opens a popup with the Entity editor.
+ - The diagram editor shows edges (Relationships) with their name and relationship type in shorthand text (e.g. one-to-many is '1:n'). Clicking on an edge opens a popup with the Relationship editor.
+ - Changes made in popups are saved as normal and the diagram is updated
+ - The styling of the diagram editor is consistent with the application styling
+ - As with the layout editor, a top bar has 'save' and 'back' buttons that operate the same way
