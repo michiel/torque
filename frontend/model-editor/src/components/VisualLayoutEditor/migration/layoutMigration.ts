@@ -175,7 +175,8 @@ export const convertPuckToLegacyLayout = (
   puckData: Data,
   layoutId?: string,
   modelId?: string,
-  existingLayout?: LegacyLayout
+  existingLayout?: LegacyLayout,
+  availableEntities?: Array<{ id: string; name: string; displayName: string }>
 ): Partial<LegacyLayout> => {
   const components = puckData.content.map((item, index) => {
     // Extract target entities from component properties
@@ -202,13 +203,31 @@ export const convertPuckToLegacyLayout = (
     };
   });
 
-  // Extract all target entities from components
-  const targetEntities = [...new Set(
+  // Extract all target entities from components and convert to entity IDs
+  const targetEntityNames = [...new Set(
     components
       .filter(comp => comp.properties && 'entityType' in comp.properties && comp.properties.entityType)
       .map(comp => comp.properties && 'entityType' in comp.properties ? comp.properties.entityType : null)
       .filter((entity): entity is string => Boolean(entity))
   )];
+
+  // Convert entity names to entity IDs
+  console.log('Converting entity names to IDs:', {
+    targetEntityNames,
+    availableEntities: availableEntities?.map(e => ({ id: e.id, name: e.name }))
+  });
+
+  const targetEntities = targetEntityNames
+    .map(entityName => {
+      const entity = availableEntities?.find(e => e.name === entityName);
+      if (!entity) {
+        console.warn(`Entity with name "${entityName}" not found in available entities`);
+        return null;
+      }
+      console.log(`Mapped entity "${entityName}" to ID: ${entity.id}`);
+      return entity.id;
+    })
+    .filter((entityId): entityId is string => Boolean(entityId));
 
   return {
     name: puckData.root?.title || existingLayout?.name || 'New Layout',
