@@ -1,9 +1,9 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Puck, Data } from '@measured/puck';
 import '@measured/puck/puck.css';
 import './VisualLayoutEditor.css';
-import { Container, Stack, Group, Button, Text, ActionIcon, Badge } from '@mantine/core';
-import { IconArrowLeft, IconDeviceFloppy, IconClock } from '@tabler/icons-react';
+import { Container, Stack, Group, Button, Text, ActionIcon, Badge, TextInput } from '@mantine/core';
+import { IconArrowLeft, IconDeviceFloppy, IconClock, IconEdit, IconCheck, IconX } from '@tabler/icons-react';
 import { TorqueComponentConfig, createTorqueComponentConfig } from './TorqueComponents';
 
 interface VisualLayoutEditorProps {
@@ -46,22 +46,71 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
   const [currentData, setCurrentData] = React.useState<Data>(defaultData);
   const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [lastSaved, setLastSaved] = React.useState<Date | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [layoutName, setLayoutName] = useState(defaultData.root?.title || 'New Layout');
   const autoSaveTimer = useRef<number | null>(null);
 
   const config = useMemo(() => {
     return createTorqueComponentConfig(entities);
   }, [entities]);
 
+  // Update layout name when initial data changes
+  useEffect(() => {
+    if (initialData?.root?.title) {
+      setLayoutName(initialData.root.title);
+    }
+  }, [initialData]);
+
   const handlePublish = async (data: Data) => {
-    setCurrentData(data);
+    // Update data with current layout name
+    const updatedData = {
+      ...data,
+      root: {
+        ...data.root,
+        title: layoutName
+      }
+    };
+    setCurrentData(updatedData);
     setSaveStatus('saving');
     try {
-      await onSave(data);
+      await onSave(updatedData);
       setSaveStatus('saved');
       setLastSaved(new Date());
     } catch (error) {
       setSaveStatus('error');
       console.error('Save error:', error);
+    }
+  };
+
+  const handleNameEdit = () => {
+    setIsEditingName(true);
+  };
+
+  const handleNameSave = () => {
+    setIsEditingName(false);
+    // Update current data with new name
+    const updatedData = {
+      ...currentData,
+      root: {
+        ...currentData.root,
+        title: layoutName
+      }
+    };
+    setCurrentData(updatedData);
+    setSaveStatus('unsaved');
+  };
+
+  const handleNameCancel = () => {
+    setIsEditingName(false);
+    // Reset to current data title
+    setLayoutName(currentData.root?.title || 'New Layout');
+  };
+
+  const handleNameKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      handleNameSave();
+    } else if (event.key === 'Escape') {
+      handleNameCancel();
     }
   };
 
@@ -83,7 +132,15 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
     autoSaveTimer.current = setTimeout(async () => {
       setSaveStatus('saving');
       try {
-        await onSave(data);
+        // Update data with current layout name before saving
+        const updatedData = {
+          ...data,
+          root: {
+            ...data.root,
+            title: layoutName
+          }
+        };
+        await onSave(updatedData);
         setSaveStatus('saved');
         setLastSaved(new Date());
       } catch (error) {
@@ -99,7 +156,15 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
     }
     setSaveStatus('saving');
     try {
-      await onSave(currentData);
+      // Update data with current layout name before saving
+      const updatedData = {
+        ...currentData,
+        root: {
+          ...currentData.root,
+          title: layoutName
+        }
+      };
+      await onSave(updatedData);
       setSaveStatus('saved');
       setLastSaved(new Date());
     } catch (error) {
@@ -168,9 +233,51 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
           <Text size="xl" fw={700}>
             Visual Layout Editor
           </Text>
-          <Text size="sm" c="dimmed">
-            Design your application interface with visual components
-          </Text>
+          <Group gap="xs" align="center">
+            {isEditingName ? (
+              <Group gap="xs">
+                <TextInput
+                  value={layoutName}
+                  onChange={(e) => setLayoutName(e.target.value)}
+                  onKeyDown={handleNameKeyPress}
+                  size="sm"
+                  placeholder="Layout name"
+                  style={{ minWidth: 200 }}
+                  autoFocus
+                />
+                <ActionIcon
+                  variant="subtle"
+                  color="green"
+                  size="sm"
+                  onClick={handleNameSave}
+                >
+                  <IconCheck size={16} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  size="sm"
+                  onClick={handleNameCancel}
+                >
+                  <IconX size={16} />
+                </ActionIcon>
+              </Group>
+            ) : (
+              <Group gap="xs">
+                <Text size="sm" c="dimmed">
+                  {layoutName}
+                </Text>
+                <ActionIcon
+                  variant="subtle"
+                  size="sm"
+                  onClick={handleNameEdit}
+                  title="Edit layout name"
+                >
+                  <IconEdit size={14} />
+                </ActionIcon>
+              </Group>
+            )}
+          </Group>
         </div>
         
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>

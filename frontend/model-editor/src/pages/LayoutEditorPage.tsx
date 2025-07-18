@@ -82,7 +82,6 @@ export const LayoutEditorPage: React.FC = () => {
     }
 
     console.log('Starting save with Puck data:', data);
-    console.log('Available entities for conversion:', entities?.map((e: any) => ({ id: e.id, name: e.name })));
 
     // Convert Puck data to legacy GraphQL format using migration utility
     const layoutData = convertPuckToLegacyLayout(data, layoutId, modelId, layout, entities);
@@ -173,7 +172,8 @@ export const LayoutEditorPage: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate(`/models/${modelId}`);
+    // Use browser history to go back instead of direct navigation
+    navigate(-1);
   };
 
   if (modelLoading || entitiesLoading || (layoutId && layoutLoading)) {
