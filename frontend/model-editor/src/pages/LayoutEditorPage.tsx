@@ -7,6 +7,7 @@ import { VisualLayoutEditor } from '../components/VisualLayoutEditor';
 import { Data } from '@measured/puck';
 import { GET_MODEL, GET_ENTITIES, GET_LAYOUT } from '../graphql/queries';
 import { CREATE_LAYOUT, UPDATE_LAYOUT } from '../graphql/mutations';
+import { migrateLegacyLayout, convertPuckToLegacyLayout, needsMigration, getMigrationWarnings } from '../components/VisualLayoutEditor/migration/layoutMigration';
 
 interface RouteParams extends Record<string, string | undefined> {
   modelId: string;
@@ -46,22 +47,22 @@ export const LayoutEditorPage: React.FC = () => {
   // Transform loaded layout data to Puck format
   useEffect(() => {
     if (layout && layout.components) {
-      // Transform existing layout to Puck format
-      const puckData: Data = {
-        content: layout.components.map((comp: any) => ({
-          type: comp.componentType === 'DataGrid' ? 'Text' : comp.componentType, // Map to available components for now
-          props: {
-            ...comp.properties,
-            content: comp.componentType === 'DataGrid' ? 'DataGrid Component (placeholder)' : 
-                     comp.componentType === 'TorqueForm' ? 'Form Component (placeholder)' :
-                     comp.componentType === 'TorqueButton' ? 'Button Component (placeholder)' :
-                     comp.properties?.content || 'Component placeholder'
-          }
-        })),
-        root: {
-          title: layout.name || 'Layout'
+      // Check if this layout needs migration
+      if (needsMigration(layout)) {
+        const warnings = getMigrationWarnings(layout);
+        if (warnings.length > 0) {
+          console.warn('Layout migration warnings:', warnings);
+          notifications.show({
+            title: 'Layout Migration',
+            message: `This layout has been migrated from the legacy format. ${warnings.length} warning(s) - check console for details.`,
+            color: 'orange',
+            autoClose: 5000
+          });
         }
-      };
+      }
+      
+      // Use migration utility to convert to Puck format
+      const puckData = migrateLegacyLayout(layout);
       setInitialData(puckData);
     } else if (!layoutId) {
       // Set default empty data for new layout
@@ -82,34 +83,8 @@ export const LayoutEditorPage: React.FC = () => {
 
     console.log('Starting save with Puck data:', data);
 
-    // Convert Puck data to legacy GraphQL format for now
-    // TODO: Update backend to support Puck format natively
-    const components = data.content.map((item, index) => ({
-      componentType: item.type,
-      position: {
-        row: index, // Simple positioning for now
-        column: 0,
-        width: 12,
-        height: 2
-      },
-      properties: item.props || {},
-      styling: {}
-    }));
-
-    const layoutData = {
-      name: data.root?.title || (layoutId ? layout?.name || `${model?.name} Layout` : 'New Layout'),
-      modelId,
-      targetEntities: [], // TODO: Extract from component properties
-      components,
-      layoutType: layout?.layoutType || 'Dashboard',
-      responsive: layout?.responsive || {
-        breakpoints: [
-          { name: 'mobile', minWidth: 0, columns: 1 },
-          { name: 'tablet', minWidth: 768, columns: 2 },
-          { name: 'desktop', minWidth: 1024, columns: 3 }
-        ]
-      }
-    };
+    // Convert Puck data to legacy GraphQL format using migration utility
+    const layoutData = convertPuckToLegacyLayout(data, layoutId, modelId, layout);
 
     console.log('Converted layout data for save:', JSON.stringify(layoutData, null, 2));
 
