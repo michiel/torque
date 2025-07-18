@@ -38,12 +38,16 @@ interface ModelImportDialogProps {
   opened: boolean;
   onClose: () => void;
   onImport: (modelData: any, originalJsonString: string) => void;
+  isReplacing?: boolean; // Whether this is replacing an existing model
+  existingModelName?: string; // Name of the model being replaced
 }
 
 export const ModelImportDialog: React.FC<ModelImportDialogProps> = ({
   opened,
   onClose,
-  onImport
+  onImport,
+  isReplacing = false,
+  existingModelName
 }) => {
   const [activeTab, setActiveTab] = useState<string | null>('file');
   const [jsonText, setJsonText] = useState('');
@@ -149,7 +153,10 @@ export const ModelImportDialog: React.FC<ModelImportDialogProps> = ({
     >
       <Stack gap="md">
         <Text size="sm" color="dimmed">
-          Import a model from a JSON file exported from Model Editor.
+          {isReplacing 
+            ? `Import a model from a JSON file. This will replace the existing model "${existingModelName}".`
+            : "Import a model from a JSON file exported from Model Editor."
+          }
         </Text>
 
         <Tabs value={activeTab} onChange={setActiveTab}>
@@ -313,12 +320,14 @@ export const ModelImportDialog: React.FC<ModelImportDialogProps> = ({
         {summary?.canImport && (
           <Alert
             icon={<IconAlertTriangle size={16} />}
-            color="orange"
+            color={isReplacing ? "red" : "orange"}
             variant="light"
           >
             <Text size="sm">
-              <Text span fw={500}>Warning:</Text> Importing will replace the current model data. 
-              Make sure to export your current work if you want to keep it.
+              <Text span fw={500}>Warning:</Text> {isReplacing 
+                ? `This will completely replace the existing model "${existingModelName}" and all its data. This action cannot be undone.`
+                : "Importing will replace the current model data. Make sure to export your current work if you want to keep it."
+              }
             </Text>
           </Alert>
         )}
@@ -333,9 +342,9 @@ export const ModelImportDialog: React.FC<ModelImportDialogProps> = ({
             leftSection={<IconFileImport size={16} />}
             onClick={handleImport}
             disabled={!summary?.canImport}
-            color={summary?.canImport ? "blue" : "gray"}
+            color={isReplacing ? "red" : "blue"}
           >
-            Import Model
+            {isReplacing ? "Replace Model" : "Import Model"}
           </Button>
         </Group>
       </Stack>

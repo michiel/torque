@@ -808,26 +808,266 @@ impl ModelService {
             .map_err(|e| Error::Serialization(e))
     }
 
-    /// Import a model from JSON
+    /// Import a model from JSON export format
     pub async fn import_model(&self, data: String) -> Result<TorqueModel, Error> {
-        let mut model: TorqueModel = serde_json::from_str(&data)
+        // Parse the export format
+        let export_data: serde_json::Value = serde_json::from_str(&data)
             .map_err(|e| Error::Serialization(e))?;
 
-        // Generate new ID and update timestamps
-        model.id = Uuid::new_v4();
-        let now = UtcDateTime::from_chrono(Utc::now());
-        model.created_at = now.clone();
-        model.updated_at = now;
+        // Convert from export format to internal format
+        let model = self.convert_export_to_model(export_data)?;
 
-        // TODO: Persist to database
+        // Save to database
+        self.create_model(model).await
+    }
 
-        // Cache the model
+    /// Replace an existing model with imported data
+    pub async fn replace_model(&self, model_id: Uuid, data: String) -> Result<TorqueModel, Error> {
+        // Parse the export format
+        let export_data: serde_json::Value = serde_json::from_str(&data)
+            .map_err(|e| Error::Serialization(e))?;
+        
+        // Convert from export format to internal format
+        let import_input = self.convert_export_to_model(export_data)?;
+        
+        // Get the existing model to preserve certain metadata
+        let existing_model = self.get_model(model_id.clone()).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+        
+        // Create updated model by manually constructing it with all required fields
+        let mut updated_model = existing_model.clone();
+        updated_model.name = import_input.name;
+        updated_model.description = import_input.description;
+        updated_model.version = format!("{}.0", 
+            existing_model.version.split('.').next()
+                .and_then(|v| v.parse::<u32>().ok())
+                .unwrap_or(1) + 1
+        );
+        updated_model.updated_at = UtcDateTime::now();
+        
+        // Extract entities, relationships, layouts, flows from the converted data
+        // These need to be extracted from the import_input's config field where they're stored
+        if let Some(config) = &import_input.config {
+            if let Some(entities_json) = config.custom.get("entities") {
+                if let Ok(entities) = serde_json::from_value(entities_json.clone()) {
+                    updated_model.entities = entities;
+                }
+            }
+            if let Some(relationships_json) = config.custom.get("relationships") {
+                if let Ok(relationships) = serde_json::from_value(relationships_json.clone()) {
+                    updated_model.relationships = relationships;
+                }
+            }
+            if let Some(layouts_json) = config.custom.get("layouts") {
+                if let Ok(layouts) = serde_json::from_value(layouts_json.clone()) {
+                    updated_model.layouts = layouts;
+                }
+            }
+            if let Some(flows_json) = config.custom.get("flows") {
+                if let Ok(flows) = serde_json::from_value(flows_json.clone()) {
+                    updated_model.flows = flows;
+                }
+            }
+        }
+
+        // Update cache
         self.model_cache.insert(
-            model.id.clone(),
-            CacheEntry::new(model.clone(), 3600),
+            model_id.clone(),
+            CacheEntry::new(updated_model.clone(), 3600),
         );
 
-        Ok(model)
+        // Emit model updated event
+        self.emit_event(ModelChangeEvent::model_updated(updated_model.clone()));
+
+        // Persist to database
+        self.persist_model_to_database(&updated_model).await?;
+
+        Ok(updated_model)
+    }
+
+    /// Convert export format to internal TorqueModel
+    fn convert_export_to_model(&self, export_data: serde_json::Value) -> Result<CreateModelInput, Error> {
+        let metadata = export_data["metadata"].as_object()
+            .ok_or_else(|| Error::Validation("Missing metadata section".to_string()))?;
+
+        let name = metadata["name"].as_str()
+            .ok_or_else(|| Error::Validation("Missing model name".to_string()))?;
+
+        let description = metadata.get("description")
+            .and_then(|d| d.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        let entities = export_data["entities"].as_array()
+            .ok_or_else(|| Error::Validation("Missing entities section".to_string()))?;
+
+        let mut model_entities = Vec::new();
+        for entity in entities {
+            let entity_name = entity["name"].as_str()
+                .ok_or_else(|| Error::Validation("Missing entity name".to_string()))?;
+            
+            let entity_display_name = entity.get("displayName")
+                .and_then(|d| d.as_str())
+                .unwrap_or(entity_name)
+                .to_string();
+
+            let entity_description = entity.get("description")
+                .and_then(|d| d.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            let fields = entity["fields"].as_array()
+                .ok_or_else(|| Error::Validation("Missing entity fields".to_string()))?;
+
+            let mut model_fields = Vec::new();
+            for field in fields {
+                let field_name = field["name"].as_str()
+                    .ok_or_else(|| Error::Validation("Missing field name".to_string()))?;
+
+                let field_type_str = field["type"].as_str()
+                    .ok_or_else(|| Error::Validation("Missing field type".to_string()))?;
+
+                let field_type = self.parse_field_type(field_type_str)?;
+
+                let field_display_name = field.get("displayName")
+                    .and_then(|d| d.as_str())
+                    .unwrap_or(field_name)
+                    .to_string();
+
+                let required = field.get("required")
+                    .and_then(|r| r.as_bool())
+                    .unwrap_or(false);
+
+                let validation = field.get("validation")
+                    .cloned()
+                    .unwrap_or(serde_json::json!([]));
+
+                model_fields.push(crate::model::types::EntityField {
+                    id: Uuid::new_v4(),
+                    name: field_name.to_string(),
+                    display_name: field_display_name,
+                    field_type,
+                    required,
+                    default_value: field.get("defaultValue").cloned(),
+                    validation: serde_json::from_value(validation).unwrap_or_default(),
+                    ui_config: crate::model::types::FieldUiConfig::default(),
+                });
+            }
+
+            model_entities.push(crate::model::types::ModelEntity {
+                id: Uuid::new_v4(),
+                name: entity_name.to_string(),
+                display_name: entity_display_name,
+                description: Some(entity_description),
+                entity_type: crate::model::types::EntityType::Data,
+                fields: model_fields,
+                constraints: Vec::new(),
+                indexes: Vec::new(),
+                ui_config: crate::model::types::EntityUiConfig::default(),
+                behavior: crate::model::types::EntityBehavior::default(),
+            });
+        }
+
+        let empty_layouts = vec![];
+        let layouts = export_data.get("layouts")
+            .and_then(|l| l.as_array())
+            .unwrap_or(&empty_layouts);
+
+        let mut model_layouts = Vec::new();
+        for layout in layouts {
+            let layout_name = layout["name"].as_str()
+                .ok_or_else(|| Error::Validation("Missing layout name".to_string()))?;
+
+            let empty_components = vec![];
+            let components = layout.get("components")
+                .and_then(|c| c.as_array())
+                .unwrap_or(&empty_components);
+
+            let mut layout_components = Vec::new();
+            for component in components {
+                if let Some(position) = component.get("position") {
+                    layout_components.push(crate::model::types::LayoutComponent {
+                        id: Uuid::new_v4(),
+                        component_type: "DataGrid".to_string(), // Default type
+                        position: crate::model::types::ComponentPosition {
+                            row: position.get("row").and_then(|r| r.as_u64()).unwrap_or(0) as u32,
+                            column: position.get("column").and_then(|c| c.as_u64()).unwrap_or(0) as u32,
+                            width: position.get("width").and_then(|w| w.as_u64()).unwrap_or(1) as u32,
+                            height: position.get("height").and_then(|h| h.as_u64()).unwrap_or(1) as u32,
+                        },
+                        properties: component.get("configuration")
+                            .and_then(|v| serde_json::from_value(v.clone()).ok())
+                            .unwrap_or_default(),
+                        styling: std::collections::HashMap::new(),
+                    });
+                }
+            }
+
+            let now = UtcDateTime::now();
+            model_layouts.push(crate::model::types::ModelLayout {
+                id: Uuid::new_v4(),
+                name: layout_name.to_string(),
+                description: layout.get("description").and_then(|d| d.as_str()).map(|s| s.to_string()),
+                layout_type: crate::model::types::LayoutType::Dashboard, // Default type
+                target_entities: vec![], // Will be populated from import data if available
+                components: layout_components,
+                responsive: crate::model::types::ResponsiveLayout::default(),
+                created_at: now.clone(),
+                updated_at: now,
+            });
+        }
+
+        // Store the imported data in the config custom field for later extraction
+        let mut config = crate::model::types::ModelConfig::default();
+        config.custom.insert("entities".to_string(), serde_json::to_value(&model_entities).unwrap_or_default());
+        config.custom.insert("layouts".to_string(), serde_json::to_value(&model_layouts).unwrap_or_default());
+        
+        Ok(CreateModelInput {
+            name: name.to_string(),
+            description: Some(description),
+            config: Some(config),
+        })
+    }
+
+    /// Parse field type string into FieldType enum
+    fn parse_field_type(&self, type_str: &str) -> Result<crate::model::types::FieldType, Error> {
+        use crate::model::types::FieldType;
+        
+        let base_type = if type_str.contains('(') {
+            type_str.split('(').next().unwrap_or(type_str)
+        } else if type_str.contains('[') {
+            type_str.split('[').next().unwrap_or(type_str)
+        } else {
+            type_str
+        };
+
+        match base_type {
+            "String" => Ok(FieldType::String { max_length: None }),
+            "Integer" => Ok(FieldType::Integer { min: None, max: None }),
+            "Float" => Ok(FieldType::Float { min: None, max: None }),
+            "Boolean" => Ok(FieldType::Boolean),
+            "DateTime" => Ok(FieldType::DateTime),
+            "Date" => Ok(FieldType::Date),
+            "Time" => Ok(FieldType::Time),
+            "Json" => Ok(FieldType::Json),
+            "Binary" => Ok(FieldType::Binary),
+            "Enum" => {
+                if let Some(bracket_start) = type_str.find('[') {
+                    if let Some(bracket_end) = type_str.find(']') {
+                        let values_str = &type_str[bracket_start + 1..bracket_end];
+                        let values: Vec<String> = values_str.split(',').map(|s| s.trim().to_string()).collect();
+                        return Ok(FieldType::Enum { values });
+                    }
+                }
+                Ok(FieldType::Enum { values: vec![] })
+            },
+            "Reference" => Ok(FieldType::Reference { entity_id: Uuid::new_v4() }),
+            "Array" => Ok(FieldType::Array { element_type: Box::new(FieldType::String { max_length: None }) }),
+            _ => {
+                tracing::warn!("Unknown field type: {}, defaulting to String", type_str);
+                Ok(FieldType::String { max_length: None })
+            }
+        }
     }
 
     /// Clean up expired cache entries

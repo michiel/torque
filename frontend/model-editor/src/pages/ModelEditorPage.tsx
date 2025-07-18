@@ -37,7 +37,7 @@ import {
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
-import { IMPORT_MODEL } from '../graphql/mutations'
+import { IMPORT_MODEL, REPLACE_MODEL } from '../graphql/mutations'
 import { Model, Entity } from '../types/model'
 import { ModelExportDialog, ModelImportDialog } from '../components/ModelImportExport'
 
@@ -56,18 +56,18 @@ export function ModelEditorPage() {
     errorPolicy: 'all',
   })
 
-  const [importModel, { loading: importLoading }] = useMutation(IMPORT_MODEL, {
+  const [replaceModel, { loading: replaceLoading }] = useMutation(REPLACE_MODEL, {
     onCompleted: (data) => {
       notifications.show({
-        title: 'Model Imported',
-        message: `Successfully imported model: ${data.importModel.name}`,
+        title: 'Model Replaced',
+        message: `Successfully replaced model: ${data.replaceModel.name}`,
         color: 'green',
       })
-      navigate(`/models/${data.importModel.id}`)
+      refetch() // Refresh the current model data
     },
     onError: (error) => {
       notifications.show({
-        title: 'Import Failed',
+        title: 'Replace Failed',
         message: error.message,
         color: 'red',
       })
@@ -86,13 +86,16 @@ export function ModelEditorPage() {
 
   const handleImportModel = async (importedModel: any, originalJsonString: string) => {
     try {
-      // Use the original JSON string, not the converted model
-      await importModel({
-        variables: { data: originalJsonString }
+      // Use replaceModel instead of importModel since we're replacing an existing model
+      await replaceModel({
+        variables: { 
+          id: id!,
+          data: originalJsonString 
+        }
       })
       closeImportModal()
     } catch (error) {
-      console.error('Import error:', error)
+      console.error('Replace error:', error)
       // Error handling is done in the mutation's onError callback
     }
   }
@@ -277,6 +280,8 @@ export function ModelEditorPage() {
         opened={importModalOpened}
         onClose={closeImportModal}
         onImport={handleImportModel}
+        isReplacing={true}
+        existingModelName={model.name}
       />
         </Stack>
       </Container>

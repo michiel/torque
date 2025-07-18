@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useQuery } from '@apollo/client'
+import { Link, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation } from '@apollo/client'
 import {
   Stack,
   Title,
@@ -28,16 +28,42 @@ import {
   IconDownload,
   IconAlertCircle,
   IconExternalLink,
+  IconFileImport,
 } from '@tabler/icons-react'
 
 import { GET_MODELS } from '../graphql/queries'
+import { IMPORT_MODEL } from '../graphql/mutations'
 import { Model } from '../types/model'
+import { ModelImportDialog } from '../components/ModelImportExport'
+import { useDisclosure } from '@mantine/hooks'
+import { notifications } from '@mantine/notifications'
 
 export function ModelsPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const navigate = useNavigate()
+  const [importModalOpened, { open: openImportModal, close: closeImportModal }] = useDisclosure(false)
   
   const { data, loading, error, refetch } = useQuery(GET_MODELS, {
     errorPolicy: 'all',
+  })
+
+  const [importModel] = useMutation(IMPORT_MODEL, {
+    onCompleted: (data) => {
+      notifications.show({
+        title: 'Model Imported',
+        message: `Successfully imported model: ${data.importModel.name}`,
+        color: 'green',
+      })
+      refetch() // Refresh the models list
+      navigate(`/models/${data.importModel.id}`)
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Import Failed',
+        message: error.message,
+        color: 'red',
+      })
+    }
   })
 
   const models: Model[] = data?.models || []
@@ -46,6 +72,18 @@ export function ModelsPage() {
     model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     model.description?.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const handleImportModel = async (importedModel: any, originalJsonString: string) => {
+    try {
+      await importModel({
+        variables: { data: originalJsonString }
+      })
+      closeImportModal()
+    } catch (error) {
+      console.error('Import error:', error)
+      // Error handling is done in the mutation's onError callback
+    }
+  }
 
   if (loading) {
     return (
@@ -83,13 +121,22 @@ export function ModelsPage() {
       {/* Header */}
       <Group justify="space-between">
         <Title order={1}>Models</Title>
-        <Button
-          component={Link}
-          to="/models/new"
-          leftSection={<IconPlus size={16} />}
-        >
-          Create Model
-        </Button>
+        <Group>
+          <Button
+            variant="light"
+            leftSection={<IconFileImport size={16} />}
+            onClick={openImportModal}
+          >
+            Import Model
+          </Button>
+          <Button
+            component={Link}
+            to="/models/new"
+            leftSection={<IconPlus size={16} />}
+          >
+            Create Model
+          </Button>
+        </Group>
       </Group>
 
       {/* Search */}
@@ -137,6 +184,12 @@ export function ModelsPage() {
       )}
         </Stack>
       </Container>
+
+      <ModelImportDialog
+        opened={importModalOpened}
+        onClose={closeImportModal}
+        onImport={handleImportModel}
+      />
     </Box>
   )
 }

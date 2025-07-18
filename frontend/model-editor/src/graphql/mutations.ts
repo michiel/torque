@@ -154,6 +154,22 @@ export const IMPORT_MODEL = gql`
   }
 `
 
+// Mutation to replace an existing model with imported data
+export const REPLACE_MODEL = gql`
+  mutation ReplaceModel($id: String!, $data: String!) {
+    replaceModel(id: $id, data: $data) {
+      id
+      name
+      description
+      version
+      createdAt
+      updatedAt
+      createdBy
+      config
+    }
+  }
+`
+
 // Mutation to create a new layout
 export const CREATE_LAYOUT = gql`
   mutation CreateLayout($input: CreateLayoutInput!) {

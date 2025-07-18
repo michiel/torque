@@ -635,12 +635,22 @@ impl OptimizedMutation {
     }
 
     /// Import a model from JSON
-    async fn import_model(&self, ctx: &Context<'_>, data: serde_json::Value) -> Result<ModelWrapper> {
+    async fn import_model(&self, ctx: &Context<'_>, data: String) -> Result<ModelWrapper> {
         let state = ctx.data::<AppState>()?;
-        let data_string = serde_json::to_string(&data)
-            .map_err(|e| async_graphql::Error::new(format!("Failed to serialize data: {}", e)))?;
-        let model = state.services.model_service.import_model(data_string).await
+        
+        let model = state.services.model_service.import_model(data).await
             .map_err(|e| async_graphql::Error::new(format!("Failed to import model: {}", e)))?;
+        Ok(ModelWrapper { inner: model })
+    }
+
+    /// Replace an existing model with imported JSON
+    async fn replace_model(&self, ctx: &Context<'_>, id: String, data: String) -> Result<ModelWrapper> {
+        let state = ctx.data::<AppState>()?;
+        let model_id = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid model ID format"))?;
+        
+        let model = state.services.model_service.replace_model(model_id, data).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to replace model: {}", e)))?;
         Ok(ModelWrapper { inner: model })
     }
 
