@@ -98,22 +98,23 @@ export function Header() {
       <Group h={60} px="md" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
         {/* Left side - Logo and Nav */}
         <Group>
-          <Group gap={rem(4)}>
-            <IconDatabase size={28} />
-            <Text size="xl" fw={600}>Torque</Text>
-          </Group>
-          
-          <Group gap="xs" ml="xl">
-            <Button
-              component={Link}
-              to="/"
-              variant={location.pathname === '/' ? 'filled' : 'subtle'}
-              leftSection={<IconHome size={16} />}
-              size="sm"
+          <Link 
+            to="/" 
+            style={{ 
+              textDecoration: 'none', 
+              color: 'inherit'
+            }}
+          >
+            <Group 
+              gap={rem(4)} 
+              style={{ 
+                cursor: 'pointer'
+              }}
             >
-              Home
-            </Button>
-          </Group>
+              <IconDatabase size={28} />
+              <Text size="xl" fw={600}>Torque</Text>
+            </Group>
+          </Link>
         </Group>
 
         {/* Right side - User menu and settings */}
