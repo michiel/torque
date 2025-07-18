@@ -12,4 +12,7 @@
     - Example : In the model editor, creating or editing an Entity should use the main layout panel
  - Tabs must be navigable - reloading the page should have the same open tab, and they they must be linkable
 
+## Visual Layout editor
 
+ - The visual layout editor allows the user to visually place and size torque app elements on a layout
+ - The library for implementing the visual editor is pickeditor.com, with open source code at https://github.com/puckeditor/puck

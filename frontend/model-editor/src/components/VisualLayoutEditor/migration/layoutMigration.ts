@@ -212,11 +212,6 @@ export const convertPuckToLegacyLayout = (
   )];
 
   // Convert entity names to entity IDs
-  console.log('Converting entity names to IDs:', {
-    targetEntityNames,
-    availableEntities: availableEntities?.map(e => ({ id: e.id, name: e.name }))
-  });
-
   const targetEntities = targetEntityNames
     .map(entityName => {
       const entity = availableEntities?.find(e => e.name === entityName);
@@ -224,7 +219,6 @@ export const convertPuckToLegacyLayout = (
         console.warn(`Entity with name "${entityName}" not found in available entities`);
         return null;
       }
-      console.log(`Mapped entity "${entityName}" to ID: ${entity.id}`);
       return entity.id;
     })
     .filter((entityId): entityId is string => Boolean(entityId));
