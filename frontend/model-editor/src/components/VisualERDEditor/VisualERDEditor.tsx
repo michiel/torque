@@ -96,7 +96,9 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
 
   // Transform entities to React Flow nodes
   const initialNodes: Node[] = useMemo(() => {
-    return entities.map((entity, index) => ({
+    console.log('VisualERDEditor: Creating nodes from entities:', entities);
+    
+    const nodes = entities.map((entity, index) => ({
       id: entity.id,
       type: 'entity',
       position: { 
@@ -108,21 +110,33 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
         onEdit: (entity: Entity) => setEditingEntity(entity)
       }
     }));
+    
+    console.log('VisualERDEditor: Generated nodes:', nodes);
+    return nodes;
   }, [entities]);
 
   // Transform relationships to React Flow edges
   const initialEdges: Edge[] = useMemo(() => {
-    return relationships.map((relationship) => ({
-      id: relationship.id,
-      source: relationship.fromEntityId,
-      target: relationship.toEntityId,
-      type: 'relationship',
-      data: { 
-        relationship,
-        onEdit: (relationship: Relationship) => setEditingRelationship(relationship)
-      },
-      label: `${relationship.displayName} (${getRelationshipTypeShorthand(relationship.relationshipType)})`
-    }));
+    console.log('VisualERDEditor: Creating edges from relationships:', relationships);
+    
+    const edges = relationships.map((relationship) => {
+      console.log('VisualERDEditor: Creating edge for relationship:', relationship);
+      
+      return {
+        id: relationship.id,
+        source: relationship.fromEntityId,
+        target: relationship.toEntityId,
+        type: 'default', // Temporarily use default edge type for debugging
+        data: { 
+          relationship,
+          onEdit: (relationship: Relationship) => setEditingRelationship(relationship)
+        },
+        label: `${relationship.displayName} (${getRelationshipTypeShorthand(relationship.relationshipType)})`
+      };
+    });
+    
+    console.log('VisualERDEditor: Generated edges:', edges);
+    return edges;
   }, [relationships]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -315,6 +329,13 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
             <Group gap="xs">
               <Text size="sm" c="dimmed">
                 Drag to connect entities
+              </Text>
+            </Group>
+          </Panel>
+          <Panel position="top-left">
+            <Group gap="xs">
+              <Text size="xs" c="dimmed">
+                Nodes: {nodes.length}, Edges: {edges.length}
               </Text>
             </Group>
           </Panel>

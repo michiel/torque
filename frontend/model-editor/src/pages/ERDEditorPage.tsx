@@ -70,6 +70,9 @@ export const ERDEditorPage: React.FC = () => {
   const rawRelationships = relationshipsData?.relationships || [];
   const model = modelData?.model;
 
+  console.log('ERDEditorPage: Raw relationships from GraphQL:', rawRelationships);
+  console.log('ERDEditorPage: Entities:', entities);
+
   // Transform relationships to match ERD editor format
   const relationships = rawRelationships.map(rel => {
     // Convert field names to field IDs
@@ -87,7 +90,7 @@ export const ERDEditorPage: React.FC = () => {
       'ManyToMany': 'many-to-many'
     };
 
-    return {
+    const transformedRel = {
       id: rel.id,
       name: rel.name,
       displayName: rel.name, // Use name as display name if not provided
@@ -101,7 +104,12 @@ export const ERDEditorPage: React.FC = () => {
       fromField: rel.fromField,
       toField: rel.toField
     };
+    
+    console.log('ERDEditorPage: Transformed relationship:', transformedRel);
+    return transformedRel;
   });
+
+  console.log('ERDEditorPage: Final relationships passed to ERD editor:', relationships);
 
   const handleEntityUpdate = async (entity: Entity) => {
     setIsLoading(true);
@@ -271,7 +279,9 @@ export const ERDEditorPage: React.FC = () => {
       const result = await createRelationship({ variables });
       console.log('Relationship creation result:', result);
 
-      await refetchRelationships();
+      console.log('Refetching relationships...');
+      const refetchResult = await refetchRelationships();
+      console.log('Refetch result:', refetchResult);
       
       notifications.show({
         title: 'Relationship Created',
