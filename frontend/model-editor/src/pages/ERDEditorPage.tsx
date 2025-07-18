@@ -4,7 +4,7 @@ import { Container, Alert, LoadingOverlay } from '@mantine/core';
 import { useQuery, useMutation } from '@apollo/client';
 import { notifications } from '@mantine/notifications';
 import { VisualERDEditor } from '../components/VisualERDEditor';
-import { GET_MODEL, GET_ENTITIES, GET_RELATIONSHIPS } from '../graphql/queries';
+import { GET_MODEL, GET_ENTITIES } from '../graphql/queries';
 import { CREATE_ENTITY, UPDATE_ENTITY, CREATE_RELATIONSHIP, UPDATE_RELATIONSHIP } from '../graphql/mutations';
 
 interface RouteParams extends Record<string, string | undefined> {
@@ -45,17 +45,12 @@ export const ERDEditorPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // GraphQL queries
-  const { data: modelData, loading: modelLoading, error: modelError } = useQuery(GET_MODEL, {
+  const { data: modelData, loading: modelLoading, error: modelError, refetch: refetchModel } = useQuery(GET_MODEL, {
     variables: { id: modelId },
     skip: !modelId
   });
 
   const { data: entitiesData, loading: entitiesLoading, refetch: refetchEntities } = useQuery(GET_ENTITIES, {
-    variables: { modelId },
-    skip: !modelId
-  });
-
-  const { data: relationshipsData, loading: relationshipsLoading, refetch: refetchRelationships } = useQuery(GET_RELATIONSHIPS, {
     variables: { modelId },
     skip: !modelId
   });
@@ -67,11 +62,12 @@ export const ERDEditorPage: React.FC = () => {
   const [updateRelationship] = useMutation(UPDATE_RELATIONSHIP);
 
   const entities = entitiesData?.entities || [];
-  const rawRelationships = relationshipsData?.relationships || [];
+  const rawRelationships = modelData?.model?.relationships || [];
   const model = modelData?.model;
 
-  console.log('ERDEditorPage: Raw relationships from GraphQL:', rawRelationships);
+  console.log('ERDEditorPage: Raw relationships from model:', rawRelationships);
   console.log('ERDEditorPage: Entities:', entities);
+  console.log('ERDEditorPage: Model data:', modelData);
 
   // Transform relationships to match ERD editor format
   const relationships = rawRelationships.map(rel => {
@@ -223,7 +219,7 @@ export const ERDEditorPage: React.FC = () => {
         }
       });
 
-      await refetchRelationships();
+      await refetchModel();
       
       notifications.show({
         title: 'Relationship Updated',
@@ -279,8 +275,8 @@ export const ERDEditorPage: React.FC = () => {
       const result = await createRelationship({ variables });
       console.log('Relationship creation result:', result);
 
-      console.log('Refetching relationships...');
-      const refetchResult = await refetchRelationships();
+      console.log('Refetching model...');
+      const refetchResult = await refetchModel();
       console.log('Refetch result:', refetchResult);
       
       notifications.show({
@@ -321,7 +317,7 @@ export const ERDEditorPage: React.FC = () => {
     navigate(-1);
   };
 
-  if (modelLoading || entitiesLoading || relationshipsLoading) {
+  if (modelLoading || entitiesLoading) {
     return (
       <Container size="100%" p="md">
         <LoadingOverlay visible />
