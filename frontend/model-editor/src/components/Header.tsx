@@ -79,6 +79,8 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
         } else if (segments[3]) {
           breadcrumbs.push({ title: 'Edit Layout' })
         }
+      } else if (segments[2] === 'erd') {
+        breadcrumbs.push({ title: 'ERD Editor' })
       }
     }
   }

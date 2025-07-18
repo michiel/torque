@@ -148,6 +148,8 @@ export const RelationshipEditModal: React.FC<RelationshipEditModalProps> = ({
       }
       size="lg"
       centered
+      zIndex={1100}
+      overlayProps={{ blur: 3 }}
     >
       <form onSubmit={handleSubmit(handleSave)}>
         <Stack gap="md">

@@ -156,6 +156,8 @@ export const EntityEditModal: React.FC<EntityEditModalProps> = ({
       }
       size="lg"
       centered
+      zIndex={1100}
+      overlayProps={{ blur: 3 }}
     >
       <form onSubmit={handleSubmit(handleSave)}>
         <Stack gap="md">

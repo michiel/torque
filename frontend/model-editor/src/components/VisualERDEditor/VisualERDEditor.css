@@ -76,3 +76,16 @@
   padding: 8px 12px;
   margin: 10px;
 }
+
+/* Ensure modals are properly layered above header */
+.mantine-Modal-root {
+  z-index: 1100 !important;
+}
+
+.mantine-Modal-overlay {
+  z-index: 1100 !important;
+}
+
+.mantine-Modal-inner {
+  z-index: 1101 !important;
+}
