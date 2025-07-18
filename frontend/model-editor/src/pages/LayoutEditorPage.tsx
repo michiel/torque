@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Alert, LoadingOverlay } from '@mantine/core';
 import { useQuery, useMutation } from '@apollo/client';
 import { notifications } from '@mantine/notifications';
-import { LayoutEditor } from '../components/LayoutEditor';
-import { LayoutEditorComponent } from '../components/LayoutEditor/types';
+import { VisualLayoutEditor } from '../components/VisualLayoutEditor';
+import { Data } from '@measured/puck';
 import { GET_MODEL, GET_ENTITIES, GET_LAYOUT } from '../graphql/queries';
 import { CREATE_LAYOUT, UPDATE_LAYOUT } from '../graphql/mutations';
 
@@ -17,7 +17,7 @@ export const LayoutEditorPage: React.FC = () => {
   const { modelId, layoutId } = useParams<RouteParams>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [initialComponents, setInitialComponents] = useState<LayoutEditorComponent[]>([]);
+  const [initialData, setInitialData] = useState<Data | undefined>(undefined);
 
   // GraphQL queries
   const { data: modelData, loading: modelLoading, error: modelError } = useQuery(GET_MODEL, {
@@ -43,85 +43,65 @@ export const LayoutEditorPage: React.FC = () => {
   const model = modelData?.model;
   const layout = layoutData?.layout;
 
-  // Transform loaded layout data to LayoutEditor format
+  // Transform loaded layout data to Puck format
   useEffect(() => {
-    console.log('Layout data effect triggered:', { layout, layoutId });
-    
     if (layout && layout.components) {
-      console.log('Layout components to transform:', layout.components);
-      
-      const transformedComponents: LayoutEditorComponent[] = layout.components.map((comp: any) => ({
-        id: comp.id,
-        type: comp.componentType,
-        position: comp.position ? {
-          row: comp.position.row || 0,
-          column: comp.position.column || 0,
-          rowSpan: comp.position.height || 2,
-          colSpan: comp.position.width || 4
-        } : {
-          row: 0,
-          column: 0,
-          rowSpan: 2,
-          colSpan: 4
-        },
-        configuration: comp.properties || {},
-        validation: [],
-        entityBinding: comp.properties?.entityId ? {
-          entityId: comp.properties.entityId,
-          fields: comp.properties.fields || [],
-          relationships: comp.properties.relationships || []
-        } : undefined
-      }));
-      
-      console.log('Transformed components:', transformedComponents);
-      setInitialComponents(transformedComponents);
+      // Transform existing layout to Puck format
+      const puckData: Data = {
+        content: layout.components.map((comp: any) => ({
+          type: comp.componentType === 'DataGrid' ? 'Text' : comp.componentType, // Map to available components for now
+          props: {
+            ...comp.properties,
+            content: comp.componentType === 'DataGrid' ? 'DataGrid Component (placeholder)' : 
+                     comp.componentType === 'TorqueForm' ? 'Form Component (placeholder)' :
+                     comp.componentType === 'TorqueButton' ? 'Button Component (placeholder)' :
+                     comp.properties?.content || 'Component placeholder'
+          }
+        })),
+        root: {
+          title: layout.name || 'Layout'
+        }
+      };
+      setInitialData(puckData);
     } else if (!layoutId) {
-      // Clear components for new layout
-      console.log('Clearing components for new layout');
-      setInitialComponents([]);
-    } else {
-      console.log('No layout data to transform');
+      // Set default empty data for new layout
+      setInitialData({
+        content: [],
+        root: {
+          title: 'New Layout'
+        }
+      });
     }
   }, [layout, layoutId]);
 
-  const handleSave = async (components: LayoutEditorComponent[]) => {
+  const handleSave = async (data: Data) => {
     if (!modelId) {
       console.error('No modelId provided');
       return;
     }
 
-    console.log('Starting save with components:', components);
-    console.log('ModelId:', modelId, 'LayoutId:', layoutId);
-    console.log('Layout:', layout);
-    console.log('Model:', model);
+    console.log('Starting save with Puck data:', data);
 
-    // Get unique entity IDs from components for targetEntities
-    const targetEntities = Array.from(
-      new Set(
-        components
-          .map(comp => comp.entityBinding?.entityId)
-          .filter(entityId => entityId) // Remove null/undefined
-      )
-    );
+    // Convert Puck data to legacy GraphQL format for now
+    // TODO: Update backend to support Puck format natively
+    const components = data.content.map((item, index) => ({
+      componentType: item.type,
+      position: {
+        row: index, // Simple positioning for now
+        column: 0,
+        width: 12,
+        height: 2
+      },
+      properties: item.props || {},
+      styling: {}
+    }));
 
-    console.log('Target entities:', targetEntities);
-
-    // Convert components to GraphQL LayoutComponent format
-    const baseLayoutData = {
-      name: layoutId ? layout?.name || `${model?.name} Layout` : 'New Layout',
+    const layoutData = {
+      name: data.root?.title || (layoutId ? layout?.name || `${model?.name} Layout` : 'New Layout'),
       modelId,
-      targetEntities,
-      components: components.map(component => ({
-        componentType: component.type,
-        position: {
-          row: component.position.row,
-          column: component.position.column,
-          width: component.position.colSpan,
-          height: component.position.rowSpan
-        },
-        properties: component.configuration || {},
-        styling: {} // Default empty styling
-      })),
+      targetEntities: [], // TODO: Extract from component properties
+      components,
+      layoutType: layout?.layoutType || 'Dashboard',
       responsive: layout?.responsive || {
         breakpoints: [
           { name: 'mobile', minWidth: 0, columns: 1 },
@@ -131,13 +111,7 @@ export const LayoutEditorPage: React.FC = () => {
       }
     };
 
-    // Add layoutType - use existing type for updates or default to 'Dashboard' for new
-    const layoutData = {
-      ...baseLayoutData,
-      layoutType: layout?.layoutType || 'Dashboard'
-    };
-
-    console.log('Layout data before save:', JSON.stringify(layoutData, null, 2));
+    console.log('Converted layout data for save:', JSON.stringify(layoutData, null, 2));
 
     setIsLoading(true);
     try {
@@ -191,26 +165,26 @@ export const LayoutEditorPage: React.FC = () => {
     }
   };
 
-  const handlePreview = (components: LayoutEditorComponent[]) => {
-    // Convert components to TorqueApp format and open preview
+  const handlePreview = (data: Data) => {
+    // Convert Puck data to TorqueApp format and open preview
     const layoutConfig = {
       id: layoutId || 'preview',
-      title: 'Layout Preview',
+      title: data.root?.title || 'Layout Preview',
       layout: {
         type: 'grid',
         rows: 12,
         columns: 12
       },
-      components: components.map(component => ({
-        type: component.type,
-        id: component.id,
+      components: data.content.map((item, index) => ({
+        type: item.type,
+        id: `preview-${index}`,
         position: {
-          row: component.position.row,
-          col: component.position.column,
-          rowSpan: component.position.rowSpan,
-          colSpan: component.position.colSpan
+          row: index,
+          col: 0,
+          rowSpan: 2,
+          colSpan: 12
         },
-        properties: component.configuration
+        properties: item.props
       }))
     };
 
@@ -264,14 +238,14 @@ export const LayoutEditorPage: React.FC = () => {
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       <LoadingOverlay visible={isLoading} />
-      <LayoutEditor
+      <VisualLayoutEditor
         modelId={modelId!}
         layoutId={layoutId}
+        entities={entities}
+        initialData={initialData}
         onSave={handleSave}
         onPreview={handlePreview}
         onBack={handleBack}
-        entities={entities}
-        initialComponents={initialComponents}
       />
     </div>
   );

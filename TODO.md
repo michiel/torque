@@ -50,6 +50,147 @@ Torque is a high-performance platform for designing, running and presenting appl
 - [ ] End-to-End Playwright Testing
 - [ ] Data Import/Export System
 
+### Phase VIS: Visual Layout Editor Replacement (Weeks 21-28) - **NEW PRIORITY**
+**Status**: 🟡 **Ready to Start**  
+**Dependencies**: ✅ Phase 3A Foundation Complete  
+**Key Deliverable**: Complete replacement of current layout editor with Puck-based visual editor
+
+#### Implementation Strategy
+**Complete replacement approach**: Remove current `@dnd-kit` based layout editor and implement new Puck-based visual editor for superior UX and maintainability.
+
+**Benefits**:
+- 🎨 **True WYSIWYG Editing**: Visual design with immediate preview
+- 🔧 **Reduced Complexity**: Leverage proven library instead of custom implementation  
+- 🚀 **Better Performance**: Optimized for large component counts
+- 🔌 **Extensible Architecture**: Plugin system for custom components
+- 📱 **Responsive Design**: Built-in breakpoint support
+
+#### Phase VIS-1: Foundation Setup (Week 21)
+- [ ] **P1** Install and configure Puck Editor
+  - [ ] Add `@measured/puck` package to model-editor
+  - [ ] Create `VisualLayoutEditor` wrapper component
+  - [ ] Setup TypeScript types and interfaces
+  - [ ] Create basic integration with existing routes
+- [ ] **P1** Remove legacy layout editor
+  - [ ] Remove `@dnd-kit` dependencies and components
+  - [ ] Delete `LayoutEditor`, `ComponentPalette`, `LayoutCanvas`, `ConfigurationPanel`
+  - [ ] Update imports and routes to use new editor
+  - [ ] Clean up unused types and utilities
+- [ ] **P2** Core infrastructure
+  - [ ] Data transformation layer (Puck Data ↔ Torque Layout JSON)
+  - [ ] Basic component registry setup
+  - [ ] Route integration with `/models/:id/layouts/new` and `/models/:id/layouts/:id`
+
+#### Phase VIS-2: Basic Components (Week 22)
+- [ ] **P1** Text and Container components
+  - [ ] Text component with typography variants and inline editing
+  - [ ] Container component with padding, styling, and nested components
+  - [ ] Component configuration interfaces with Puck fields
+- [ ] **P1** Component registry system
+  - [ ] Component config structure with fields and render functions
+  - [ ] Category organization (data, forms, layout, actions)
+  - [ ] Default props and validation
+- [ ] **P2** Basic styling system
+  - [ ] Mantine theme integration
+  - [ ] Typography and spacing controls
+  - [ ] Color palette integration
+
+#### Phase VIS-3: DataGrid Component (Week 23)
+- [ ] **P1** DataGrid implementation
+  - [ ] Port existing DataGrid logic to Puck component config
+  - [ ] Entity selection dropdown with dynamic options
+  - [ ] Column configuration with field mapping
+  - [ ] Pagination and filtering controls
+- [ ] **P1** Entity integration
+  - [ ] Dynamic entity loading in component configs
+  - [ ] Field type mapping and validation
+  - [ ] Real-time entity schema updates
+- [ ] **P2** Advanced DataGrid features
+  - [ ] Column reordering and resizing
+  - [ ] Advanced filtering options
+  - [ ] Export functionality
+
+#### Phase VIS-4: Form and Button Components (Week 24)
+- [ ] **P1** TorqueForm component
+  - [ ] Dynamic form field generation from entities
+  - [ ] Field type mapping (input, textarea, select, checkbox, etc.)
+  - [ ] Form validation rules configuration
+  - [ ] Layout options (single-column, multi-column, grid)
+- [ ] **P1** TorqueButton component
+  - [ ] Button styling and variant configuration
+  - [ ] Action system (modal, navigation, CRUD operations)
+  - [ ] Modal trigger configuration
+- [ ] **P2** Form enhancements
+  - [ ] Conditional field display
+  - [ ] Field validation preview
+  - [ ] Form submission configuration
+
+#### Phase VIS-5: Responsive and Styling (Week 25)
+- [ ] **P1** Responsive design system
+  - [ ] Configure Puck responsive breakpoints
+  - [ ] Mobile/tablet/desktop preview modes
+  - [ ] Responsive property controls
+- [ ] **P1** Advanced styling system
+  - [ ] Comprehensive styling controls for all components
+  - [ ] Theme integration with Mantine colors
+  - [ ] Style preset templates
+- [ ] **P2** Design system integration
+  - [ ] Component spacing and alignment tools
+  - [ ] Grid and layout utilities
+  - [ ] Design tokens integration
+
+#### Phase VIS-6: Preview and Backend Integration (Week 26)
+- [ ] **P1** Real-time preview system
+  - [ ] Live preview mode within editor
+  - [ ] Preview in new window/tab capability
+  - [ ] Connection to TorqueApp runtime for accurate preview
+- [ ] **P1** Backend integration
+  - [ ] Update GraphQL mutations for new Puck data format
+  - [ ] Layout save/load with new data structure
+  - [ ] Real-time synchronization with WebSocket events
+- [ ] **P2** Advanced preview features
+  - [ ] Device-specific previews
+  - [ ] Interactive preview with live data
+  - [ ] Performance monitoring in preview
+
+#### Phase VIS-7: Migration and Compatibility (Week 27)
+- [ ] **P1** Data migration system
+  - [ ] Converter from old grid-based layouts to Puck format
+  - [ ] Automated migration utility
+  - [ ] Validation of migrated layouts
+- [ ] **P1** Backward compatibility
+  - [ ] Support for reading old layout format
+  - [ ] Graceful degradation for unsupported features
+  - [ ] Migration warnings and notifications
+- [ ] **P2** Migration tools
+  - [ ] Bulk migration utility for all models
+  - [ ] Migration status tracking
+  - [ ] Rollback capabilities
+
+#### Phase VIS-8: Testing and Polish (Week 28)
+- [ ] **P1** Comprehensive testing
+  - [ ] Unit tests for all Puck components
+  - [ ] Integration tests for data transformation
+  - [ ] E2E tests for complete workflows
+- [ ] **P1** Documentation and training
+  - [ ] Update Storybook with new components
+  - [ ] User guide for new visual editor
+  - [ ] Migration guide for existing users
+- [ ] **P2** Performance optimization
+  - [ ] Component loading optimization
+  - [ ] Large layout handling
+  - [ ] Memory usage optimization
+
+**Phase VIS Success Criteria**:
+- ✅ Complete WYSIWYG visual editing experience
+- ✅ All existing components work in new editor (DataGrid, Form, Button, Text, Container)
+- ✅ 50% reduction in layout creation time compared to old editor
+- ✅ Responsive design preview for mobile/tablet/desktop
+- ✅ Seamless migration from old layouts without data loss
+- ✅ >90% user satisfaction in usability testing
+- ✅ Plugin architecture ready for future extensions
+- ✅ Performance: 60fps interactions, <2s editor load time
+
 ### Phase 3B: Data Transformation Optimization ✅ **COMPLETED**
 - [x] Standardize UUID and DateTime representations ✅
 - [x] Create common::Uuid type for string-based UUIDs ✅

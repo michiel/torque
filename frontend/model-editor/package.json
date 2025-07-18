@@ -30,6 +30,7 @@
     "@mantine/hooks": "^7.3.2",
     "@mantine/modals": "^7.3.2",
     "@mantine/notifications": "^7.3.2",
+    "@measured/puck": "^0.19.3",
     "@monaco-editor/react": "^4.7.0",
     "@tabler/icons-react": "^2.47.0",
     "graphql": "^16.8.1",
