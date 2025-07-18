@@ -71,20 +71,37 @@ export const ERDEditorPage: React.FC = () => {
   const model = modelData?.model;
 
   // Transform relationships to match ERD editor format
-  const relationships = rawRelationships.map(rel => ({
-    id: rel.id,
-    name: rel.name,
-    displayName: rel.name, // Use name as display name if not provided
-    fromEntityId: rel.fromEntity,
-    toEntityId: rel.toEntity,
-    relationshipType: rel.relationshipType,
-    fromFieldId: rel.fromField,
-    toFieldId: rel.toField,
-    fromEntity: rel.fromEntity,
-    toEntity: rel.toEntity,
-    fromField: rel.fromField,
-    toField: rel.toField
-  }));
+  const relationships = rawRelationships.map(rel => {
+    // Convert field names to field IDs
+    const fromEntity = entities.find(e => e.id === rel.fromEntity);
+    const toEntity = entities.find(e => e.id === rel.toEntity);
+    
+    const fromField = fromEntity?.fields.find(f => f.name === rel.fromField);
+    const toField = toEntity?.fields.find(f => f.name === rel.toField);
+
+    // Convert relationship type from enum to kebab-case
+    const relationshipTypeMap: Record<string, string> = {
+      'OneToOne': 'one-to-one',
+      'OneToMany': 'one-to-many',
+      'ManyToOne': 'many-to-one',
+      'ManyToMany': 'many-to-many'
+    };
+
+    return {
+      id: rel.id,
+      name: rel.name,
+      displayName: rel.name, // Use name as display name if not provided
+      fromEntityId: rel.fromEntity,
+      toEntityId: rel.toEntity,
+      relationshipType: relationshipTypeMap[rel.relationshipType] || 'one-to-many',
+      fromFieldId: fromField?.id || '',
+      toFieldId: toField?.id || '',
+      fromEntity: rel.fromEntity,
+      toEntity: rel.toEntity,
+      fromField: rel.fromField,
+      toField: rel.toField
+    };
+  });
 
   const handleEntityUpdate = async (entity: Entity) => {
     setIsLoading(true);
@@ -168,16 +185,32 @@ export const ERDEditorPage: React.FC = () => {
   const handleRelationshipUpdate = async (relationship: Relationship) => {
     setIsLoading(true);
     try {
+      // Convert field IDs to field names
+      const fromEntity = entities.find(e => e.id === relationship.fromEntityId);
+      const toEntity = entities.find(e => e.id === relationship.toEntityId);
+      
+      const fromField = fromEntity?.fields.find(f => f.id === relationship.fromFieldId);
+      const toField = toEntity?.fields.find(f => f.id === relationship.toFieldId);
+
+      // Convert relationship type to proper enum format
+      const relationshipTypeMap: Record<string, string> = {
+        'one-to-one': 'OneToOne',
+        'one-to-many': 'OneToMany',
+        'many-to-one': 'ManyToOne',
+        'many-to-many': 'ManyToMany'
+      };
+
       await updateRelationship({
         variables: {
           id: relationship.id,
           input: {
             name: relationship.name,
-            relationshipType: relationship.relationshipType,
+            relationshipType: relationshipTypeMap[relationship.relationshipType] || 'OneToMany',
             fromEntity: relationship.fromEntityId,
             toEntity: relationship.toEntityId,
-            fromField: relationship.fromFieldId,
-            toField: relationship.toFieldId
+            fromField: fromField?.name || '',
+            toField: toField?.name || '',
+            cascade: 'None'
           }
         }
       });
@@ -205,19 +238,38 @@ export const ERDEditorPage: React.FC = () => {
   const handleRelationshipCreate = async (relationshipData: Omit<Relationship, 'id'>) => {
     setIsLoading(true);
     try {
-      await createRelationship({
-        variables: {
-          input: {
-            modelId,
-            name: relationshipData.name,
-            relationshipType: relationshipData.relationshipType,
-            fromEntity: relationshipData.fromEntityId,
-            toEntity: relationshipData.toEntityId,
-            fromField: relationshipData.fromFieldId,
-            toField: relationshipData.toFieldId
-          }
+      // Convert field IDs to field names
+      const fromEntity = entities.find(e => e.id === relationshipData.fromEntityId);
+      const toEntity = entities.find(e => e.id === relationshipData.toEntityId);
+      
+      const fromField = fromEntity?.fields.find(f => f.id === relationshipData.fromFieldId);
+      const toField = toEntity?.fields.find(f => f.id === relationshipData.toFieldId);
+
+      // Convert relationship type to proper enum format
+      const relationshipTypeMap: Record<string, string> = {
+        'one-to-one': 'OneToOne',
+        'one-to-many': 'OneToMany',
+        'many-to-one': 'ManyToOne',
+        'many-to-many': 'ManyToMany'
+      };
+
+      const variables = {
+        input: {
+          modelId,
+          name: relationshipData.name,
+          relationshipType: relationshipTypeMap[relationshipData.relationshipType] || 'OneToMany',
+          fromEntity: relationshipData.fromEntityId,
+          toEntity: relationshipData.toEntityId,
+          fromField: fromField?.name || '',
+          toField: toField?.name || '',
+          cascade: 'None'
         }
-      });
+      };
+
+      console.log('Creating relationship with variables:', variables);
+      
+      const result = await createRelationship({ variables });
+      console.log('Relationship creation result:', result);
 
       await refetchRelationships();
       
@@ -228,9 +280,17 @@ export const ERDEditorPage: React.FC = () => {
       });
     } catch (error) {
       console.error('Failed to create relationship:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // Show more detailed error message
+      const errorMessage = error instanceof Error ? error.message : 
+                          (error as any)?.message || 
+                          (error as any)?.graphQLErrors?.[0]?.message || 
+                          'Unknown error occurred';
+      
       notifications.show({
         title: 'Creation Failed',
-        message: `Failed to create ${relationshipData.displayName || relationshipData.name}`,
+        message: `Failed to create ${relationshipData.displayName || relationshipData.name}: ${errorMessage}`,
         color: 'red'
       });
       throw error;

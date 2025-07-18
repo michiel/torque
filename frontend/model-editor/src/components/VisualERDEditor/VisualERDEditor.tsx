@@ -163,6 +163,8 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
           fromFieldId: sourceEntity.fields[0]?.id || '',
           toFieldId: targetEntity.fields[0]?.id || ''
         };
+
+        console.log('Creating new relationship:', newRelationship);
         
         setEditingRelationship(newRelationship);
       }

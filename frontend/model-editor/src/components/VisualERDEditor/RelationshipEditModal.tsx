@@ -73,7 +73,7 @@ export const RelationshipEditModal: React.FC<RelationshipEditModalProps> = ({
   // Auto-generate technical name from display name
   useEffect(() => {
     const displayName = watch('displayName');
-    if (displayName) {
+    if (displayName && displayName.trim()) {
       const technicalName = displayName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '_')
@@ -112,10 +112,10 @@ export const RelationshipEditModal: React.FC<RelationshipEditModalProps> = ({
 
     try {
       // Validate required fields
-      if (!data.displayName.trim()) {
-        throw new Error('Display name is required');
+      if (!data.displayName?.trim() && !data.name?.trim()) {
+        throw new Error('Display name or technical name is required');
       }
-      if (!data.name.trim()) {
+      if (!data.name?.trim()) {
         throw new Error('Technical name is required');
       }
       if (!data.fromEntityId) {
@@ -128,7 +128,14 @@ export const RelationshipEditModal: React.FC<RelationshipEditModalProps> = ({
         throw new Error('From and To entities cannot be the same');
       }
 
-      await onSave(data);
+      // Ensure field IDs are set - use empty string if not selected
+      const validatedData = {
+        ...data,
+        fromFieldId: data.fromFieldId || '',
+        toFieldId: data.toFieldId || ''
+      };
+
+      await onSave(validatedData);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save relationship');
