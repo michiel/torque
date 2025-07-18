@@ -102,8 +102,8 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
       id: entity.id,
       type: 'entity',
       position: { 
-        x: (index % 3) * 300 + 100, 
-        y: Math.floor(index / 3) * 200 + 100 
+        x: (index % 3) * 450 + 150, 
+        y: Math.floor(index / 3) * 350 + 150 
       },
       data: { 
         entity,
@@ -126,7 +126,7 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
         id: relationship.id,
         source: relationship.fromEntityId,
         target: relationship.toEntityId,
-        type: 'default', // Temporarily use default edge type for debugging
+        type: 'relationship',
         data: { 
           relationship,
           onEdit: (relationship: Relationship) => setEditingRelationship(relationship)
