@@ -15,7 +15,7 @@ import { ERDEditorPage } from './pages/ERDEditorPage'
 function App() {
   return (
     <AppShell
-      header={{ height: { base: 100 } }}
+      header={{ height: { base: 50 } }}
       padding={0}
     >
       <AppShell.Header>

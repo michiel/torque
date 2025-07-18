@@ -1,7 +1,7 @@
 .visual-erd-editor {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 100px); /* Account for AppShell header height */
+  height: calc(100vh - 50px); /* Account for AppShell header height */
   width: 100%;
   background: var(--mantine-color-gray-0);
 }

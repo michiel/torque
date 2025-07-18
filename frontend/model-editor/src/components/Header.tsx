@@ -95,7 +95,7 @@ export function Header() {
   return (
     <Box>
       {/* Main Header */}
-      <Group h={60} px="md" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+      <Group h={32} px="sm" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
         {/* Left side - Logo and Nav */}
         <Group>
           <Link 
@@ -111,8 +111,8 @@ export function Header() {
                 cursor: 'pointer'
               }}
             >
-              <IconDatabase size={28} />
-              <Text size="xl" fw={600}>Torque</Text>
+              <IconDatabase size={20} />
+              <Text size="lg" fw={600}>Torque</Text>
             </Group>
           </Link>
         </Group>
@@ -121,15 +121,15 @@ export function Header() {
         <Group>
           <ConnectionStatus />
           
-          <ActionIcon variant="subtle" size="lg">
-            <IconSettings size={20} />
+          <ActionIcon variant="subtle" size="md">
+            <IconSettings size={16} />
           </ActionIcon>
 
           <Menu shadow="md" width={200}>
             <Menu.Target>
-              <ActionIcon variant="subtle" size="lg">
-                <Avatar size="sm" color="blue">
-                  <IconUser size={16} />
+              <ActionIcon variant="subtle" size="md">
+                <Avatar size="xs" color="blue">
+                  <IconUser size={12} />
                 </Avatar>
               </ActionIcon>
             </Menu.Target>
@@ -152,22 +152,22 @@ export function Header() {
       </Group>
 
       {/* Breadcrumb Trail */}
-      <Box px="md" py={rem(8)} bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-        <Breadcrumbs separator={<IconChevronRight size={14} />}>
+      <Box px="sm" py={rem(4)} bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+        <Breadcrumbs separator={<IconChevronRight size={12} />}>
           {breadcrumbs.map((item, index) =>
             item.href ? (
               <Anchor
                 key={index}
                 component={Link}
                 to={item.href}
-                size="sm"
+                size="xs"
                 c="blue"
                 style={{ textDecoration: 'none' }}
               >
                 {item.title}
               </Anchor>
             ) : (
-              <Text key={index} size="sm" c="dimmed">
+              <Text key={index} size="xs" c="dimmed">
                 {item.title}
               </Text>
             )
