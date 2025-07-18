@@ -1,0 +1,78 @@
+.visual-erd-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background: var(--mantine-color-gray-0);
+}
+
+.visual-erd-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+  min-height: 60px;
+  z-index: 1000;
+}
+
+.visual-erd-editor-canvas {
+  flex: 1;
+  position: relative;
+  background: var(--mantine-color-gray-0);
+}
+
+/* React Flow customizations */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__edge {
+  cursor: pointer;
+}
+
+.react-flow__edge-path {
+  stroke: var(--mantine-color-blue-6);
+  stroke-width: 2;
+}
+
+.react-flow__edge-path:hover {
+  stroke: var(--mantine-color-blue-8);
+  stroke-width: 3;
+}
+
+.react-flow__edge-text {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--mantine-color-blue-7);
+}
+
+.react-flow__controls {
+  button {
+    background: white;
+    border: 1px solid var(--mantine-color-gray-3);
+    color: var(--mantine-color-gray-7);
+  }
+  
+  button:hover {
+    background: var(--mantine-color-gray-1);
+  }
+}
+
+.react-flow__minimap {
+  background: white;
+  border: 1px solid var(--mantine-color-gray-3);
+}
+
+.react-flow__background {
+  background: var(--mantine-color-gray-0);
+}
+
+.react-flow__panel {
+  background: white;
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 10px;
+}

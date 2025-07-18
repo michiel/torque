@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "name": "Test Model",
+    "description": "A simple test model for import functionality"
+  },
+  "entities": [
+    {
+      "name": "test_entity",
+      "displayName": "Test Entity", 
+      "description": "A test entity",
+      "fields": [
+        {
+          "name": "id",
+          "displayName": "ID",
+          "type": "String",
+          "required": true
+        },
+        {
+          "name": "name", 
+          "displayName": "Name",
+          "type": "String",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "layouts": []
+}

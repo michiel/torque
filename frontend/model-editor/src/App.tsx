@@ -10,6 +10,7 @@ import { CreateModelPage } from './pages/CreateModelPage'
 import { LayoutEditorPage } from './pages/LayoutEditorPage'
 import { EntityEditorPage } from './pages/EntityEditorPage'
 import { RelationshipEditorPage } from './pages/RelationshipEditorPage'
+import { ERDEditorPage } from './pages/ERDEditorPage'
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           <Route path="/models/:modelId/relationships/:relationshipId" element={<RelationshipEditorPage />} />
           <Route path="/models/:modelId/layouts/new" element={<LayoutEditorPage />} />
           <Route path="/models/:modelId/layouts/:layoutId" element={<LayoutEditorPage />} />
+          <Route path="/models/:modelId/erd" element={<ERDEditorPage />} />
         </Routes>
       </AppShell.Main>
     </AppShell>

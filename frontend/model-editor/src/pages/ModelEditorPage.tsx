@@ -179,6 +179,13 @@ export function ModelEditorPage() {
             Open in TorqueApp
           </Button>
           <Button 
+            leftSection={<IconDatabase size={16} />} 
+            variant="light"
+            onClick={() => navigate(`/models/${id}/erd`)}
+          >
+            Edit ERD
+          </Button>
+          <Button 
             leftSection={<IconEdit size={16} />} 
             variant="light"
             onClick={() => navigate(`/models/${id}/details`)}
