@@ -22,7 +22,7 @@ interface VisualLayoutEditorProps {
     }>;
   }>;
   initialData?: Data;
-  onSave: (data: Data) => Promise<void>;
+  onSave: (data: Data, isManualSave?: boolean) => Promise<void>;
   onPreview?: (data: Data) => void;
   onBack?: () => void;
 }
@@ -73,7 +73,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
     setCurrentData(updatedData);
     setSaveStatus('saving');
     try {
-      await onSave(updatedData);
+      await onSave(updatedData, true); // Manual save
       setSaveStatus('saved');
       setLastSaved(new Date());
     } catch (error) {
@@ -140,7 +140,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
             title: layoutName
           }
         };
-        await onSave(updatedData);
+        await onSave(updatedData, false); // Auto-save
         setSaveStatus('saved');
         setLastSaved(new Date());
       } catch (error) {
@@ -164,7 +164,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
           title: layoutName
         }
       };
-      await onSave(updatedData);
+      await onSave(updatedData, true); // Manual save
       setSaveStatus('saved');
       setLastSaved(new Date());
     } catch (error) {

@@ -75,7 +75,7 @@ export const LayoutEditorPage: React.FC = () => {
     }
   }, [layout, layoutId]);
 
-  const handleSave = async (data: Data) => {
+  const handleSave = async (data: Data, isManualSave: boolean = false) => {
     if (!modelId) {
       console.error('No modelId provided');
       return;
@@ -100,11 +100,14 @@ export const LayoutEditorPage: React.FC = () => {
           }
         });
 
-        notifications.show({
-          title: 'Layout Updated',
-          message: 'Your layout has been saved successfully',
-          color: 'green'
-        });
+        // Only show notification for manual saves
+        if (isManualSave) {
+          notifications.show({
+            title: 'Layout Updated',
+            message: 'Your layout has been saved successfully',
+            color: 'green'
+          });
+        }
       } else {
         // Create new layout
         const result = await createLayout({

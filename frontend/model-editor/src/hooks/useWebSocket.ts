@@ -51,6 +51,8 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   const [lastEvent, setLastEvent] = useState<ModelChangeEvent | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const lastNotificationRef = useRef<string | null>(null);
+  const notificationTimeoutRef = useRef<number | null>(null);
 
   const wsUrl = useMemo(() => {
     const socketUrl = new URL(url);
@@ -99,8 +101,30 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
             onEvent(message.event);
           }
 
-          // Show notification for model changes (except ping events)
-          if (message.event.type !== 'ModelCreated' || !message.event.data.model?.name?.includes('Ping Test')) {
+          // Show notification for model changes (except ping events and layout updates on layout editor page)
+          const shouldShowNotification = 
+            (message.event.type !== 'ModelCreated' || !message.event.data.model?.name?.includes('Ping Test')) &&
+            // Don't show layout update notifications when user is on layout editor page
+            !(message.event.type === 'LayoutUpdated' && window.location.pathname.includes('/layouts/'));
+          
+          if (shouldShowNotification) {
+            const notificationKey = `${message.event.type}-${message.event.data.model_id || 'unknown'}`;
+            
+            // Debounce notifications to prevent duplicates
+            if (lastNotificationRef.current === notificationKey) {
+              return;
+            }
+            
+            lastNotificationRef.current = notificationKey;
+            
+            // Clear debounce after 1 second
+            if (notificationTimeoutRef.current) {
+              clearTimeout(notificationTimeoutRef.current);
+            }
+            notificationTimeoutRef.current = setTimeout(() => {
+              lastNotificationRef.current = null;
+            }, 1000);
+            
             notifications.show({
               title: 'Model Updated',
               message: getEventDescription(message.event),
@@ -144,6 +168,11 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+    }
+
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+      notificationTimeoutRef.current = null;
     }
 
     if (socketRef.current) {
