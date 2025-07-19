@@ -22,7 +22,8 @@ import {
   MultiSelect,
   Tooltip,
   Progress,
-  Divider
+  Divider,
+  Box
 } from '@mantine/core';
 import { 
   IconArrowLeft, 
