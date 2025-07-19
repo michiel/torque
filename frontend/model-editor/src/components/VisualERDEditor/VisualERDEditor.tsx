@@ -202,19 +202,21 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   }, []);
 
   const handleDeleteSelection = useCallback(async () => {
-    // TODO: Implement actual deletion logic with backend calls
-    // For now, just clear the selection
     console.log('Deleting selected items:', { nodes: selectedNodes, edges: selectedEdges });
     
-    // Clear selection
+    // Remove selected nodes and edges from the ReactFlow state
+    setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)));
+    setEdges((eds) => eds.filter((edge) => !selectedEdges.includes(edge.id)));
+    
+    // Clear selection state
     setSelectedNodes([]);
     setSelectedEdges([]);
     setIsActionsMenuOpen(false);
     
-    // In a real implementation, you would call delete mutations here
+    // TODO: In a real implementation, you would call delete mutations here
     // await deleteEntities(selectedNodes);
     // await deleteRelationships(selectedEdges);
-  }, [selectedNodes, selectedEdges]);
+  }, [selectedNodes, selectedEdges, setNodes, setEdges]);
 
   const handleEntitySave = async (entity: Entity) => {
     setSaveStatus('saving');
@@ -375,7 +377,7 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
           
           {/* Actions Menu */}
           {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
-            <Panel position="bottom-left">
+            <Panel position="bottom-left" className="erd-actions-menu">
               <Paper 
                 shadow="md" 
                 radius="md" 
