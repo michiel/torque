@@ -24,7 +24,7 @@ import {
   IconPlus, 
   IconExternalLink,
   IconRefresh,
-  IconSeed
+  IconPlant
 } from '@tabler/icons-react';
 import { useQuery } from '@apollo/client';
 import { notifications } from '@mantine/notifications';
@@ -187,7 +187,7 @@ export const AppPreviewerPage: React.FC = () => {
                   
                   <Group gap="md">
                     <Button
-                      leftSection={<IconSeed size={16} />}
+                      leftSection={<IconPlant size={16} />}
                       onClick={handleSeedDatabase}
                       loading={isSeedingDb}
                       variant="filled"
