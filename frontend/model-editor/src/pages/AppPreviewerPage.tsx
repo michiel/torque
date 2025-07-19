@@ -276,10 +276,10 @@ export const AppPreviewerPage: React.FC = () => {
           </Tabs.List>
 
           <Tabs.Panel value="app-preview">
-            <Stack gap="lg" mt="lg">
+            <Stack gap="lg" mt="lg" style={{ height: 'calc(100vh - 200px)' }}>
               {/* App Preview Content */}
-              <Card shadow="sm" padding="lg" radius="md" withBorder style={{ minHeight: '600px' }}>
-                <Stack gap="md" h="100%">
+              <Card shadow="sm" padding="lg" radius="md" withBorder style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Stack gap="md" style={{ height: '100%' }}>
                   <Group justify="space-between">
                     <Title order={4}>Live TorqueApp Preview</Title>
                     <Badge color="blue" variant="light">
@@ -288,7 +288,7 @@ export const AppPreviewerPage: React.FC = () => {
                   </Group>
                   
                   {/* TorqueApp Preview Component */}
-                  <Box style={{ flex: 1 }}>
+                  <Box style={{ flex: 1, height: '100%' }}>
                     <TorqueAppPreview
                       modelId={model.id}
                       modelName={model.name}

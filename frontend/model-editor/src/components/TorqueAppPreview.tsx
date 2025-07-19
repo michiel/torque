@@ -140,8 +140,8 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
 
   // When the app is running, show it in an iframe
   return (
-    <Box style={{ height: '100%', minHeight: '500px', position: 'relative' }}>
-      <Group justify="space-between" mb="md">
+    <Box style={{ height: '100%', minHeight: '500px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
         <Group gap="xs">
           <Badge color="green" variant="light">
             Running
@@ -163,7 +163,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
       {/* This would be the actual TorqueApp iframe in a real implementation */}
       <Box
         style={{
-          height: 'calc(100% - 50px)',
+          flex: 1,
           border: '1px solid #e9ecef',
           borderRadius: '8px',
           overflow: 'hidden',
