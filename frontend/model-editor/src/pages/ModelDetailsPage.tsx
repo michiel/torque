@@ -25,7 +25,7 @@ import { UPDATE_MODEL, UPDATE_MODEL_CONFIG } from '../graphql/mutations'
 import { Model, Layout } from '../types/model'
 
 export function ModelDetailsPage() {
-  const { modelId } = useParams<{ modelId: string }>()
+  const { id: modelId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   
   // Fetch model data

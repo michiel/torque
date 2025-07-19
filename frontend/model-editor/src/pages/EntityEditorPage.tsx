@@ -23,7 +23,7 @@ import { EntityFieldsEditor } from '../components/EntityEditor'
 import { Model, Field } from '../types/model'
 
 export function EntityEditorPage() {
-  const { modelId, entityId } = useParams<{ modelId: string; entityId?: string }>()
+  const { id: modelId, entityId } = useParams<{ id: string; entityId?: string }>()
   const navigate = useNavigate()
   const isEditMode = !!entityId
   

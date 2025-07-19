@@ -8,7 +8,7 @@ import { GET_MODEL, GET_ENTITIES } from '../graphql/queries';
 import { CREATE_ENTITY, UPDATE_ENTITY, CREATE_RELATIONSHIP, UPDATE_RELATIONSHIP } from '../graphql/mutations';
 
 interface RouteParams extends Record<string, string | undefined> {
-  modelId: string;
+  id: string;
 }
 
 interface Entity {
@@ -40,7 +40,7 @@ interface Relationship {
 }
 
 export const ERDEditorPage: React.FC = () => {
-  const { modelId } = useParams<RouteParams>();
+  const { id: modelId } = useParams<RouteParams>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 

@@ -10,12 +10,12 @@ import { CREATE_LAYOUT, UPDATE_LAYOUT } from '../graphql/mutations';
 import { migrateLegacyLayout, convertPuckToLegacyLayout, needsMigration, getMigrationWarnings } from '../components/VisualLayoutEditor/migration/layoutMigration';
 
 interface RouteParams extends Record<string, string | undefined> {
-  modelId: string;
+  id: string;
   layoutId?: string;
 }
 
 export const LayoutEditorPage: React.FC = () => {
-  const { modelId, layoutId } = useParams<RouteParams>();
+  const { id: modelId, layoutId } = useParams<RouteParams>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [initialData, setInitialData] = useState<Data | undefined>(undefined);

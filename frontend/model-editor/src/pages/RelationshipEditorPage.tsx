@@ -35,7 +35,7 @@ interface FieldSelection {
 }
 
 export function RelationshipEditorPage() {
-  const { modelId, relationshipId } = useParams<{ modelId: string; relationshipId?: string }>()
+  const { id: modelId, relationshipId } = useParams<{ id: string; relationshipId?: string }>()
   const navigate = useNavigate()
   const isEditMode = !!relationshipId
   
