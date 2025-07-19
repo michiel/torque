@@ -4,7 +4,9 @@ import { AppShell } from '@mantine/core'
 import { Header } from './components/Header'
 import { HomePage } from './pages/HomePage'
 import { ModelsPage } from './pages/ModelsPage'
+import { ModelOverviewPage } from './pages/ModelOverviewPage'
 import { ModelEditorPage } from './pages/ModelEditorPage'
+import { AppPreviewerPage } from './pages/AppPreviewerPage'
 import { ModelDetailsPage } from './pages/ModelDetailsPage'
 import { CreateModelPage } from './pages/CreateModelPage'
 import { LayoutEditorPage } from './pages/LayoutEditorPage'
@@ -27,15 +29,17 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/models" element={<ModelsPage />} />
           <Route path="/models/new" element={<CreateModelPage />} />
-          <Route path="/models/:id" element={<ModelEditorPage />} />
-          <Route path="/models/:modelId/details" element={<ModelDetailsPage />} />
-          <Route path="/models/:modelId/entities/new" element={<EntityEditorPage />} />
-          <Route path="/models/:modelId/entities/:entityId" element={<EntityEditorPage />} />
-          <Route path="/models/:modelId/relationships/new" element={<RelationshipEditorPage />} />
-          <Route path="/models/:modelId/relationships/:relationshipId" element={<RelationshipEditorPage />} />
-          <Route path="/models/:modelId/layouts/new" element={<LayoutEditorPage />} />
-          <Route path="/models/:modelId/layouts/:layoutId" element={<LayoutEditorPage />} />
-          <Route path="/models/:modelId/erd" element={<ERDEditorPage />} />
+          <Route path="/models/:id" element={<ModelOverviewPage />} />
+          <Route path="/models/:id/editor" element={<ModelEditorPage />} />
+          <Route path="/models/:id/previewer" element={<AppPreviewerPage />} />
+          <Route path="/models/:id/details" element={<ModelDetailsPage />} />
+          <Route path="/models/:id/entities/new" element={<EntityEditorPage />} />
+          <Route path="/models/:id/entities/:entityId" element={<EntityEditorPage />} />
+          <Route path="/models/:id/relationships/new" element={<RelationshipEditorPage />} />
+          <Route path="/models/:id/relationships/:relationshipId" element={<RelationshipEditorPage />} />
+          <Route path="/models/:id/layouts/new" element={<LayoutEditorPage />} />
+          <Route path="/models/:id/layouts/:layoutId" element={<LayoutEditorPage />} />
+          <Route path="/models/:id/erd" element={<ERDEditorPage />} />
         </Routes>
       </AppShell.Main>
     </AppShell>

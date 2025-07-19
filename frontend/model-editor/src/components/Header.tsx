@@ -39,18 +39,24 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
       breadcrumbs.push({ title: 'Create Model' })
     } else if (segments[1]) {
       // Model ID - we could fetch the model name here
-      breadcrumbs.push({ title: 'Model Editor', href: `/models/${segments[1]}` })
+      breadcrumbs.push({ title: 'Model Overview', href: `/models/${segments[1]}` })
       
-      // Add tab to breadcrumb if present
-      if (tab && tab !== 'entities') {
-        const tabTitles: Record<string, string> = {
-          relationships: 'Relationships',
-          layouts: 'Layouts',
-          flows: 'Flows'
+      if (segments[2] === 'editor') {
+        breadcrumbs.push({ title: 'Model Editor', href: `/models/${segments[1]}/editor` })
+        
+        // Add tab to breadcrumb if present
+        if (tab && tab !== 'entities') {
+          const tabTitles: Record<string, string> = {
+            relationships: 'Relationships',
+            layouts: 'Layouts',
+            flows: 'Flows'
+          }
+          if (tabTitles[tab]) {
+            breadcrumbs.push({ title: tabTitles[tab] })
+          }
         }
-        if (tabTitles[tab]) {
-          breadcrumbs.push({ title: tabTitles[tab] })
-        }
+      } else if (segments[2] === 'previewer') {
+        breadcrumbs.push({ title: 'App Previewer' })
       }
       
       if (segments[2] === 'details') {
