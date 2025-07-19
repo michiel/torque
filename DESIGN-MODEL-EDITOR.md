@@ -21,8 +21,15 @@
 
  - The model page has a button "Edit ERD" that goes to a new page for editing Entities and Relationships
  - The ERD editor uses https://github.com/xyflow/xyflow as the diagram editor
- - The diagram editor shows nodes (Entities) with their name and attributes. Clicking on a node opens a popup with the Entity editor.
- - The diagram editor shows edges (Relationships) with their name and relationship type in shorthand text (e.g. one-to-many is '1:n'). Clicking on an edge opens a popup with the Relationship editor.
+ - Nodes and edges have a drag icon for dragging and a tool icon for triggering an edit action
+ - The diagram editor shows nodes (Entities) with their name and attributes. Nodes have a tool icon. Clicking on the node tool icon opens a popup with the Entity editor.
+ - The diagram editor shows edges (Relationships) with their name and relationship type in shorthand text (e.g. one-to-many is '1:n'). Edges have a tool icon. Clicking on the edge tool icon opens a popup with the Relationship editor.
+ - Nodes and edges are selectable, with shift held down for multi-select and de-select from group
  - Changes made in popups are saved as normal and the diagram is updated
  - The styling of the diagram editor is consistent with the application styling
  - As with the layout editor, a top bar has 'save' and 'back' buttons that operate the same way
+ - The ERD editor has a collapsable actions menu overlay on the diagram. 
+ - The collapsable actions menu has a section for selections that is contextual and depending on the selection it will have a delete selection option to click, which will remove the selected nodes and edges
+ - The collapsable actions menu has a section for actions that include "Add Entity". Move the functionality that is currentin in the top bar next to the save button to this menu item and remove the top button.
+
+
