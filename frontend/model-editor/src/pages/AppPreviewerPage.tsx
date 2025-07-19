@@ -46,6 +46,7 @@ import {
   SeedRequest,
   SeedReport 
 } from '../services/appDatabaseService';
+import EntityDataModal from '../components/EntityDataModal';
 
 interface RouteParams extends Record<string, string | undefined> {
   id: string;
@@ -64,6 +65,8 @@ export const AppPreviewerPage: React.FC = () => {
   // Modal states
   const [showEmptyModal, setShowEmptyModal] = useState(false);
   const [showSeedModal, setShowSeedModal] = useState(false);
+  const [showEntityDataModal, setShowEntityDataModal] = useState(false);
+  const [selectedEntity, setSelectedEntity] = useState<EntityOverview | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>('database');
   
   // Database data
@@ -216,6 +219,11 @@ export const AppPreviewerPage: React.FC = () => {
       message: 'Torque app preview will be available soon',
       color: 'blue'
     });
+  };
+
+  const handleViewEntityData = (entity: EntityOverview) => {
+    setSelectedEntity(entity);
+    setShowEntityDataModal(true);
   };
 
   if (modelLoading || (model && !databaseStatus && !isRefreshing)) {
@@ -430,6 +438,7 @@ export const AppPreviewerPage: React.FC = () => {
                                   variant="subtle" 
                                   size="sm"
                                   disabled={entity.record_count === 0}
+                                  onClick={() => handleViewEntityData(entity)}
                                 >
                                   <IconEye size={14} />
                                 </ActionIcon>
@@ -574,6 +583,21 @@ export const AppPreviewerPage: React.FC = () => {
             </Group>
           </Stack>
         </Modal>
+
+        {/* Entity Data Modal */}
+        {selectedEntity && (
+          <EntityDataModal
+            opened={showEntityDataModal}
+            onClose={() => {
+              setShowEntityDataModal(false);
+              setSelectedEntity(null);
+            }}
+            modelId={id!}
+            entityType={selectedEntity.entity_type}
+            displayName={selectedEntity.display_name}
+            recordCount={selectedEntity.record_count}
+          />
+        )}
       </Stack>
     </Container>
   );
