@@ -15,8 +15,8 @@ import {
   Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Group, Button, Text, ActionIcon, Badge } from '@mantine/core';
-import { IconArrowLeft, IconDeviceFloppy, IconPlus } from '@tabler/icons-react';
+import { Group, Button, Text, ActionIcon, Badge, Paper, Stack, Collapse } from '@mantine/core';
+import { IconArrowLeft, IconDeviceFloppy, IconPlus, IconTrash, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { EntityNode } from './EntityNode';
 import { RelationshipEdge } from './RelationshipEdge';
 import { EntityEditModal } from './EntityEditModal';
@@ -75,6 +75,9 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   const [editingRelationship, setEditingRelationship] = useState<Relationship | null>(null);
   const [isCreatingEntity, setIsCreatingEntity] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
+  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
 
   // WebSocket integration for real-time updates
   const { isConnected, lastEvent } = useWebSocket({
@@ -184,6 +187,34 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
       }
     }
   }, [entities]);
+
+  const onSelectionChange = useCallback(({ nodes, edges }: { nodes: Node[], edges: Edge[] }) => {
+    const nodeIds = nodes.map(node => node.id);
+    const edgeIds = edges.map(edge => edge.id);
+    
+    setSelectedNodes(nodeIds);
+    setSelectedEdges(edgeIds);
+    
+    // Auto-open actions menu if anything is selected
+    if (nodeIds.length > 0 || edgeIds.length > 0) {
+      setIsActionsMenuOpen(true);
+    }
+  }, []);
+
+  const handleDeleteSelection = useCallback(async () => {
+    // TODO: Implement actual deletion logic with backend calls
+    // For now, just clear the selection
+    console.log('Deleting selected items:', { nodes: selectedNodes, edges: selectedEdges });
+    
+    // Clear selection
+    setSelectedNodes([]);
+    setSelectedEdges([]);
+    setIsActionsMenuOpen(false);
+    
+    // In a real implementation, you would call delete mutations here
+    // await deleteEntities(selectedNodes);
+    // await deleteRelationships(selectedEdges);
+  }, [selectedNodes, selectedEdges]);
 
   const handleEntitySave = async (entity: Entity) => {
     setSaveStatus('saving');
@@ -317,8 +348,10 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onSelectionChange={onSelectionChange}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
+          multiSelectionKeyCode="Shift"
           fitView
           fitViewOptions={{ padding: 0.1 }}
         >
@@ -339,6 +372,55 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
               </Text>
             </Group>
           </Panel>
+          
+          {/* Actions Menu */}
+          {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
+            <Panel position="bottom-left">
+              <Paper 
+                shadow="md" 
+                radius="md" 
+                p="sm"
+                style={{ 
+                  minWidth: 200,
+                  background: 'white',
+                  border: '1px solid #e9ecef'
+                }}
+              >
+                <Stack gap="xs">
+                  <Group justify="space-between" align="center">
+                    <Text size="sm" fw={600}>
+                      Selection Actions
+                    </Text>
+                    <ActionIcon 
+                      size="xs" 
+                      variant="subtle"
+                      onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+                    >
+                      {isActionsMenuOpen ? <IconChevronDown size={12} /> : <IconChevronUp size={12} />}
+                    </ActionIcon>
+                  </Group>
+                  
+                  <Collapse in={isActionsMenuOpen}>
+                    <Stack gap="xs">
+                      <Text size="xs" c="dimmed">
+                        {selectedNodes.length} entities, {selectedEdges.length} relationships selected
+                      </Text>
+                      <Button
+                        size="xs"
+                        color="red"
+                        variant="light"
+                        leftSection={<IconTrash size={12} />}
+                        onClick={handleDeleteSelection}
+                        disabled={selectedNodes.length === 0 && selectedEdges.length === 0}
+                      >
+                        Delete Selection
+                      </Button>
+                    </Stack>
+                  </Collapse>
+                </Stack>
+              </Paper>
+            </Panel>
+          )}
         </ReactFlow>
       </div>
 

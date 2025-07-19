@@ -1,7 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Paper, Text, Group, Badge, Stack, Box } from '@mantine/core';
-import { IconDatabase, IconKey, IconLink } from '@tabler/icons-react';
+import { Paper, Text, Group, Badge, Stack, Box, ActionIcon } from '@mantine/core';
+import { IconDatabase, IconKey, IconLink, IconEdit, IconGripVertical } from '@tabler/icons-react';
 
 interface EntityNodeData {
   entity: {
@@ -22,7 +22,8 @@ interface EntityNodeData {
 export const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => {
   const { entity, onEdit } = data;
 
-  const handleClick = () => {
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onEdit(entity);
   };
 
@@ -88,24 +89,35 @@ export const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected
         style={{ 
           minWidth: 250,
           maxWidth: 350,
-          cursor: 'pointer',
+          cursor: 'move',
           border: selected ? '2px solid #228be6' : '1px solid #e9ecef',
-          backgroundColor: '#fff'
+          backgroundColor: '#fff',
+          position: 'relative'
         }}
-        onClick={handleClick}
       >
         <Stack gap="sm">
           {/* Entity Header */}
           <Group justify="space-between" align="center">
             <Group gap="xs">
+              <IconGripVertical size={14} color="#868e96" style={{ cursor: 'move' }} />
               <IconDatabase size={16} color="#228be6" />
               <Text fw={700} size="sm">
                 {entity.displayName}
               </Text>
             </Group>
-            <Badge size="xs" color="blue" variant="light">
-              {entity.fields.length} fields
-            </Badge>
+            <Group gap="xs">
+              <Badge size="xs" color="blue" variant="light">
+                {entity.fields.length} fields
+              </Badge>
+              <ActionIcon 
+                size="xs" 
+                variant="subtle" 
+                onClick={handleEditClick}
+                aria-label="Edit entity"
+              >
+                <IconEdit size={12} />
+              </ActionIcon>
+            </Group>
           </Group>
 
           {/* Entity Fields */}

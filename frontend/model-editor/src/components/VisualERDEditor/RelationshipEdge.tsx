@@ -1,6 +1,7 @@
 import React from 'react';
 import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath } from '@xyflow/react';
-import { Badge, Group, Text } from '@mantine/core';
+import { Badge, Group, Text, ActionIcon } from '@mantine/core';
+import { IconEdit } from '@tabler/icons-react';
 
 interface RelationshipEdgeData {
   relationship: {
@@ -35,7 +36,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
     targetPosition,
   });
 
-  const handleClick = (event: React.MouseEvent) => {
+  const handleEditClick = (event: React.MouseEvent) => {
     event.stopPropagation();
     if (data?.onEdit && data?.relationship) {
       data.onEdit(data.relationship);
@@ -89,9 +90,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             fontSize: 12,
             pointerEvents: 'all',
-            cursor: 'pointer',
           }}
-          onClick={handleClick}
         >
           <Group
             gap="xs"
@@ -113,6 +112,14 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
             >
               {getRelationshipTypeShorthand(data?.relationship?.relationshipType || 'one-to-many')}
             </Badge>
+            <ActionIcon 
+              size="xs" 
+              variant="subtle" 
+              onClick={handleEditClick}
+              aria-label="Edit relationship"
+            >
+              <IconEdit size={10} />
+            </ActionIcon>
           </Group>
         </div>
       </EdgeLabelRenderer>
