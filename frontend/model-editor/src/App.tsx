@@ -32,14 +32,14 @@ function App() {
           <Route path="/models/:id" element={<ModelOverviewPage />} />
           <Route path="/models/:id/editor" element={<ModelEditorPage />} />
           <Route path="/models/:id/previewer" element={<AppPreviewerPage />} />
-          <Route path="/models/:id/details" element={<ModelDetailsPage />} />
-          <Route path="/models/:id/entities/new" element={<EntityEditorPage />} />
-          <Route path="/models/:id/entities/:entityId" element={<EntityEditorPage />} />
-          <Route path="/models/:id/relationships/new" element={<RelationshipEditorPage />} />
-          <Route path="/models/:id/relationships/:relationshipId" element={<RelationshipEditorPage />} />
-          <Route path="/models/:id/layouts/new" element={<LayoutEditorPage />} />
-          <Route path="/models/:id/layouts/:layoutId" element={<LayoutEditorPage />} />
-          <Route path="/models/:id/erd" element={<ERDEditorPage />} />
+          <Route path="/models/:id/editor/details" element={<ModelDetailsPage />} />
+          <Route path="/models/:id/editor/entities/new" element={<EntityEditorPage />} />
+          <Route path="/models/:id/editor/entities/:entityId" element={<EntityEditorPage />} />
+          <Route path="/models/:id/editor/relationships/new" element={<RelationshipEditorPage />} />
+          <Route path="/models/:id/editor/relationships/:relationshipId" element={<RelationshipEditorPage />} />
+          <Route path="/models/:id/editor/layouts/new" element={<LayoutEditorPage />} />
+          <Route path="/models/:id/editor/layouts/:layoutId" element={<LayoutEditorPage />} />
+          <Route path="/models/:id/editor/erd" element={<ERDEditorPage />} />
         </Routes>
       </AppShell.Main>
     </AppShell>

@@ -44,49 +44,50 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
       if (segments[2] === 'editor') {
         breadcrumbs.push({ title: 'Model Editor', href: `/models/${segments[1]}/editor` })
         
-        // Add tab to breadcrumb if present
-        if (tab && tab !== 'entities') {
-          const tabTitles: Record<string, string> = {
-            relationships: 'Relationships',
-            layouts: 'Layouts',
-            flows: 'Flows'
+        // Handle nested editor routes
+        if (segments[3] === 'details') {
+          breadcrumbs.push({ title: 'Edit Details' })
+        } else if (segments[3] === 'entities') {
+          breadcrumbs.push({ title: 'Entities' })
+          
+          if (segments[4] === 'new') {
+            breadcrumbs.push({ title: 'Create Entity' })
+          } else if (segments[4]) {
+            breadcrumbs.push({ title: 'Edit Entity' })
           }
-          if (tabTitles[tab]) {
-            breadcrumbs.push({ title: tabTitles[tab] })
+        } else if (segments[3] === 'relationships') {
+          breadcrumbs.push({ title: 'Relationships' })
+          
+          if (segments[4] === 'new') {
+            breadcrumbs.push({ title: 'Create Relationship' })
+          } else if (segments[4]) {
+            breadcrumbs.push({ title: 'Edit Relationship' })
+          }
+        } else if (segments[3] === 'layouts') {
+          breadcrumbs.push({ title: 'Layouts' })
+          
+          if (segments[4] === 'new') {
+            breadcrumbs.push({ title: 'Create Layout' })
+          } else if (segments[4]) {
+            breadcrumbs.push({ title: 'Edit Layout' })
+          }
+        } else if (segments[3] === 'erd') {
+          breadcrumbs.push({ title: 'ERD Editor' })
+        } else {
+          // Add tab to breadcrumb if present on main editor page
+          if (tab && tab !== 'entities') {
+            const tabTitles: Record<string, string> = {
+              relationships: 'Relationships',
+              layouts: 'Layouts',
+              flows: 'Flows'
+            }
+            if (tabTitles[tab]) {
+              breadcrumbs.push({ title: tabTitles[tab] })
+            }
           }
         }
       } else if (segments[2] === 'previewer') {
         breadcrumbs.push({ title: 'App Previewer' })
-      }
-      
-      if (segments[2] === 'details') {
-        breadcrumbs.push({ title: 'Edit Details' })
-      } else if (segments[2] === 'entities') {
-        breadcrumbs.push({ title: 'Entities' })
-        
-        if (segments[3] === 'new') {
-          breadcrumbs.push({ title: 'Create Entity' })
-        } else if (segments[3]) {
-          breadcrumbs.push({ title: 'Edit Entity' })
-        }
-      } else if (segments[2] === 'relationships') {
-        breadcrumbs.push({ title: 'Relationships' })
-        
-        if (segments[3] === 'new') {
-          breadcrumbs.push({ title: 'Create Relationship' })
-        } else if (segments[3]) {
-          breadcrumbs.push({ title: 'Edit Relationship' })
-        }
-      } else if (segments[2] === 'layouts') {
-        breadcrumbs.push({ title: 'Layouts' })
-        
-        if (segments[3] === 'new') {
-          breadcrumbs.push({ title: 'Create Layout' })
-        } else if (segments[3]) {
-          breadcrumbs.push({ title: 'Edit Layout' })
-        }
-      } else if (segments[2] === 'erd') {
-        breadcrumbs.push({ title: 'ERD Editor' })
       }
     }
   }

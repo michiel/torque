@@ -77,11 +77,11 @@ export function ModelEditorPage() {
 
 
   const handleCreateEntity = () => {
-    navigate(`/models/${id}/entities/new`)
+    navigate(`/models/${id}/editor/entities/new`)
   }
 
   const handleEditEntity = (entity: Entity) => {
-    navigate(`/models/${id}/entities/${entity.id}`)
+    navigate(`/models/${id}/editor/entities/${entity.id}`)
   }
 
   const handleImportModel = async (importedModel: any, originalJsonString: string) => {
@@ -181,14 +181,14 @@ export function ModelEditorPage() {
           <Button 
             leftSection={<IconDatabase size={16} />} 
             variant="light"
-            onClick={() => navigate(`/models/${id}/erd`)}
+            onClick={() => navigate(`/models/${id}/editor/erd`)}
           >
             Edit ERD
           </Button>
           <Button 
             leftSection={<IconEdit size={16} />} 
             variant="light"
-            onClick={() => navigate(`/models/${id}/details`)}
+            onClick={() => navigate(`/models/${id}/editor/details`)}
           >
             Edit Details
           </Button>
@@ -354,11 +354,11 @@ interface RelationshipsPanelProps extends ModelPanelProps {
 
 function RelationshipsPanel({ model, navigate }: RelationshipsPanelProps) {
   const handleCreateRelationship = () => {
-    navigate(`/models/${model.id}/relationships/new`)
+    navigate(`/models/${model.id}/editor/relationships/new`)
   }
 
   const handleEditRelationship = (relationshipId: string) => {
-    navigate(`/models/${model.id}/relationships/${relationshipId}`)
+    navigate(`/models/${model.id}/editor/relationships/${relationshipId}`)
   }
 
   // Helper function to get entity name by ID
@@ -420,7 +420,7 @@ interface LayoutsPanelProps extends ModelPanelProps {
 function LayoutsPanel({ model, navigate }: LayoutsPanelProps) {
   
   const handleCreateLayout = () => {
-    navigate(`/models/${model.id}/layouts/new`)
+    navigate(`/models/${model.id}/editor/layouts/new`)
   }
 
   return (
@@ -452,7 +452,7 @@ function LayoutsPanel({ model, navigate }: LayoutsPanelProps) {
                     <Button 
                       size="xs" 
                       variant="light"
-                      onClick={() => navigate(`/models/${model.id}/layouts/${layout.id}`)}
+                      onClick={() => navigate(`/models/${model.id}/editor/layouts/${layout.id}`)}
                     >
                       Edit
                     </Button>
