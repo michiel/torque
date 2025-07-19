@@ -292,6 +292,7 @@ export const AppPreviewerPage: React.FC = () => {
                     <TorqueAppPreview
                       modelId={model.id}
                       modelName={model.name}
+                      model={model}
                     />
                   </Box>
                 </Stack>

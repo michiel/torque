@@ -18,14 +18,34 @@ import {
   IconWorldWww
 } from '@tabler/icons-react';
 
+interface Layout {
+  id: string;
+  name: string;
+  layoutType: string;
+  targetEntities: string[];
+}
+
+interface Model {
+  id: string;
+  name: string;
+  config?: {
+    custom?: {
+      startPageLayoutId?: string;
+    };
+  };
+  layouts: Layout[];
+}
+
 interface TorqueAppPreviewProps {
   modelId: string;
   modelName: string;
+  model?: Model;
 }
 
 const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
   modelId,
-  modelName
+  modelName,
+  model
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +53,38 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
   
   // In a real implementation, this would check if the TorqueApp is running
   const [isAppRunning, setIsAppRunning] = useState(false);
+
+  // Determine the start page based on model configuration
+  const getStartPageInfo = () => {
+    if (!model) return { pageName: 'Default Dashboard', pageType: 'Dashboard' };
+    
+    const startPageLayoutId = model.config?.custom?.startPageLayoutId;
+    
+    if (startPageLayoutId && startPageLayoutId.trim()) {
+      // Find the configured start page layout
+      const startLayout = model.layouts.find(layout => layout.id === startPageLayoutId);
+      if (startLayout) {
+        return {
+          pageName: startLayout.name,
+          pageType: startLayout.layoutType,
+          targetEntities: startLayout.targetEntities
+        };
+      }
+    }
+    
+    // Fallback to first layout if no start page configured or start page not found
+    if (model.layouts.length > 0) {
+      const firstLayout = model.layouts[0];
+      return {
+        pageName: `${firstLayout.name} (Default)`,
+        pageType: firstLayout.layoutType,
+        targetEntities: firstLayout.targetEntities
+      };
+    }
+    
+    // No layouts available
+    return { pageName: 'Default Dashboard', pageType: 'Dashboard' };
+  };
 
   useEffect(() => {
     checkAppStatus();
@@ -173,7 +225,11 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
       >
         {/* Placeholder for actual TorqueApp iframe */}
         <iframe
-          src={`data:text/html,${encodeURIComponent(`
+          src={`data:text/html,${encodeURIComponent((() => {
+            const startPageInfo = getStartPageInfo();
+            const layoutsInfo = model?.layouts || [];
+            
+            return `
             <!DOCTYPE html>
             <html>
             <head>
@@ -194,6 +250,29 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
                   border-radius: 8px;
                   margin-bottom: 20px;
                   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                }
+                .header-left h1 {
+                  margin: 0 0 8px 0; 
+                  color: #495057; 
+                  font-size: 24px;
+                  font-weight: 600;
+                }
+                .header-left p {
+                  margin: 0; 
+                  color: #868e96; 
+                  font-size: 14px;
+                }
+                .start-page-badge {
+                  background: #e3f2fd;
+                  color: #1976d2;
+                  padding: 8px 16px;
+                  border-radius: 20px;
+                  font-size: 13px;
+                  font-weight: 500;
+                  border: 1px solid #bbdefb;
                 }
                 .content {
                   background: white;
@@ -201,17 +280,6 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
                   border-radius: 8px;
                   flex: 1;
                   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                }
-                .title { 
-                  margin: 0 0 8px 0; 
-                  color: #495057; 
-                  font-size: 24px;
-                  font-weight: 600;
-                }
-                .subtitle { 
-                  margin: 0; 
-                  color: #868e96; 
-                  font-size: 14px;
                 }
                 .status {
                   display: inline-block;
@@ -223,69 +291,119 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
                   font-weight: 500;
                   margin-bottom: 16px;
                 }
-                .grid {
-                  display: grid;
-                  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                  gap: 16px;
-                  margin-top: 20px;
-                }
-                .card {
-                  background: #f8f9fa;
+                .current-page {
+                  background: #f3e5f5;
                   padding: 16px;
                   border-radius: 8px;
-                  border: 1px solid #e9ecef;
+                  margin-bottom: 20px;
+                  border-left: 4px solid #9c27b0;
                 }
-                .card h3 {
+                .current-page h3 {
                   margin: 0 0 8px 0;
-                  font-size: 16px;
+                  color: #6a1b9a;
+                  font-size: 18px;
+                }
+                .current-page p {
+                  margin: 0;
+                  color: #424242;
+                  font-size: 14px;
+                }
+                .current-page .page-type {
+                  display: inline-block;
+                  background: rgba(156, 39, 176, 0.1);
+                  color: #6a1b9a;
+                  padding: 2px 8px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 500;
+                  margin-top: 8px;
+                }
+                .layouts-grid {
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                  gap: 12px;
+                  margin-top: 20px;
+                }
+                .layout-card {
+                  background: #f8f9fa;
+                  padding: 12px;
+                  border-radius: 6px;
+                  border: 1px solid #e9ecef;
+                  transition: all 0.2s;
+                }
+                .layout-card.active {
+                  background: #e8f5e8;
+                  border-color: #4caf50;
+                }
+                .layout-card h4 {
+                  margin: 0 0 6px 0;
+                  font-size: 14px;
                   color: #495057;
                 }
-                .card p {
-                  margin: 0;
+                .layout-card .type {
+                  font-size: 12px;
                   color: #6c757d;
-                  font-size: 14px;
+                  font-weight: 500;
+                }
+                .nav-simulation {
+                  margin-top: 20px;
+                  padding: 16px;
+                  background: #fff3e0;
+                  border-radius: 8px;
+                  border-left: 4px solid #ff9800;
                 }
               </style>
             </head>
             <body>
               <div class="header">
-                <h1 class="title">${modelName}</h1>
-                <p class="subtitle">TorqueApp Preview • Model ID: ${modelId}</p>
+                <div class="header-left">
+                  <h1>${modelName}</h1>
+                  <p>TorqueApp Preview • Model ID: ${modelId.slice(0, 8)}...</p>
+                </div>
+                <div class="start-page-badge">
+                  Start Page: ${startPageInfo.pageName}
+                </div>
               </div>
               
               <div class="content">
                 <div class="status">● Live Preview</div>
-                <h2>App Components</h2>
-                <div class="grid">
-                  <div class="card">
-                    <h3>Dashboard</h3>
-                    <p>Main application dashboard with key metrics and navigation</p>
-                  </div>
-                  <div class="card">
-                    <h3>Data Views</h3>
-                    <p>Dynamic data grids and forms based on model entities</p>
-                  </div>
-                  <div class="card">
-                    <h3>Navigation</h3>
-                    <p>Auto-generated navigation menu from model structure</p>
-                  </div>
-                  <div class="card">
-                    <h3>User Interface</h3>
-                    <p>Responsive UI components following the model design</p>
-                  </div>
+                
+                <div class="current-page">
+                  <h3>Current Page: ${startPageInfo.pageName}</h3>
+                  <p>This is the configured start page that users see when they open the TorqueApp.</p>
+                  <div class="page-type">${startPageInfo.pageType}</div>
+                  ${startPageInfo.targetEntities && startPageInfo.targetEntities.length > 0 ? 
+                    \`<div style="margin-top: 8px; font-size: 12px; color: #666;">
+                      Target Entities: \${startPageInfo.targetEntities.join(', ')}
+                    </div>\` : ''}
+                </div>
+
+                <h3>Available Layouts (\${layoutsInfo.length})</h3>
+                <div class="layouts-grid">
+                  \${layoutsInfo.map(layout => \`
+                    <div class="layout-card \${layout.id === model?.config?.custom?.startPageLayoutId ? 'active' : ''}">
+                      <h4>\${layout.name} \${layout.id === model?.config?.custom?.startPageLayoutId ? '★' : ''}</h4>
+                      <div class="type">\${layout.layoutType}</div>
+                      \${layout.targetEntities.length > 0 ? 
+                        \`<div style="font-size: 11px; color: #888; margin-top: 4px;">
+                          \${layout.targetEntities.join(', ')}
+                        </div>\` : ''}
+                    </div>
+                  \`).join('')}
                 </div>
                 
-                <div style="margin-top: 30px; padding: 20px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
-                  <h3 style="margin: 0 0 8px 0; color: #1976d2;">Dynamic Application</h3>
-                  <p style="margin: 0; color: #424242;">
-                    This TorqueApp is dynamically generated from your model definition. 
-                    Changes to the model will automatically update the application interface and functionality.
+                <div class="nav-simulation">
+                  <h3 style="margin: 0 0 8px 0; color: #e65100; font-size: 16px;">Dynamic Navigation</h3>
+                  <p style="margin: 0; color: #424242; font-size: 14px;">
+                    The TorqueApp automatically generates navigation based on your model's layouts and entities. 
+                    Users can switch between different views and data management interfaces seamlessly.
                   </p>
                 </div>
               </div>
             </body>
             </html>
-          `)}`}
+            `;
+          })())}`}
           style={{
             width: '100%',
             height: '100%',
