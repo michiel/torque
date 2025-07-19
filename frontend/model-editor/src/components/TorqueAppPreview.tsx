@@ -373,23 +373,19 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
                   <p>This is the configured start page that users see when they open the TorqueApp.</p>
                   <div class="page-type">${startPageInfo.pageType}</div>
                   ${startPageInfo.targetEntities && startPageInfo.targetEntities.length > 0 ? 
-                    \`<div style="margin-top: 8px; font-size: 12px; color: #666;">
-                      Target Entities: \${startPageInfo.targetEntities.join(', ')}
-                    </div>\` : ''}
+                    '<div style="margin-top: 8px; font-size: 12px; color: #666;">Target Entities: ' + startPageInfo.targetEntities.join(', ') + '</div>' : ''}
                 </div>
 
-                <h3>Available Layouts (\${layoutsInfo.length})</h3>
+                <h3>Available Layouts (${layoutsInfo.length})</h3>
                 <div class="layouts-grid">
-                  \${layoutsInfo.map(layout => \`
-                    <div class="layout-card \${layout.id === model?.config?.custom?.startPageLayoutId ? 'active' : ''}">
-                      <h4>\${layout.name} \${layout.id === model?.config?.custom?.startPageLayoutId ? '★' : ''}</h4>
-                      <div class="type">\${layout.layoutType}</div>
-                      \${layout.targetEntities.length > 0 ? 
-                        \`<div style="font-size: 11px; color: #888; margin-top: 4px;">
-                          \${layout.targetEntities.join(', ')}
-                        </div>\` : ''}
-                    </div>
-                  \`).join('')}
+                  ${layoutsInfo.map(layout => 
+                    '<div class="layout-card ' + (layout.id === model?.config?.custom?.startPageLayoutId ? 'active' : '') + '">' +
+                      '<h4>' + layout.name + ' ' + (layout.id === model?.config?.custom?.startPageLayoutId ? '★' : '') + '</h4>' +
+                      '<div class="type">' + layout.layoutType + '</div>' +
+                      (layout.targetEntities.length > 0 ? 
+                        '<div style="font-size: 11px; color: #888; margin-top: 4px;">' + layout.targetEntities.join(', ') + '</div>' : '') +
+                    '</div>'
+                  ).join('')}
                 </div>
                 
                 <div class="nav-simulation">
