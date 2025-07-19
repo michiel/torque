@@ -29,12 +29,12 @@ import {
   IconDatabase, 
   IconTrash, 
   IconPlus, 
-  IconExternalLink,
   IconRefresh,
   IconPlant,
   IconInfoCircle,
   IconSettings,
-  IconEye
+  IconEye,
+  IconDeviceDesktop
 } from '@tabler/icons-react';
 import { useQuery } from '@apollo/client';
 import { notifications } from '@mantine/notifications';
@@ -47,6 +47,7 @@ import {
   SeedReport 
 } from '../services/appDatabaseService';
 import EntityDataModal from '../components/EntityDataModal';
+import TorqueAppPreview from '../components/TorqueAppPreview';
 
 interface RouteParams extends Record<string, string | undefined> {
   id: string;
@@ -67,7 +68,7 @@ export const AppPreviewerPage: React.FC = () => {
   const [showSeedModal, setShowSeedModal] = useState(false);
   const [showEntityDataModal, setShowEntityDataModal] = useState(false);
   const [selectedEntity, setSelectedEntity] = useState<EntityOverview | null>(null);
-  const [activeTab, setActiveTab] = useState<string | null>('database');
+  const [activeTab, setActiveTab] = useState<string | null>('app-preview');
   
   // Database data
   const [databaseStatus, setDatabaseStatus] = useState<DatabaseStatus | null>(null);
@@ -211,15 +212,6 @@ export const AppPreviewerPage: React.FC = () => {
     }
   };
 
-  const handleOpenTorqueApp = () => {
-    // TODO: Implement opening Torque app in main panel
-    console.log('Opening Torque app for model:', id);
-    notifications.show({
-      title: 'Feature Coming Soon',
-      message: 'Torque app preview will be available soon',
-      color: 'blue'
-    });
-  };
 
   const handleViewEntityData = (entity: EntityOverview) => {
     setSelectedEntity(entity);
@@ -259,33 +251,52 @@ export const AppPreviewerPage: React.FC = () => {
       <LoadingOverlay visible={isRefreshing} />
       <Stack gap="lg">
         {/* Header */}
-        <Group justify="space-between">
-          <Group gap="md">
-            <ActionIcon variant="subtle" onClick={handleBack} size="lg">
-              <IconArrowLeft size={20} />
-            </ActionIcon>
-            <div>
-              <Title order={2}>App Previewer</Title>
-              <Text size="sm" c="dimmed">
-                {model.name} • Preview and manage app data
-              </Text>
-            </div>
-          </Group>
-          <Button
-            leftSection={<IconExternalLink size={16} />}
-            onClick={handleOpenTorqueApp}
-          >
-            Open Torque App
-          </Button>
+        <Group gap="md">
+          <ActionIcon variant="subtle" onClick={handleBack} size="lg">
+            <IconArrowLeft size={20} />
+          </ActionIcon>
+          <div>
+            <Title order={2}>App Previewer</Title>
+            <Text size="sm" c="dimmed">
+              {model.name} • Preview and manage app data
+            </Text>
+          </div>
         </Group>
 
         {/* Tabs */}
         <Tabs value={activeTab} onChange={setActiveTab}>
           <Tabs.List>
+            <Tabs.Tab value="app-preview" leftSection={<IconDeviceDesktop size={16} />}>
+              App Preview
+            </Tabs.Tab>
             <Tabs.Tab value="database" leftSection={<IconDatabase size={16} />}>
               Database
             </Tabs.Tab>
           </Tabs.List>
+
+          <Tabs.Panel value="app-preview">
+            <Stack gap="lg" mt="lg">
+              {/* App Preview Content */}
+              <Card shadow="sm" padding="lg" radius="md" withBorder style={{ minHeight: '600px' }}>
+                <Stack gap="md" h="100%">
+                  <Group justify="space-between">
+                    <Title order={4}>Live TorqueApp Preview</Title>
+                    <Badge color="blue" variant="light">
+                      Dynamic
+                    </Badge>
+                  </Group>
+                  
+                  {/* TorqueApp Preview Component */}
+                  <Box style={{ flex: 1 }}>
+                    <TorqueAppPreview
+                      modelId={model.id}
+                      modelName={model.name}
+                    />
+                  </Box>
+                </Stack>
+              </Card>
+            </Stack>
+          </Tabs.Panel>
 
           <Tabs.Panel value="database">
             <Stack gap="lg" mt="lg">
