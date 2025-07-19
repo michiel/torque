@@ -77,7 +77,7 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
-  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(true);
 
   // WebSocket integration for real-time updates
   const { isConnected, lastEvent } = useWebSocket({
@@ -194,11 +194,6 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
     
     setSelectedNodes(nodeIds);
     setSelectedEdges(edgeIds);
-    
-    // Auto-open actions menu if anything is selected
-    if (nodeIds.length > 0 || edgeIds.length > 0) {
-      setIsActionsMenuOpen(true);
-    }
   }, []);
 
   const handleDeleteSelection = useCallback(async () => {
@@ -321,14 +316,6 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
             {isConnected ? 'Connected' : 'Disconnected'}
           </Badge>
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCreateEntity}
-            leftSection={<IconPlus size={16} />}
-          >
-            Add Entity
-          </Button>
           
           <Button
             variant="subtle"
@@ -375,9 +362,8 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
             </Group>
           </Panel>
           
-          {/* Actions Menu */}
-          {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
-            <Panel position="bottom-left" className="erd-actions-menu">
+          {/* Actions Menu - Always visible */}
+          <Panel position="bottom-left" className="erd-actions-menu">
               <Paper 
                 shadow="md" 
                 radius="md" 
@@ -388,10 +374,11 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
                   border: '1px solid #e9ecef'
                 }}
               >
-                <Stack gap="xs">
+                <Stack gap="sm">
+                  {/* Header */}
                   <Group justify="space-between" align="center">
                     <Text size="sm" fw={600}>
-                      Selection Actions
+                      Actions Menu
                     </Text>
                     <ActionIcon 
                       size="xs" 
@@ -403,26 +390,49 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
                   </Group>
                   
                   <Collapse in={isActionsMenuOpen}>
-                    <Stack gap="xs">
-                      <Text size="xs" c="dimmed">
-                        {selectedNodes.length} entities, {selectedEdges.length} relationships selected
-                      </Text>
-                      <Button
-                        size="xs"
-                        color="red"
-                        variant="light"
-                        leftSection={<IconTrash size={12} />}
-                        onClick={handleDeleteSelection}
-                        disabled={selectedNodes.length === 0 && selectedEdges.length === 0}
-                      >
-                        Delete Selection
-                      </Button>
+                    <Stack gap="sm">
+                      {/* General Actions Section */}
+                      <Stack gap="xs">
+                        <Text size="xs" fw={600} c="dimmed">
+                          ACTIONS
+                        </Text>
+                        <Button
+                          size="xs"
+                          variant="light"
+                          leftSection={<IconPlus size={12} />}
+                          onClick={handleCreateEntity}
+                          fullWidth
+                        >
+                          Add Entity
+                        </Button>
+                      </Stack>
+                      
+                      {/* Selection Actions Section - only show if items are selected */}
+                      {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
+                        <Stack gap="xs">
+                          <Text size="xs" fw={600} c="dimmed">
+                            SELECTION
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {selectedNodes.length} entities, {selectedEdges.length} relationships selected
+                          </Text>
+                          <Button
+                            size="xs"
+                            color="red"
+                            variant="light"
+                            leftSection={<IconTrash size={12} />}
+                            onClick={handleDeleteSelection}
+                            fullWidth
+                          >
+                            Delete Selection
+                          </Button>
+                        </Stack>
+                      )}
                     </Stack>
                   </Collapse>
                 </Stack>
               </Paper>
             </Panel>
-          )}
         </ReactFlow>
       </div>
 
