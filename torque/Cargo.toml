@@ -76,6 +76,10 @@ config = "0.14"
 # Date/time handling
 chrono = { version = "0.4", features = ["serde"] }
 
+# Fake data generation
+fake = { version = "2.9", features = ["derive", "chrono", "http"] }
+rand = "0.8"
+
 # Error handling - using workspace dependencies
 anyhow = { workspace = true }
 thiserror = { workspace = true }

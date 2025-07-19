@@ -7,6 +7,8 @@ pub mod cache;
 pub mod metrics;
 pub mod model;
 pub mod broadcast;
+pub mod app_database;
+pub mod fake_data;
 
 /// Core service registry for dependency injection
 #[derive(Clone)]
@@ -18,6 +20,8 @@ pub struct ServiceRegistry {
     pub cache: Arc<cache::CacheService>,
     pub metrics: Arc<metrics::MetricsService>,
     pub broadcast: Arc<broadcast::BroadcastService>,
+    pub app_database_service: Arc<app_database::AppDatabaseService>,
+    pub fake_data_service: Arc<fake_data::FakeDataService>,
 }
 
 impl ServiceRegistry {
@@ -42,6 +46,18 @@ impl ServiceRegistry {
 
         // Initialize broadcast service
         let broadcast = Arc::new(broadcast::BroadcastService::new());
+
+        // Initialize app database service
+        let app_database_service = Arc::new(app_database::AppDatabaseService::new(
+            db.clone(),
+            cache.clone(),
+            model_service.clone(),
+        ));
+
+        // Initialize fake data service
+        let fake_data_service = Arc::new(fake_data::FakeDataService::new(
+            app_database_service.clone(),
+        ));
 
         // Note: We don't start the broadcast loop here because WebSocket handlers
         // already subscribe to the broadcast channel and send messages to their clients.
@@ -72,6 +88,8 @@ impl ServiceRegistry {
             cache,
             metrics,
             broadcast,
+            app_database_service,
+            fake_data_service,
         })
     }
 }

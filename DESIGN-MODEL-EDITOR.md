@@ -32,4 +32,25 @@
  - The collapsable actions menu has a section for selections that is contextual and depending on the selection it will have a delete selection option to click, which will remove the selected nodes and edges
  - The collapsable actions menu has a section for actions that include "Add Entity". Move the functionality that is currentin in the top bar next to the save button to this menu item and remove the top button.
 
+## Navigation structure
+
+### Model view
+
+For a model, the url is /models/:id. This should give an overview of the selected model and navigation options for "Model editor" and "App previewer"
+
+#### Model editor
+
+Model editor has the current model editor structure with "Edit ERD", "Edit Details", "Import" and a dropdown with other functions. Below this the tabs for "Entities", "Relationships", "Layouts", "Flows"
+
+#### App previewer
+
+The model has a corresponding app database, which will contain ERD defined entities related to the model.
+
+The app previewer has options to
+
+ - View the contents of the app database
+ - Empty the app database
+ - Seed the app database with randomly generated data based on ERD attributes. This is a Torque function in Rust and uses https://docs.rs/fake/latest/fake/ . the frontend does not generate this data
+ - Open the torque app for the model in the main panel
+
 

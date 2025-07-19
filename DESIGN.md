@@ -20,10 +20,11 @@
  - Torque is fully self-contained in a single binary `torque`
     - The `torque` binary by default contains all functionality
  - The TorqueApp Data Model has lifecycle hooks for all entities (example: onCreate, onPersist, onChange, onDelete), that are triggered at the appropriate point in their lifecycle
- - The TorqueApp Data Model is a schema managed through sea-orm, that uses an 'Entity' table with entity metadata and a JSON blob for the Entity defined in the Torque Model
-    - example: `entity: 'Post', id: $UUID,  json: { "name": "Joe Blow", phone: "123123123" }`
-    - the Entity table contains multiple entity types. these can reference each other. referential integrity is maintained by Torque
-    - The Entity table is for managing instances of Entities, not for Torque Model definition
+ - The TorqueApp Data Model is a schema managed through sea-orm, that uses an 'AppEntities' table with entity metadata and a JSON blob for the Entity defined in the Torque Model
+    - example: `model: $ModelUUID, entity: 'Post', id: $UUID,  json: { "name": "Joe Blow", phone: "123123123" }`
+    - AppPreview operations are against this AppEntity table, scope by modelUUID
+    - the AppEntity table contains multiple entity types. these can reference each other. referential integrity is maintained by Torque
+    - The AppEntity table is for managing instances of Entities, not for Torque Model definition
  - Changes made to the data model of a TorqueApp are non-destructive, the human or AI agent can make changes without disrupting running instances and connected users
  - Supported databases are sqlite and postgres through sea-orm
  - Torque has a built-in, editable workflow system based on DAGs called 'xflows' that can contain discrete blocks of Javascript for logic and transformation

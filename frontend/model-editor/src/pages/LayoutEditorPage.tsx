@@ -125,7 +125,7 @@ export const LayoutEditorPage: React.FC = () => {
         // Navigate to the new layout
         const newLayoutId = result.data?.createLayout?.id;
         if (newLayoutId) {
-          navigate(`/models/${modelId}/layouts/${newLayoutId}`);
+          navigate(`/models/${modelId}/editor/layouts/${newLayoutId}`);
         }
       }
     } catch (error) {

@@ -44,6 +44,16 @@ pub fn create_router(services: Arc<ServiceRegistry>) -> Router {
         .route("/entities/:id", post(handlers::entity::update_entity))
         .route("/entities/:id", axum::routing::delete(handlers::entity::delete_entity));
 
+    // App Database API routes
+    let app_database_routes = Router::new()
+        .route("/models/:model_id/app-database/status", get(handlers::app_database::get_database_status))
+        .route("/models/:model_id/app-database/entities", get(handlers::app_database::get_entities_overview))
+        .route("/models/:model_id/app-database/entities/:entity_type", get(handlers::app_database::get_entity_data))
+        .route("/models/:model_id/app-database/seed", post(handlers::app_database::seed_database))
+        .route("/models/:model_id/app-database", axum::routing::delete(handlers::app_database::empty_database))
+        .route("/models/:model_id/app-database/sync", post(handlers::app_database::sync_schema))
+        .route("/models/:model_id/app-database/stats", get(handlers::app_database::get_database_stats));
+
     // GraphQL route (placeholder)
     let graphql_routes = Router::new()
         .route("/graphql", post(handlers::graphql::graphql_handler))
@@ -73,6 +83,7 @@ pub fn create_router(services: Arc<ServiceRegistry>) -> Router {
     Router::new()
         .nest("/health", health_routes)
         .nest("/api/v1", api_routes)
+        .nest("/api/v1", app_database_routes)
         .nest("/", graphql_routes)
         .nest("/", jsonrpc_routes)
         .nest("/", websocket_routes)
