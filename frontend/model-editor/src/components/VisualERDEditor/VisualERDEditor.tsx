@@ -105,8 +105,8 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
       id: entity.id,
       type: 'entity',
       position: { 
-        x: (index % 3) * 450 + 150, 
-        y: Math.floor(index / 3) * 350 + 150 
+        x: (index % 3) * 675 + 225, 
+        y: Math.floor(index / 3) * 525 + 225 
       },
       data: { 
         entity,
