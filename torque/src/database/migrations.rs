@@ -30,6 +30,7 @@ async fn run_sqlite_migrations(db: &DatabaseConnection) -> Result<()> {
         create_torque_applications_sqlite(),
         create_entities_sqlite(),
         create_entity_relationships_sqlite(),
+        create_app_entities_sqlite(),
         create_xflows_sqlite(),
         create_xflow_executions_sqlite(),
         create_system_config_sqlite(),
@@ -51,6 +52,7 @@ async fn run_postgres_migrations(db: &DatabaseConnection) -> Result<()> {
         create_torque_applications_postgres(),
         create_entities_postgres(),
         create_entity_relationships_postgres(),
+        create_app_entities_postgres(),
         create_xflows_postgres(),
         create_xflow_executions_postgres(),
         create_system_config_postgres(),
@@ -336,12 +338,41 @@ fn create_indexes_sqlite() -> String {
     CREATE INDEX IF NOT EXISTS idx_entities_updated_at ON entities(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_entity_relationships_source ON entity_relationships(source_entity_id, relationship_type);
     CREATE INDEX IF NOT EXISTS idx_entity_relationships_target ON entity_relationships(target_entity_id, relationship_type);
+    CREATE INDEX IF NOT EXISTS idx_app_entities_model_id ON app_entities(model_id);
+    CREATE INDEX IF NOT EXISTS idx_app_entities_model_entity ON app_entities(model_id, entity_type);
+    CREATE INDEX IF NOT EXISTS idx_app_entities_created_at ON app_entities(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_xflows_enabled ON xflows(enabled);
     CREATE INDEX IF NOT EXISTS idx_xflows_priority ON xflows(priority DESC);
     CREATE INDEX IF NOT EXISTS idx_xflows_application_id ON xflows(application_id);
     CREATE INDEX IF NOT EXISTS idx_xflow_executions_status ON xflow_executions(status);
     CREATE INDEX IF NOT EXISTS idx_xflow_executions_xflow_id ON xflow_executions(xflow_id);
     CREATE INDEX IF NOT EXISTS idx_xflow_executions_started_at ON xflow_executions(started_at DESC);
+    "#.to_string()
+}
+
+fn create_app_entities_sqlite() -> String {
+    r#"
+    CREATE TABLE IF NOT EXISTS app_entities (
+        id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
+        model_id TEXT NOT NULL,
+        entity_type VARCHAR(255) NOT NULL,
+        data JSON NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    "#.to_string()
+}
+
+fn create_app_entities_postgres() -> String {
+    r#"
+    CREATE TABLE IF NOT EXISTS app_entities (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        model_id UUID NOT NULL,
+        entity_type VARCHAR(255) NOT NULL,
+        data JSONB NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
     "#.to_string()
 }
 
@@ -357,6 +388,10 @@ fn create_indexes_postgres() -> String {
     CREATE INDEX IF NOT EXISTS idx_entities_updated_at ON entities(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_entity_relationships_source ON entity_relationships(source_entity_id, relationship_type);
     CREATE INDEX IF NOT EXISTS idx_entity_relationships_target ON entity_relationships(target_entity_id, relationship_type);
+    CREATE INDEX IF NOT EXISTS idx_app_entities_model_id ON app_entities(model_id);
+    CREATE INDEX IF NOT EXISTS idx_app_entities_model_entity ON app_entities(model_id, entity_type);
+    CREATE INDEX IF NOT EXISTS idx_app_entities_created_at ON app_entities(created_at DESC);
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_app_entities_data_gin ON app_entities USING GIN (data);
     CREATE INDEX IF NOT EXISTS idx_xflows_enabled ON xflows(enabled) WHERE enabled = true;
     CREATE INDEX IF NOT EXISTS idx_xflows_priority ON xflows(priority DESC) WHERE enabled = true;
     CREATE INDEX IF NOT EXISTS idx_xflows_application_id ON xflows(application_id);

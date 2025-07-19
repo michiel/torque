@@ -1,20 +1,19 @@
 use crate::{Result, Error};
-use sea_orm::{DatabaseConnection, Database, ConnectOptions, Statement, DbBackend, ConnectionTrait};
+use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, PaginatorTrait, ColumnTrait, Set, QuerySelect};
 use std::sync::Arc;
 use std::collections::HashMap;
 use crate::services::{cache::CacheService, model::ModelService};
-use crate::model::types::ModelEntity;
+use crate::database::entities::app_entities::{self, Entity as AppEntities, Model as AppEntity};
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
 use crate::common::Uuid;
 
-/// Service for managing application databases (separate database per model)
+/// Service for managing application data using unified AppEntities table
 #[derive(Clone)]
 pub struct AppDatabaseService {
     system_db: Arc<DatabaseConnection>,
     cache: Arc<CacheService>,
     model_service: Arc<ModelService>,
-    app_connections: Arc<dashmap::DashMap<String, Arc<DatabaseConnection>>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -88,215 +87,156 @@ impl AppDatabaseService {
             system_db,
             cache,
             model_service,
-            app_connections: Arc::new(dashmap::DashMap::new()),
         }
     }
 
-    /// Get or create connection to app database for a specific model
-    pub async fn get_app_connection(&self, model_id: &str) -> Result<Arc<DatabaseConnection>> {
-        // Check cache first
-        if let Some(conn) = self.app_connections.get(model_id) {
-            return Ok(conn.clone());
-        }
-
-        // Create new connection
-        let database_url = self.get_app_database_url(model_id);
-        let mut opt = ConnectOptions::new(&database_url);
-        opt.max_connections(10)
-            .min_connections(1)
-            .connect_timeout(std::time::Duration::from_secs(10))
-            .idle_timeout(std::time::Duration::from_secs(300));
-
-        let db = Database::connect(opt).await?;
-        let connection = Arc::new(db);
-        
-        // Cache the connection
-        self.app_connections.insert(model_id.to_string(), connection.clone());
-        
-        Ok(connection)
+    /// Get the system database connection (unified database for all models)
+    pub fn get_connection(&self) -> &DatabaseConnection {
+        &self.system_db
     }
 
-    /// Generate database URL for app database
-    fn get_app_database_url(&self, model_id: &str) -> String {
-        // For SQLite: each model gets its own database file
-        // For PostgreSQL: each model gets its own schema
-        format!("sqlite:./data/app_db_{}.sqlite?mode=rwc", model_id)
-    }
-
-    /// Create app database and initialize schema
+    /// Initialize database for a model (no-op for unified schema)
     pub async fn create_app_database(&self, model_id: &str) -> Result<()> {
-        let _conn = self.get_app_connection(model_id).await?;
-        
-        // Get model definition
+        // With unified schema, no need to create separate databases
+        // Just validate the model exists
         let model_uuid = model_id.parse::<Uuid>()
             .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
         let _model = self.model_service.get_model(model_uuid).await
             .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?
             .ok_or_else(|| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
 
-        // Create tables for all entities
-        self.sync_schema(model_id).await?;
-
-        tracing::info!("Created app database for model: {}", model_id);
+        tracing::info!("Model {} ready for app database operations", model_id);
         Ok(())
     }
 
-    /// Drop app database (for cleanup)
+    /// Remove all entities for a model (cleanup)
     pub async fn drop_app_database(&self, model_id: &str) -> Result<()> {
-        // Remove from connection cache
-        self.app_connections.remove(model_id);
+        // Validate model_id is a valid UUID format
+        let _model_uuid = model_id.parse::<Uuid>()
+            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
         
-        // Delete database file (for SQLite)
-        let db_path = format!("./data/app_db_{}.sqlite", model_id);
-        if std::path::Path::new(&db_path).exists() {
-            std::fs::remove_file(db_path)?;
-        }
+        // Delete all entities for this model
+        AppEntities::delete_many()
+            .filter(app_entities::Column::ModelId.eq(model_id))
+            .exec(self.get_connection())
+            .await?;
 
-        tracing::info!("Dropped app database for model: {}", model_id);
+        tracing::info!("Dropped all entities for model: {}", model_id);
         Ok(())
     }
 
-    /// Empty all data from app database (keep schema)
+    /// Empty all data for a model (keep schema)
     pub async fn empty_app_database(&self, model_id: &str) -> Result<()> {
-        let conn = self.get_app_connection(model_id).await?;
-        
-        // Get model to find all entity types
-        let model_uuid = model_id.parse::<Uuid>()
+        // Validate model_id is a valid UUID format
+        let _model_uuid = model_id.parse::<Uuid>()
             .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
-        let model = self.model_service.get_model(model_uuid).await
-            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?
-            .ok_or_else(|| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
+        
+        // Delete all entities for this model
+        AppEntities::delete_many()
+            .filter(app_entities::Column::ModelId.eq(model_id))
+            .exec(self.get_connection())
+            .await?;
 
-        // Truncate all entity tables
-        for entity in &model.entities {
-            let table_name = format!("app_{}_{}", model_id.replace('-', "_"), entity.name.to_lowercase());
-            let sql = format!("DELETE FROM {}", table_name);
-            
-            conn.execute(Statement::from_string(DbBackend::Sqlite, sql)).await?;
-        }
-
-        tracing::info!("Emptied app database for model: {}", model_id);
+        tracing::info!("Emptied all entities for model: {}", model_id);
         Ok(())
     }
 
-    /// Synchronize database schema with model definition
+    /// Synchronize database schema with model definition (no-op for unified schema)
     pub async fn sync_schema(&self, model_id: &str) -> Result<()> {
-        let conn = self.get_app_connection(model_id).await?;
-        
-        // Get model definition
+        // With unified schema, no need to sync individual model schemas
+        // Just validate the model exists
         let model_uuid = model_id.parse::<Uuid>()
             .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
-        let model = self.model_service.get_model(model_uuid).await
+        let _model = self.model_service.get_model(model_uuid).await
             .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?
             .ok_or_else(|| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
 
-        // Create table for each entity
-        for entity in &model.entities {
-            self.create_entity_table(model_id, entity, &conn).await?;
-        }
-
-        // Create indexes for performance
-        for entity in &model.entities {
-            self.create_entity_indexes(model_id, entity, &conn).await?;
-        }
-
-        tracing::info!("Synchronized schema for model: {}", model_id);
+        tracing::info!("Schema is unified - model {} ready", model_id);
         Ok(())
     }
 
-    /// Create table for a specific entity
-    async fn create_entity_table(
+    /// Create entity instance in the unified AppEntities table
+    pub async fn create_entity(
         &self,
         model_id: &str,
-        entity: &ModelEntity,
-        conn: &DatabaseConnection,
-    ) -> Result<()> {
-        let table_name = format!("app_{}_{}", model_id.replace('-', "_"), entity.name.to_lowercase());
-        
-        let mut sql = format!(
-            "CREATE TABLE IF NOT EXISTS {} (
-                id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('ab89',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                _entity_type TEXT DEFAULT '{}',
-                _model_id TEXT DEFAULT '{}'",
-            table_name, entity.name, model_id
-        );
+        entity_type: &str,
+        entity_data: serde_json::Value,
+    ) -> Result<AppEntity> {
+        // Validate model_id is a valid UUID format
+        let _model_uuid = model_id.parse::<Uuid>()
+            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
 
-        // Add dynamic fields based on entity definition
-        for field in &entity.fields {
-            let field_type_str = self.map_field_type(&field.field_type);
-            let nullable = if field.required { "NOT NULL" } else { "" };
-            sql.push_str(&format!(", {} {} {}", field.name, field_type_str, nullable));
-        }
+        let new_entity = app_entities::ActiveModel {
+            id: Set(uuid::Uuid::new_v4().to_string()),
+            model_id: Set(model_id.to_string()),
+            entity_type: Set(entity_type.to_string()),
+            data: Set(entity_data.into()),
+            created_at: Set(chrono::Utc::now().naive_utc()),
+            updated_at: Set(chrono::Utc::now().naive_utc()),
+        };
 
-        sql.push_str(")");
+        let entity = AppEntities::insert(new_entity)
+            .exec_with_returning(self.get_connection())
+            .await?;
 
-        conn.execute(Statement::from_string(DbBackend::Sqlite, sql)).await?;
-
-        tracing::debug!("Created table for entity: {} in model: {}", entity.name, model_id);
-        Ok(())
+        Ok(entity)
     }
 
-    /// Create indexes for entity table
-    async fn create_entity_indexes(
+    /// Update entity instance in the unified AppEntities table
+    pub async fn update_entity(
         &self,
         model_id: &str,
-        entity: &ModelEntity,
-        conn: &DatabaseConnection,
-    ) -> Result<()> {
-        let table_name = format!("app_{}_{}", model_id.replace('-', "_"), entity.name.to_lowercase());
-        
-        // Create index on created_at for common queries
-        let index_sql = format!(
-            "CREATE INDEX IF NOT EXISTS idx_{}_created_at ON {} (created_at)",
-            table_name, table_name
-        );
-        conn.execute(Statement::from_string(DbBackend::Sqlite, index_sql)).await?;
+        entity_id: &str,
+        entity_data: serde_json::Value,
+    ) -> Result<AppEntity> {
+        // Validate model_id is a valid UUID format
+        let _model_uuid = model_id.parse::<Uuid>()
+            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
 
-        // Create indexes on searchable fields
-        for field in &entity.fields {
-            if matches!(field.field_type, crate::model::types::FieldType::String { .. }) && field.name.to_lowercase().contains("email") {
-                let index_sql = format!(
-                    "CREATE INDEX IF NOT EXISTS idx_{}_{} ON {} ({})",
-                    table_name, field.name, table_name, field.name
-                );
-                conn.execute(Statement::from_string(DbBackend::Sqlite, index_sql)).await?;
-            }
-        }
+        let entity = AppEntities::find_by_id(entity_id.to_string())
+            .filter(app_entities::Column::ModelId.eq(model_id))
+            .one(self.get_connection())
+            .await?
+            .ok_or_else(|| Error::NotFound("Entity not found".to_string()))?;
 
-        Ok(())
+        let mut entity: app_entities::ActiveModel = entity.into();
+        entity.data = Set(entity_data.into());
+        entity.updated_at = Set(chrono::Utc::now().naive_utc());
+
+        let updated_entity = AppEntities::update(entity)
+            .exec(self.get_connection())
+            .await?;
+
+        Ok(updated_entity)
     }
 
-    /// Map Torque field types to SQLite types
-    fn map_field_type(&self, field_type: &crate::model::types::FieldType) -> &'static str {
-        use crate::model::types::FieldType;
-        match field_type {
-            FieldType::String { .. } => "TEXT",
-            FieldType::Integer { .. } => "INTEGER",
-            FieldType::Float { .. } => "REAL",
-            FieldType::Boolean => "BOOLEAN",
-            FieldType::DateTime => "DATETIME",
-            FieldType::Date => "DATE",
-            FieldType::Time => "TIME",
-            FieldType::Json => "TEXT", // Store JSON as text
-            FieldType::Binary => "BLOB",
-            FieldType::Enum { .. } => "TEXT",
-            FieldType::Reference { .. } => "TEXT", // Store UUID as text
-            FieldType::Array { .. } => "TEXT", // Store JSON as text
-        }
+    /// Delete entity instance from the unified AppEntities table
+    pub async fn delete_entity(&self, model_id: &str, entity_id: &str) -> Result<()> {
+        // Validate model_id is a valid UUID format
+        let _model_uuid = model_id.parse::<Uuid>()
+            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
+
+        AppEntities::delete_by_id(entity_id.to_string())
+            .filter(app_entities::Column::ModelId.eq(model_id))
+            .exec(self.get_connection())
+            .await?;
+
+        Ok(())
     }
 
     /// Get entity count for a specific entity type
     pub async fn get_entity_count(&self, model_id: &str, entity_type: &str) -> Result<u64> {
-        let _conn = self.get_app_connection(model_id).await?;
-        let table_name = format!("app_{}_{}", model_id.replace('-', "_"), entity_type.to_lowercase());
-        
-        let _sql = format!("SELECT COUNT(*) as count FROM {}", table_name);
-        // TODO: Implement proper count query once we have proper table structure
-        // For now, return 0
-        tracing::debug!("Would count entities in table: {}", table_name);
-        Ok(0)
+        // Validate model_id is a valid UUID format
+        let _model_uuid = model_id.parse::<Uuid>()
+            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
+
+        let count = AppEntities::find()
+            .filter(app_entities::Column::ModelId.eq(model_id))
+            .filter(app_entities::Column::EntityType.eq(entity_type))
+            .count(self.get_connection())
+            .await?;
+
+        Ok(count)
     }
 
     /// Get entities with pagination
@@ -307,39 +247,40 @@ impl AppDatabaseService {
         limit: u64,
         offset: u64,
     ) -> Result<Vec<serde_json::Value>> {
-        let _conn = self.get_app_connection(model_id).await?;
-        let table_name = format!("app_{}_{}", model_id.replace('-', "_"), entity_type.to_lowercase());
-        
-        let _sql = format!(
-            "SELECT * FROM {} ORDER BY created_at DESC LIMIT {} OFFSET {}",
-            table_name, limit, offset
-        );
-        
-        // TODO: Implement proper entity querying once we have proper SeaORM entity models
-        // For now, return empty results
-        // let _results = conn.query_all(Statement::from_string(DbBackend::Sqlite, sql)).await?;
-        
-        tracing::debug!("Would return {} entities for {}", limit, entity_type);
-        Ok(vec![])
+        // Validate model_id is a valid UUID format
+        let _model_uuid = model_id.parse::<Uuid>()
+            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
+
+        let entities = AppEntities::find()
+            .filter(app_entities::Column::ModelId.eq(model_id))
+            .filter(app_entities::Column::EntityType.eq(entity_type))
+            .order_by_desc(app_entities::Column::CreatedAt)
+            .limit(limit)
+            .offset(offset)
+            .all(self.get_connection())
+            .await?;
+
+        // Extract the JSON data from each entity
+        let results: Vec<serde_json::Value> = entities
+            .into_iter()
+            .map(|entity| {
+                let mut value = entity.data.clone();
+                // Add metadata
+                if let serde_json::Value::Object(ref mut map) = value {
+                    map.insert("_id".to_string(), serde_json::Value::String(entity.id));
+                    map.insert("_created_at".to_string(), serde_json::Value::String(entity.created_at.to_string()));
+                    map.insert("_updated_at".to_string(), serde_json::Value::String(entity.updated_at.to_string()));
+                }
+                value
+            })
+            .collect();
+
+        Ok(results)
     }
 
     /// Get database status for a model
     pub async fn get_database_status(&self, model_id: &str) -> Result<DatabaseStatus> {
-        // Check if database exists
-        let db_path = format!("./data/app_db_{}.sqlite", model_id);
-        let exists = std::path::Path::new(&db_path).exists();
-        
-        if !exists {
-            return Ok(DatabaseStatus {
-                exists: false,
-                total_entities: 0,
-                entity_counts: HashMap::new(),
-                last_seeded: None,
-                schema_version: "none".to_string(),
-            });
-        }
-
-        // Get model to find entity types
+        // With unified schema, database always exists - check if model exists
         let model_uuid = model_id.parse::<Uuid>()
             .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
         let model = self.model_service.get_model(model_uuid).await
@@ -359,8 +300,8 @@ impl AppDatabaseService {
             exists: true,
             total_entities,
             entity_counts,
-            last_seeded: None, // TODO: track seeding timestamps
-            schema_version: "1.0".to_string(),
+            last_seeded: None, // TODO: track seeding timestamps in unified schema
+            schema_version: "unified-1.0".to_string(),
         })
     }
 

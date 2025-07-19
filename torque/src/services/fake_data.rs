@@ -132,7 +132,7 @@ impl FakeDataService {
         entity: &ModelEntity,
         count: usize,
     ) -> Result<u64> {
-        let conn = self.app_database_service.get_app_connection(model_id).await?;
+        let conn = self.app_database_service.get_connection();
         let _table_name = format!("app_{}_{}", model_id.replace('-', "_"), entity.name.to_lowercase());
 
         let mut records_created = 0;
@@ -343,22 +343,50 @@ impl FakeDataService {
         data: HashMap<String, serde_json::Value>,
         _conn: &DatabaseConnection,
     ) -> Result<()> {
-        let _table_name = format!("app_{}_{}", model_id.replace('-', "_"), entity_name.to_lowercase());
-        
         if data.is_empty() {
             return Ok(());
         }
 
-        // For now, let's use a simpler approach with raw SQL
-        // TODO: Use proper SeaORM ActiveModel once entities are properly defined
-        tracing::debug!("Would insert record with {} fields for entity {}", data.len(), entity_name);
+        // Convert HashMap to JSON Value
+        let json_data = serde_json::Value::Object(
+            data.into_iter()
+                .map(|(k, v)| (k, v))
+                .collect()
+        );
+
+        // Use the unified AppEntities table through AppDatabaseService
+        self.app_database_service
+            .create_entity(model_id, entity_name, json_data)
+            .await?;
+
+        tracing::debug!("Inserted fake entity record for {} in model {}", entity_name, model_id);
         Ok(())
     }
 
     /// Get generated entity IDs for relationship creation
-    async fn get_entity_ids(&self, _model_id: &str, _entity_name: &str) -> Result<Vec<String>> {
-        // TODO: Implement proper ID retrieval once insert is working
-        Ok(vec![])
+    async fn get_entity_ids(&self, model_id: &str, entity_name: &str) -> Result<Vec<String>> {
+        // Get entities from the unified AppEntities table
+        let entities = self.app_database_service
+            .get_entities(model_id, entity_name, 1000, 0)  // Get up to 1000 entities
+            .await?;
+
+        // Extract IDs from the metadata added by get_entities
+        let ids: Vec<String> = entities
+            .into_iter()
+            .filter_map(|entity| {
+                if let serde_json::Value::Object(obj) = entity {
+                    if let Some(serde_json::Value::String(id)) = obj.get("_id") {
+                        Some(id.clone())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Ok(ids)
     }
 
     /// Generate relationships between entities
@@ -368,7 +396,7 @@ impl FakeDataService {
         relationships: &[ModelRelationship],
         entity_ids: &HashMap<String, Vec<String>>,
     ) -> Result<u64> {
-        let conn = self.app_database_service.get_app_connection(model_id).await?;
+        let conn = self.app_database_service.get_connection();
         let mut relationships_created = 0;
 
         for relationship in relationships {
