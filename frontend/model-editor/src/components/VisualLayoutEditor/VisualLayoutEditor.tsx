@@ -39,7 +39,9 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
   const defaultData: Data = initialData || {
     content: [],
     root: {
-      title: 'New Layout'
+      props: {
+        title: 'New Layout'
+      }
     }
   };
 
@@ -47,7 +49,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
   const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [lastSaved, setLastSaved] = React.useState<Date | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [layoutName, setLayoutName] = useState(defaultData.root?.title || 'New Layout');
+  const [layoutName, setLayoutName] = useState(defaultData.root?.props?.title || 'New Layout');
   const autoSaveTimer = useRef<number | null>(null);
 
   const config = useMemo(() => {
@@ -56,8 +58,8 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
 
   // Update layout name when initial data changes
   useEffect(() => {
-    if (initialData?.root?.title) {
-      setLayoutName(initialData.root.title);
+    if (initialData?.root?.props?.title) {
+      setLayoutName(initialData.root.props.title);
     }
   }, [initialData]);
 
@@ -67,7 +69,10 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
       ...data,
       root: {
         ...data.root,
-        title: layoutName
+        props: {
+          ...data.root?.props,
+          title: layoutName
+        }
       }
     };
     setCurrentData(updatedData);
@@ -93,7 +98,10 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
       ...currentData,
       root: {
         ...currentData.root,
-        title: layoutName
+        props: {
+          ...currentData.root?.props,
+          title: layoutName
+        }
       }
     };
     setCurrentData(updatedData);
@@ -103,7 +111,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
   const handleNameCancel = () => {
     setIsEditingName(false);
     // Reset to current data title
-    setLayoutName(currentData.root?.title || 'New Layout');
+    setLayoutName(currentData.root?.props?.title || 'New Layout');
   };
 
   const handleNameKeyPress = (event: React.KeyboardEvent) => {
@@ -161,7 +169,10 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
         ...currentData,
         root: {
           ...currentData.root,
-          title: layoutName
+          props: {
+            ...currentData.root?.props,
+            title: layoutName
+          }
         }
       };
       await onSave(updatedData, true); // Manual save

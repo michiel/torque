@@ -13,6 +13,14 @@ export const TorqueComponentConfig: Config = {
     TorqueForm: TorqueFormComponent,
     TorqueButton: TorqueButtonComponent,
   },
+  root: {
+    fields: {
+      title: {
+        type: 'text',
+        label: 'Page Title'
+      }
+    }
+  },
   categories: {
     layout: {
       title: 'Layout Components',
@@ -76,6 +84,14 @@ export const createTorqueComponentConfig = (entities: any[]): Config => {
         }
       },
       TorqueButton: TorqueButtonComponent,
+    },
+    root: {
+      fields: {
+        title: {
+          type: 'text',
+          label: 'Page Title'
+        }
+      }
     },
     categories: {
       layout: {

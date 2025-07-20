@@ -1861,7 +1861,7 @@ impl ModelService {
             updated_at: Set(model.updated_at.clone().into_chrono().naive_utc()),
         };
         
-        active_model.update(self.database.as_ref()).await?;
+        active_model.save(self.database.as_ref()).await?;
         tracing::info!("Persisted model '{}' to database", model.name);
         Ok(())
     }

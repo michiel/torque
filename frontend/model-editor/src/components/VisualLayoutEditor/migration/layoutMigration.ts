@@ -224,7 +224,7 @@ export const convertPuckToLegacyLayout = (
     .filter((entityId): entityId is string => Boolean(entityId));
 
   return {
-    name: puckData.root?.title || existingLayout?.name || 'New Layout',
+    name: puckData.root?.props?.title || existingLayout?.name || 'New Layout',
     modelId,
     targetEntities,
     components,

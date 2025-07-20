@@ -88,7 +88,9 @@ export const LayoutEditorPage: React.FC = () => {
       setInitialData({
         content: [],
         root: {
-          title: 'New Layout'
+          props: {
+            title: 'New Layout'
+          }
         }
       });
     }
@@ -169,7 +171,7 @@ export const LayoutEditorPage: React.FC = () => {
     // Convert Puck data to TorqueApp format and open preview
     const layoutConfig = {
       id: layoutId || 'preview',
-      title: data.root?.title || 'Layout Preview',
+      title: data.root?.props?.title || 'Layout Preview',
       layout: {
         type: 'grid',
         rows: 12,
