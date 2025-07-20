@@ -17,6 +17,7 @@ import {
   IconAlertCircle,
   IconWorldWww
 } from '@tabler/icons-react';
+import { PageRenderer } from './TorqueApp/PageRenderer';
 
 interface Layout {
   id: string;
@@ -190,16 +191,16 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
     );
   }
 
-  // When the app is running, show it in an iframe
+  // When the app is running, show the live TorqueApp
   return (
     <Box style={{ height: '100%', minHeight: '500px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
       <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
         <Group gap="xs">
           <Badge color="green" variant="light">
-            Running
+            Live
           </Badge>
           <Text size="sm" c="dimmed">
-            TorqueApp is live and connected
+            {getStartPageInfo().pageName}
           </Text>
         </Group>
         <Button 
@@ -212,7 +213,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
         </Button>
       </Group>
       
-      {/* This would be the actual TorqueApp iframe in a real implementation */}
+      {/* Live TorqueApp using embedded components */}
       <Box
         style={{
           flex: 1,
@@ -223,189 +224,9 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
           position: 'relative'
         }}
       >
-        {/* Placeholder for actual TorqueApp iframe */}
-        <iframe
-          src={`data:text/html,${encodeURIComponent((() => {
-            const startPageInfo = getStartPageInfo();
-            const layoutsInfo = model?.layouts || [];
-            
-            return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>TorqueApp Preview - ${modelName}</title>
-              <style>
-                body { 
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  margin: 0; 
-                  padding: 20px; 
-                  background: #f8f9fa;
-                  height: 100vh;
-                  display: flex;
-                  flex-direction: column;
-                }
-                .header {
-                  background: white;
-                  padding: 20px;
-                  border-radius: 8px;
-                  margin-bottom: 20px;
-                  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                }
-                .header-left h1 {
-                  margin: 0 0 8px 0; 
-                  color: #495057; 
-                  font-size: 24px;
-                  font-weight: 600;
-                }
-                .header-left p {
-                  margin: 0; 
-                  color: #868e96; 
-                  font-size: 14px;
-                }
-                .start-page-badge {
-                  background: #e3f2fd;
-                  color: #1976d2;
-                  padding: 8px 16px;
-                  border-radius: 20px;
-                  font-size: 13px;
-                  font-weight: 500;
-                  border: 1px solid #bbdefb;
-                }
-                .content {
-                  background: white;
-                  padding: 20px;
-                  border-radius: 8px;
-                  flex: 1;
-                  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                }
-                .status {
-                  display: inline-block;
-                  background: #d4edda;
-                  color: #155724;
-                  padding: 4px 12px;
-                  border-radius: 16px;
-                  font-size: 12px;
-                  font-weight: 500;
-                  margin-bottom: 16px;
-                }
-                .current-page {
-                  background: #f3e5f5;
-                  padding: 16px;
-                  border-radius: 8px;
-                  margin-bottom: 20px;
-                  border-left: 4px solid #9c27b0;
-                }
-                .current-page h3 {
-                  margin: 0 0 8px 0;
-                  color: #6a1b9a;
-                  font-size: 18px;
-                }
-                .current-page p {
-                  margin: 0;
-                  color: #424242;
-                  font-size: 14px;
-                }
-                .current-page .page-type {
-                  display: inline-block;
-                  background: rgba(156, 39, 176, 0.1);
-                  color: #6a1b9a;
-                  padding: 2px 8px;
-                  border-radius: 12px;
-                  font-size: 12px;
-                  font-weight: 500;
-                  margin-top: 8px;
-                }
-                .layouts-grid {
-                  display: grid;
-                  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                  gap: 12px;
-                  margin-top: 20px;
-                }
-                .layout-card {
-                  background: #f8f9fa;
-                  padding: 12px;
-                  border-radius: 6px;
-                  border: 1px solid #e9ecef;
-                  transition: all 0.2s;
-                }
-                .layout-card.active {
-                  background: #e8f5e8;
-                  border-color: #4caf50;
-                }
-                .layout-card h4 {
-                  margin: 0 0 6px 0;
-                  font-size: 14px;
-                  color: #495057;
-                }
-                .layout-card .type {
-                  font-size: 12px;
-                  color: #6c757d;
-                  font-weight: 500;
-                }
-                .nav-simulation {
-                  margin-top: 20px;
-                  padding: 16px;
-                  background: #fff3e0;
-                  border-radius: 8px;
-                  border-left: 4px solid #ff9800;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="header">
-                <div class="header-left">
-                  <h1>${modelName}</h1>
-                  <p>TorqueApp Preview • Model ID: ${modelId.slice(0, 8)}...</p>
-                </div>
-                <div class="start-page-badge">
-                  Start Page: ${startPageInfo.pageName}
-                </div>
-              </div>
-              
-              <div class="content">
-                <div class="status">● Live Preview</div>
-                
-                <div class="current-page">
-                  <h3>Current Page: ${startPageInfo.pageName}</h3>
-                  <p>This is the configured start page that users see when they open the TorqueApp.</p>
-                  <div class="page-type">${startPageInfo.pageType}</div>
-                  ${startPageInfo.targetEntities && startPageInfo.targetEntities.length > 0 ? 
-                    '<div style="margin-top: 8px; font-size: 12px; color: #666;">Target Entities: ' + startPageInfo.targetEntities.join(', ') + '</div>' : ''}
-                </div>
-
-                <h3>Available Layouts (${layoutsInfo.length})</h3>
-                <div class="layouts-grid">
-                  ${layoutsInfo.map(layout => 
-                    '<div class="layout-card ' + (layout.id === model?.config?.custom?.startPageLayoutId ? 'active' : '') + '">' +
-                      '<h4>' + layout.name + ' ' + (layout.id === model?.config?.custom?.startPageLayoutId ? '★' : '') + '</h4>' +
-                      '<div class="type">' + layout.layoutType + '</div>' +
-                      (layout.targetEntities.length > 0 ? 
-                        '<div style="font-size: 11px; color: #888; margin-top: 4px;">' + layout.targetEntities.join(', ') + '</div>' : '') +
-                    '</div>'
-                  ).join('')}
-                </div>
-                
-                <div class="nav-simulation">
-                  <h3 style="margin: 0 0 8px 0; color: #e65100; font-size: 16px;">Dynamic Navigation</h3>
-                  <p style="margin: 0; color: #424242; font-size: 14px;">
-                    The TorqueApp automatically generates navigation based on your model's layouts and entities. 
-                    Users can switch between different views and data management interfaces seamlessly.
-                  </p>
-                </div>
-              </div>
-            </body>
-            </html>
-            `;
-          })())}`}
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none'
-          }}
-          title={`TorqueApp Preview - ${modelName}`}
+        <PageRenderer 
+          modelId={modelId} 
+          pageName={getStartPageInfo().pageName !== 'Default Dashboard' ? getStartPageInfo().pageName : undefined}
         />
       </Box>
     </Box>
