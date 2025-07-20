@@ -7,7 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Torque is a high-performance platform for designing, running and presenting applications, targeting Web frontends for humans and MCP APIs for AI agents. The platform emphasizes **speed as the top priority** and uses a model-driven architecture where applications are dynamically generated from visual models.
 
  - DESIGN.md and IMPLEMENTATION.md contain the project description 
+ - DESIGN-MODEL-EDITOR.md contains the description and specifications for the model-editor frontend ui
  - TODO.md contains the implementation plan. Keep this file updated as changes are made
+ - Reviews go to docs/reviews, are written in markdown, and are prefixed with the current date (example prefix : '2025-07-02-')
+ - Plans go to docs/reviews, are written in markdown, and are prefixed with the current date (example prefix : '2025-07-02-')
 
 ## Tooling
 

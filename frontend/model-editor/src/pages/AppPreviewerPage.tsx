@@ -423,8 +423,8 @@ export const AppPreviewerPage: React.FC = () => {
                         </Table.Tr>
                       </Table.Thead>
                       <Table.Tbody>
-                        {entitiesOverview.map((entity) => (
-                          <Table.Tr key={entity.entity_type}>
+                        {entitiesOverview.map((entity, index) => (
+                          <Table.Tr key={`${entity.entity_type}-${index}`}>
                             <Table.Td>
                               <Text fw={500}>{entity.display_name}</Text>
                               <Text size="xs" c="dimmed">{entity.entity_type}</Text>
@@ -506,10 +506,14 @@ export const AppPreviewerPage: React.FC = () => {
               <MultiSelect
                 label="Specific entities (optional)"
                 description="Leave empty to seed all entities"
-                data={model.entities.map((entity: any) => ({
-                  value: entity.name,
-                  label: entity.displayName || entity.name
-                }))}
+                data={model.entities
+                  .filter((entity: any, index: number, arr: any[]) => 
+                    arr.findIndex(e => e.name === entity.name) === index
+                  )
+                  .map((entity: any) => ({
+                    value: entity.name,
+                    label: `${entity.displayName || entity.name} (${entity.name})`
+                  }))}
                 value={seedConfig.specific_entities || []}
                 onChange={(value) => setSeedConfig(prev => ({
                   ...prev,

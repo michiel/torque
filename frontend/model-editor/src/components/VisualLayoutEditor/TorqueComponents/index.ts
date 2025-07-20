@@ -46,10 +46,14 @@ export const createTorqueComponentConfig = (entities: any[]): Config => {
           entityType: {
             type: 'select',
             label: 'Entity Type',
-            options: entities.map((entity: any) => ({
-              label: entity.displayName || entity.name,
-              value: entity.name
-            }))
+            options: entities
+              .filter((entity: any, index: number, arr: any[]) => 
+                arr.findIndex(e => e.name === entity.name) === index
+              )
+              .map((entity: any) => ({
+                label: `${entity.displayName || entity.name} (${entity.name})`,
+                value: entity.name
+              }))
           }
         }
       },
@@ -60,10 +64,14 @@ export const createTorqueComponentConfig = (entities: any[]): Config => {
           entityType: {
             type: 'select',
             label: 'Entity Type',
-            options: entities.map((entity: any) => ({
-              label: entity.displayName || entity.name,
-              value: entity.name
-            }))
+            options: entities
+              .filter((entity: any, index: number, arr: any[]) => 
+                arr.findIndex(e => e.name === entity.name) === index
+              )
+              .map((entity: any) => ({
+                label: `${entity.displayName || entity.name} (${entity.name})`,
+                value: entity.name
+              }))
           }
         }
       },

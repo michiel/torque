@@ -22,6 +22,7 @@ import { RelationshipEdge } from './RelationshipEdge';
 import { EntityEditModal } from './EntityEditModal';
 import { RelationshipEditModal } from './RelationshipEditModal';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { generateTempId, generateUniqueName } from '../../utils/idGenerator';
 import './VisualERDEditor.css';
 
 interface Entity {
@@ -171,7 +172,7 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
       
       if (sourceEntity && targetEntity) {
         const newRelationship: Relationship = {
-          id: `temp-${Date.now()}`,
+          id: generateTempId(),
           name: `${sourceEntity.name}_${targetEntity.name}`,
           displayName: `${sourceEntity.displayName} to ${targetEntity.displayName}`,
           fromEntityId: params.source,
@@ -246,9 +247,11 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   };
 
   const handleCreateEntity = () => {
+    const existingNames = entities.map(e => e.name);
+    const uniqueName = generateUniqueName('new_entity', existingNames);
     const newEntity: Entity = {
-      id: `temp-${Date.now()}`,
-      name: 'new_entity',
+      id: generateTempId(),
+      name: uniqueName,
       displayName: 'New Entity',
       fields: []
     };

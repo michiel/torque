@@ -3,6 +3,22 @@ use crate::common::Uuid;
 use crate::model::types as model;
 use crate::server::AppState;
 
+/// Validation message for GraphQL
+#[derive(SimpleObject)]
+pub struct ValidationMessage {
+    pub message: String,
+    pub field: Option<String>,
+    pub code: String,
+}
+
+/// Validation result for GraphQL
+#[derive(SimpleObject)]
+pub struct ValidationResult {
+    pub valid: bool,
+    pub errors: Vec<ValidationMessage>,
+    pub warnings: Vec<ValidationMessage>,
+}
+
 /// Parse field type from string representation
 fn parse_field_type(field_type_str: &str) -> model::FieldType {
     match field_type_str {
@@ -964,6 +980,28 @@ impl OptimizedMutation {
         }
         
         Ok(false)
+    }
+
+    /// Validate a model
+    async fn validate_model(&self, ctx: &Context<'_>, id: String) -> Result<ValidationResult> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        let result = state.services.model_service.validate_model(uuid).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to validate model: {}", e)))?;
+        Ok(ValidationResult {
+            valid: result.valid,
+            errors: result.errors.into_iter().map(|e| ValidationMessage {
+                message: e.message,
+                field: e.field,
+                code: e.code,
+            }).collect(),
+            warnings: result.warnings.into_iter().map(|w| ValidationMessage {
+                message: w.message,
+                field: w.field,
+                code: w.code,
+            }).collect(),
+        })
     }
 }
 

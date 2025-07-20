@@ -786,16 +786,218 @@ impl ModelService {
         Ok(vec![])
     }
 
+    /// Validate unique IDs across all model components
+    fn validate_unique_ids(&self, model: &TorqueModel, errors: &mut Vec<ValidationMessage>) {
+        use std::collections::HashSet;
+        let mut id_set = HashSet::new();
+        
+        // Check entity IDs
+        for entity in &model.entities {
+            if !id_set.insert(entity.id.to_string()) {
+                errors.push(ValidationMessage {
+                    message: format!("Duplicate entity ID: {}", entity.id),
+                    field: Some("entities".to_string()),
+                    code: "DUPLICATE_ENTITY_ID".to_string(),
+                });
+            }
+            
+            // Check field IDs within entity
+            for field in &entity.fields {
+                let field_key = format!("{}:{}", entity.id, field.id);
+                if !id_set.insert(field_key) {
+                    errors.push(ValidationMessage {
+                        message: format!("Duplicate field ID '{}' in entity '{}'", field.id, entity.name),
+                        field: Some(format!("entities.{}.fields", entity.name)),
+                        code: "DUPLICATE_FIELD_ID".to_string(),
+                    });
+                }
+            }
+        }
+        
+        // Check relationship IDs
+        for relationship in &model.relationships {
+            if !id_set.insert(relationship.id.to_string()) {
+                errors.push(ValidationMessage {
+                    message: format!("Duplicate relationship ID: {}", relationship.id),
+                    field: Some("relationships".to_string()),
+                    code: "DUPLICATE_RELATIONSHIP_ID".to_string(),
+                });
+            }
+        }
+        
+        // Check layout IDs
+        for layout in &model.layouts {
+            if !id_set.insert(layout.id.to_string()) {
+                errors.push(ValidationMessage {
+                    message: format!("Duplicate layout ID: {}", layout.id),
+                    field: Some("layouts".to_string()),
+                    code: "DUPLICATE_LAYOUT_ID".to_string(),
+                });
+            }
+            
+            // Check component IDs within layout
+            for component in &layout.components {
+                let component_key = format!("{}:{}", layout.id, component.id);
+                if !id_set.insert(component_key) {
+                    errors.push(ValidationMessage {
+                        message: format!("Duplicate component ID '{}' in layout '{}'", component.id, layout.name),
+                        field: Some(format!("layouts.{}.components", layout.name)),
+                        code: "DUPLICATE_COMPONENT_ID".to_string(),
+                    });
+                }
+            }
+        }
+    }
+    
+    /// Validate entity integrity
+    fn validate_entities(&self, model: &TorqueModel, errors: &mut Vec<ValidationMessage>, warnings: &mut Vec<ValidationMessage>) {
+        use std::collections::HashSet;
+        
+        for entity in &model.entities {
+            // Check entity name is not empty
+            if entity.name.trim().is_empty() {
+                errors.push(ValidationMessage {
+                    message: format!("Entity ID '{}' has empty name", entity.id),
+                    field: Some(format!("entities.{}.name", entity.id)),
+                    code: "EMPTY_ENTITY_NAME".to_string(),
+                });
+            }
+            
+            // Check for duplicate field names within entity
+            let mut field_names = HashSet::new();
+            for field in &entity.fields {
+                if field.name.trim().is_empty() {
+                    errors.push(ValidationMessage {
+                        message: format!("Field ID '{}' in entity '{}' has empty name", field.id, entity.name),
+                        field: Some(format!("entities.{}.fields.{}.name", entity.name, field.id)),
+                        code: "EMPTY_FIELD_NAME".to_string(),
+                    });
+                } else if !field_names.insert(field.name.clone()) {
+                    errors.push(ValidationMessage {
+                        message: format!("Duplicate field name '{}' in entity '{}'", field.name, entity.name),
+                        field: Some(format!("entities.{}.fields", entity.name)),
+                        code: "DUPLICATE_FIELD_NAME".to_string(),
+                    });
+                }
+            }
+            
+            // Warn if entity has no fields
+            if entity.fields.is_empty() {
+                warnings.push(ValidationMessage {
+                    message: format!("Entity '{}' has no fields defined", entity.name),
+                    field: Some(format!("entities.{}.fields", entity.name)),
+                    code: "NO_FIELDS_DEFINED".to_string(),
+                });
+            }
+        }
+    }
+    
+    /// Validate relationships
+    fn validate_relationships(&self, model: &TorqueModel, errors: &mut Vec<ValidationMessage>, _warnings: &mut Vec<ValidationMessage>) {
+        use std::collections::HashMap;
+        
+        // Create entity lookup map
+        let entity_map: HashMap<Uuid, &ModelEntity> = model.entities.iter()
+            .map(|e| (e.id.clone(), e))
+            .collect();
+        
+        for relationship in &model.relationships {
+            // Check that source entity exists
+            if !entity_map.contains_key(&relationship.from_entity) {
+                errors.push(ValidationMessage {
+                    message: format!("Relationship '{}' references non-existent source entity '{}'", relationship.name, relationship.from_entity),
+                    field: Some(format!("relationships.{}.from_entity", relationship.name)),
+                    code: "INVALID_SOURCE_ENTITY".to_string(),
+                });
+            }
+            
+            // Check that target entity exists
+            if !entity_map.contains_key(&relationship.to_entity) {
+                errors.push(ValidationMessage {
+                    message: format!("Relationship '{}' references non-existent target entity '{}'", relationship.name, relationship.to_entity),
+                    field: Some(format!("relationships.{}.to_entity", relationship.name)),
+                    code: "INVALID_TARGET_ENTITY".to_string(),
+                });
+            }
+            
+            // Check relationship name is not empty
+            if relationship.name.trim().is_empty() {
+                errors.push(ValidationMessage {
+                    message: format!("Relationship ID '{}' has empty name", relationship.id),
+                    field: Some(format!("relationships.{}.name", relationship.id)),
+                    code: "EMPTY_RELATIONSHIP_NAME".to_string(),
+                });
+            }
+        }
+    }
+    
+    /// Validate layouts
+    fn validate_layouts(&self, model: &TorqueModel, errors: &mut Vec<ValidationMessage>, warnings: &mut Vec<ValidationMessage>) {
+        use std::collections::HashMap;
+        
+        // Create entity lookup map
+        let entity_map: HashMap<Uuid, &ModelEntity> = model.entities.iter()
+            .map(|e| (e.id.clone(), e))
+            .collect();
+        
+        for layout in &model.layouts {
+            // Check layout name is not empty
+            if layout.name.trim().is_empty() {
+                errors.push(ValidationMessage {
+                    message: format!("Layout ID '{}' has empty name", layout.id),
+                    field: Some(format!("layouts.{}.name", layout.id)),
+                    code: "EMPTY_LAYOUT_NAME".to_string(),
+                });
+            }
+            
+            // Check that target entities exist
+            for target_entity_id in &layout.target_entities {
+                if !entity_map.contains_key(target_entity_id) {
+                    errors.push(ValidationMessage {
+                        message: format!("Layout '{}' references non-existent target entity '{}'", layout.name, target_entity_id),
+                        field: Some(format!("layouts.{}.target_entities", layout.name)),
+                        code: "INVALID_TARGET_ENTITY".to_string(),
+                    });
+                }
+            }
+            
+            // Warn if layout has no components
+            if layout.components.is_empty() {
+                warnings.push(ValidationMessage {
+                    message: format!("Layout '{}' has no components defined", layout.name),
+                    field: Some(format!("layouts.{}.components", layout.name)),
+                    code: "NO_COMPONENTS_DEFINED".to_string(),
+                });
+            }
+        }
+    }
+
     /// Validate a model
     pub async fn validate_model(&self, id: Uuid) -> Result<ValidationResult, Error> {
-        let _model = self.get_model(id.clone()).await?
+        let model = self.get_model(id.clone()).await?
             .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", id)))?;
-
-        // TODO: Implement comprehensive model validation
+        
+        let mut errors = Vec::new();
+        let mut warnings = Vec::new();
+        
+        // Validate unique IDs across all model components
+        self.validate_unique_ids(&model, &mut errors);
+        
+        // Validate entity integrity
+        self.validate_entities(&model, &mut errors, &mut warnings);
+        
+        // Validate relationships
+        self.validate_relationships(&model, &mut errors, &mut warnings);
+        
+        // Validate layouts
+        self.validate_layouts(&model, &mut errors, &mut warnings);
+        
+        let valid = errors.is_empty();
+        
         Ok(ValidationResult {
-            valid: true,
-            errors: vec![],
-            warnings: vec![],
+            valid,
+            errors,
+            warnings,
         })
     }
 

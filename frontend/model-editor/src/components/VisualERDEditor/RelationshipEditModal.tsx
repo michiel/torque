@@ -88,12 +88,12 @@ export const RelationshipEditModal: React.FC<RelationshipEditModalProps> = ({
 
   const fromEntityOptions = entities.map(entity => ({
     value: entity.id,
-    label: entity.displayName
+    label: `${entity.displayName || entity.name} (${entity.id})`
   }));
 
   const toEntityOptions = entities.map(entity => ({
     value: entity.id,
-    label: entity.displayName
+    label: `${entity.displayName || entity.name} (${entity.id})`
   }));
 
   const fromFieldOptions = fromEntity?.fields.map(field => ({

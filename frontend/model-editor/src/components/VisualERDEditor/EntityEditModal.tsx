@@ -15,6 +15,7 @@ import {
 } from '@mantine/core';
 import { IconPlus, IconTrash, IconAlertCircle } from '@tabler/icons-react';
 import { useForm, useFieldArray } from 'react-hook-form';
+import { generateId } from '../../utils/idGenerator';
 
 interface EntityField {
   id: string;
@@ -106,7 +107,7 @@ export const EntityEditModal: React.FC<EntityEditModalProps> = ({
       // Ensure all fields have valid data
       const validatedFields = data.fields.map(field => ({
         ...field,
-        id: field.id || `field-${Date.now()}-${Math.random()}`,
+        id: field.id || generateId(),
         name: field.name.trim(),
         displayName: field.displayName.trim(),
         fieldType: field.fieldType || 'String',
@@ -129,7 +130,7 @@ export const EntityEditModal: React.FC<EntityEditModalProps> = ({
 
   const addField = () => {
     append({
-      id: `field-${Date.now()}-${Math.random()}`,
+      id: generateId(),
       name: '',
       displayName: '',
       fieldType: 'String',

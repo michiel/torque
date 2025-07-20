@@ -34,10 +34,11 @@ import {
   IconFileImport,
   IconFileExport,
   IconExternalLink,
+  IconTrash,
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
-import { IMPORT_MODEL, REPLACE_MODEL } from '../graphql/mutations'
+import { IMPORT_MODEL, REPLACE_MODEL, DELETE_ENTITY, DELETE_RELATIONSHIP, DELETE_LAYOUT, VALIDATE_MODEL } from '../graphql/mutations'
 import { Model, Entity } from '../types/model'
 import { ModelExportDialog, ModelImportDialog } from '../components/ModelImportExport'
 
@@ -74,6 +75,87 @@ export function ModelEditorPage() {
     }
   })
 
+  const [deleteEntity] = useMutation(DELETE_ENTITY, {
+    onCompleted: () => {
+      notifications.show({
+        title: 'Entity Deleted',
+        message: 'Entity has been successfully deleted',
+        color: 'green',
+      })
+      refetch()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Delete Failed',
+        message: error.message,
+        color: 'red',
+      })
+    }
+  })
+
+  const [deleteRelationship] = useMutation(DELETE_RELATIONSHIP, {
+    onCompleted: () => {
+      notifications.show({
+        title: 'Relationship Deleted',
+        message: 'Relationship has been successfully deleted',
+        color: 'green',
+      })
+      refetch()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Delete Failed',
+        message: error.message,
+        color: 'red',
+      })
+    }
+  })
+
+  const [deleteLayout] = useMutation(DELETE_LAYOUT, {
+    onCompleted: () => {
+      notifications.show({
+        title: 'Layout Deleted',
+        message: 'Layout has been successfully deleted',
+        color: 'green',
+      })
+      refetch()
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Delete Failed',
+        message: error.message,
+        color: 'red',
+      })
+    }
+  })
+
+  const [validateModel] = useMutation(VALIDATE_MODEL, {
+    onCompleted: (data) => {
+      const result = data.validateModel
+      if (result.valid) {
+        notifications.show({
+          title: 'Model Valid',
+          message: 'Model validation passed successfully',
+          color: 'green',
+        })
+      } else {
+        const errorMessages = result.errors.map((error: any) => error.message).join(', ')
+        notifications.show({
+          title: 'Model Validation Failed',
+          message: `Errors: ${errorMessages}`,
+          color: 'red',
+        })
+      }
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'Validation Failed',
+        message: error.message,
+        color: 'red',
+      })
+    }
+  })
+
 
 
   const handleCreateEntity = () => {
@@ -82,6 +164,30 @@ export function ModelEditorPage() {
 
   const handleEditEntity = (entity: Entity) => {
     navigate(`/models/${id}/editor/entities/${entity.id}`)
+  }
+
+  const handleDeleteEntity = async (entityId: string) => {
+    if (window.confirm('Are you sure you want to delete this entity? This action cannot be undone.')) {
+      await deleteEntity({ variables: { id: entityId } })
+    }
+  }
+
+  const handleDeleteRelationship = async (relationshipId: string) => {
+    if (window.confirm('Are you sure you want to delete this relationship? This action cannot be undone.')) {
+      await deleteRelationship({ variables: { id: relationshipId } })
+    }
+  }
+
+  const handleDeleteLayout = async (layoutId: string) => {
+    if (window.confirm('Are you sure you want to delete this layout? This action cannot be undone.')) {
+      await deleteLayout({ variables: { id: layoutId } })
+    }
+  }
+
+  const handleValidateModel = async () => {
+    if (id) {
+      await validateModel({ variables: { id } })
+    }
   }
 
   const handleImportModel = async (importedModel: any, originalJsonString: string) => {
@@ -212,7 +318,7 @@ export function ModelEditorPage() {
                 Share
               </Menu.Item>
               <Menu.Divider />
-              <Menu.Item leftSection={<IconShield size={14} />}>
+              <Menu.Item leftSection={<IconShield size={14} />} onClick={handleValidateModel}>
                 Validate
               </Menu.Item>
             </Menu.Dropdown>
@@ -254,15 +360,15 @@ export function ModelEditorPage() {
         </Tabs.List>
 
         <Tabs.Panel value="entities" pt="md">
-          <EntitiesPanel model={model} onAddEntity={handleCreateEntity} onEditEntity={handleEditEntity} />
+          <EntitiesPanel model={model} onAddEntity={handleCreateEntity} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} />
         </Tabs.Panel>
 
         <Tabs.Panel value="relationships" pt="md">
-          <RelationshipsPanel model={model} navigate={navigate} />
+          <RelationshipsPanel model={model} navigate={navigate} onDeleteRelationship={handleDeleteRelationship} />
         </Tabs.Panel>
 
         <Tabs.Panel value="layouts" pt="md">
-          <LayoutsPanel model={model} navigate={navigate} />
+          <LayoutsPanel model={model} navigate={navigate} onDeleteLayout={handleDeleteLayout} />
         </Tabs.Panel>
 
         <Tabs.Panel value="flows" pt="md">
@@ -303,9 +409,10 @@ interface ModelPanelProps {
 interface EntitiesPanelProps extends ModelPanelProps {
   onAddEntity: () => void
   onEditEntity: (entity: Entity) => void
+  onDeleteEntity: (entityId: string) => void
 }
 
-function EntitiesPanel({ model, onAddEntity, onEditEntity }: EntitiesPanelProps) {
+function EntitiesPanel({ model, onAddEntity, onEditEntity, onDeleteEntity }: EntitiesPanelProps) {
   return (
     <Paper p="md" withBorder>
       <Stack>
@@ -331,9 +438,19 @@ function EntitiesPanel({ model, onAddEntity, onEditEntity }: EntitiesPanelProps)
                       {entity.fields?.length || 0} fields • {entity.entityType}
                     </Text>
                   </Stack>
-                  <Button size="xs" variant="light" onClick={() => onEditEntity(entity)}>
-                    Edit
-                  </Button>
+                  <Group gap="xs">
+                    <Button size="xs" variant="light" onClick={() => onEditEntity(entity)}>
+                      Edit
+                    </Button>
+                    <ActionIcon 
+                      size="sm" 
+                      color="red" 
+                      variant="subtle"
+                      onClick={() => onDeleteEntity(entity.id)}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  </Group>
                 </Group>
               </Paper>
             ))}
@@ -350,9 +467,10 @@ function EntitiesPanel({ model, onAddEntity, onEditEntity }: EntitiesPanelProps)
 
 interface RelationshipsPanelProps extends ModelPanelProps {
   navigate: (path: string) => void
+  onDeleteRelationship: (relationshipId: string) => void
 }
 
-function RelationshipsPanel({ model, navigate }: RelationshipsPanelProps) {
+function RelationshipsPanel({ model, navigate, onDeleteRelationship }: RelationshipsPanelProps) {
   const handleCreateRelationship = () => {
     navigate(`/models/${model.id}/editor/relationships/new`)
   }
@@ -392,13 +510,23 @@ function RelationshipsPanel({ model, navigate }: RelationshipsPanelProps) {
                       {relationship.relationshipType} • {getEntityName(relationship.fromEntity)} → {getEntityName(relationship.toEntity)}
                     </Text>
                   </Stack>
-                  <Button 
-                    size="xs" 
-                    variant="light"
-                    onClick={() => handleEditRelationship(relationship.id)}
-                  >
-                    Edit
-                  </Button>
+                  <Group gap="xs">
+                    <Button 
+                      size="xs" 
+                      variant="light"
+                      onClick={() => handleEditRelationship(relationship.id)}
+                    >
+                      Edit
+                    </Button>
+                    <ActionIcon 
+                      size="sm" 
+                      color="red" 
+                      variant="subtle"
+                      onClick={() => onDeleteRelationship(relationship.id)}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  </Group>
                 </Group>
               </Paper>
             ))}
@@ -415,9 +543,10 @@ function RelationshipsPanel({ model, navigate }: RelationshipsPanelProps) {
 
 interface LayoutsPanelProps extends ModelPanelProps {
   navigate: (path: string) => void
+  onDeleteLayout: (layoutId: string) => void
 }
 
-function LayoutsPanel({ model, navigate }: LayoutsPanelProps) {
+function LayoutsPanel({ model, navigate, onDeleteLayout }: LayoutsPanelProps) {
   
   const handleCreateLayout = () => {
     navigate(`/models/${model.id}/editor/layouts/new`)
@@ -456,6 +585,14 @@ function LayoutsPanel({ model, navigate }: LayoutsPanelProps) {
                     >
                       Edit
                     </Button>
+                    <ActionIcon 
+                      size="sm" 
+                      color="red" 
+                      variant="subtle"
+                      onClick={() => onDeleteLayout(layout.id)}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
                   </Group>
                 </Group>
               </Paper>

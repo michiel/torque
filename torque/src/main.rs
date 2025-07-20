@@ -128,6 +128,11 @@ enum ModelCommands {
     Delete {
         model_id: String,
     },
+    
+    /// Validate model integrity
+    Validate {
+        model_id: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -280,6 +285,9 @@ async fn handle_model_command(command: ModelCommands, config: &Config) -> Result
         }
         ModelCommands::Delete { model_id } => {
             handle_model_delete(config, model_id).await?;
+        }
+        ModelCommands::Validate { model_id } => {
+            handle_model_validate(config, model_id).await?;
         }
     }
     Ok(())
@@ -620,6 +628,73 @@ fn validate_import_data(data: &serde_json::Value) -> Result<()> {
     }
     
     // TODO: Add more comprehensive validation against JSON schema
+    
+    Ok(())
+}
+
+async fn handle_model_validate(config: &Config, model_id: String) -> Result<()> {
+    use torque::common::Uuid;
+    
+    let db = database::setup_database(config).await?;
+    let services = Arc::new(ServiceRegistry::new(db, config.clone()).await?);
+    
+    let uuid = model_id.parse::<Uuid>()
+        .map_err(|_| anyhow::anyhow!("Invalid model ID format"))?;
+    
+    // Get model info for validation
+    let model = services.model_service.get_model(uuid.clone()).await?
+        .ok_or_else(|| anyhow::anyhow!("Model not found"))?;
+    
+    println!("Validating model: {}", model.name);
+    println!("Model ID: {}", model.id);
+    println!();
+    
+    // Run validation
+    let validation_result = services.model_service.validate_model(uuid).await?;
+    
+    // Display results
+    if validation_result.valid {
+        println!("✅ Model validation PASSED");
+        println!("   {} entities, {} relationships, {} layouts validated successfully", 
+                 model.entities.len(), model.relationships.len(), model.layouts.len());
+    } else {
+        println!("❌ Model validation FAILED");
+        println!("   Found {} errors and {} warnings", 
+                 validation_result.errors.len(), validation_result.warnings.len());
+    }
+    
+    println!();
+    
+    // Display errors
+    if !validation_result.errors.is_empty() {
+        println!("ERRORS:");
+        for error in &validation_result.errors {
+            if let Some(field) = &error.field {
+                println!("  ❌ [{}] {} (field: {})", error.code, error.message, field);
+            } else {
+                println!("  ❌ [{}] {}", error.code, error.message);
+            }
+        }
+        println!();
+    }
+    
+    // Display warnings
+    if !validation_result.warnings.is_empty() {
+        println!("WARNINGS:");
+        for warning in &validation_result.warnings {
+            if let Some(field) = &warning.field {
+                println!("  ⚠️  [{}] {} (field: {})", warning.code, warning.message, field);
+            } else {
+                println!("  ⚠️  [{}] {}", warning.code, warning.message);
+            }
+        }
+        println!();
+    }
+    
+    // Set exit code based on validation result
+    if !validation_result.valid {
+        std::process::exit(1);
+    }
     
     Ok(())
 }

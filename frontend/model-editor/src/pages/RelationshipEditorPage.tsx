@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@apollo/client'
+import { generateId } from '../utils/idGenerator'
 import {
   Container,
   Paper,
@@ -120,7 +121,7 @@ export function RelationshipEditorPage() {
   // Get entity options
   const entityOptions = model?.entities?.map(entity => ({
     value: entity.id,
-    label: entity.displayName || entity.name,
+    label: `${entity.displayName || entity.name} (${entity.name})`,
   })) || []
 
   // Helper function to determine the appropriate field type for a relationship
@@ -238,7 +239,7 @@ export function RelationshipEditorPage() {
       if (fromFieldSelection.mode === 'new' && fromFieldSelection.newFieldName) {
         const fromEntity = model?.entities?.find(e => e.id === values.fromEntity)
         if (fromEntity) {
-          const newFieldId = `field_${Date.now()}_from`
+          const newFieldId = generateId()
           const newField = {
             id: newFieldId,
             name: fromFieldSelection.newFieldName,
@@ -274,7 +275,7 @@ export function RelationshipEditorPage() {
       if (toFieldSelection.mode === 'new' && toFieldSelection.newFieldName) {
         const toEntity = model?.entities?.find(e => e.id === values.toEntity)
         if (toEntity) {
-          const newFieldId = `field_${Date.now()}_to`
+          const newFieldId = generateId()
           const newField = {
             id: newFieldId,
             name: toFieldSelection.newFieldName,

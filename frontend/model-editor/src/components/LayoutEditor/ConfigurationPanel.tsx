@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { generateId } from '../../utils/idGenerator';
 import {
   Card,
   Text,
@@ -172,7 +173,7 @@ const DataGridConfiguration: React.FC<DataGridConfigurationProps> = ({
     if (!field) return;
 
     const newColumn = {
-      id: `col-${Date.now()}`,
+      id: generateId(),
       fieldId: field.id,
       label: field.displayName || field.name,
       type: field.fieldType?.type || 'string',
@@ -271,7 +272,7 @@ const DataGridConfiguration: React.FC<DataGridConfigurationProps> = ({
         placeholder="Select an entity"
         value={selectedEntity}
         onChange={(value) => value && handleEntityChange(value)}
-        data={entities.map(e => ({ value: e.id, label: e.displayName }))}
+        data={entities.map(e => ({ value: e.id, label: `${e.displayName} (${e.name})` }))}
         data-testid="datagrid-entity-select"
       />
 
@@ -582,7 +583,7 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
     const inputType = getInputTypeForFieldType(fieldType);
 
     const newField = {
-      id: `field-${Date.now()}`,
+      id: generateId(),
       fieldId: field.id,
       label: field.displayName || field.name,
       type: inputType as FormFieldType,
@@ -696,7 +697,7 @@ const FormConfiguration: React.FC<FormConfigurationProps> = ({
         placeholder="Select an entity"
         value={selectedEntity}
         onChange={(value) => value && handleEntityChange(value)}
-        data={entities.map(e => ({ value: e.id, label: e.displayName }))}
+        data={entities.map(e => ({ value: e.id, label: `${e.displayName} (${e.name})` }))}
         data-testid="form-entity-select"
       />
 
