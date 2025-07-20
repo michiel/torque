@@ -209,20 +209,29 @@ start_torque_client() {
     return 1
 }
 
-# Test the GraphQL endpoint
+# Test the GraphQL endpoint and playground
 test_graphql() {
-    log "Testing GraphQL endpoint..."
+    log "Testing GraphQL endpoints..."
     
-    # Test with a simple query
-    local response=$(curl -s -X POST \
+    # Test GraphQL API with a simple query
+    local api_response=$(curl -s -X POST \
         -H "Content-Type: application/json" \
         -d '{"query":"query { __typename }"}' \
         http://localhost:$BACKEND_PORT/graphql 2>/dev/null)
     
-    if echo "$response" | grep -q "__typename"; then
-        success "GraphQL endpoint is working"
+    if echo "$api_response" | grep -q "__typename"; then
+        success "GraphQL API is working"
     else
-        warn "GraphQL endpoint test failed, but servers are running"
+        warn "GraphQL API test failed, but servers are running"
+    fi
+    
+    # Test GraphiQL playground
+    local playground_response=$(curl -s http://localhost:$BACKEND_PORT/graphql/playground 2>/dev/null)
+    
+    if echo "$playground_response" | grep -q -i "playground"; then
+        success "GraphiQL playground is accessible"
+    else
+        warn "GraphiQL playground test failed, but servers are running"
     fi
 }
 
@@ -255,16 +264,23 @@ main() {
     success "🎉 Development environment is ready!"
     echo ""
     echo "📍 Services:"
-    echo "   • Backend:      http://localhost:$BACKEND_PORT"
-    echo "   • Model Editor: http://localhost:$FRONTEND_PORT"
-    echo "   • TorqueApp:    http://localhost:$TORQUE_CLIENT_PORT"
-    echo "   • GraphQL:      http://localhost:$BACKEND_PORT/graphql"
-    echo "   • JSON-RPC:     http://localhost:$BACKEND_PORT/rpc"
-    echo "   • Health:       http://localhost:$BACKEND_PORT/health"
+    echo "   • Backend:       http://localhost:$BACKEND_PORT"
+    echo "   • Model Editor:  http://localhost:$FRONTEND_PORT"
+    echo "   • TorqueApp:     http://localhost:$TORQUE_CLIENT_PORT"
+    echo ""
+    echo "🔧 Backend APIs:"
+    echo "   • GraphQL API:   http://localhost:$BACKEND_PORT/graphql"
+    echo "   • GraphiQL:      http://localhost:$BACKEND_PORT/graphql/playground"
+    echo "   • JSON-RPC API:  http://localhost:$BACKEND_PORT/rpc"
+    echo "   • WebSocket:     ws://localhost:$BACKEND_PORT/ws"
+    echo "   • Health Check:  http://localhost:$BACKEND_PORT/health"
+    echo "   • Metrics:       http://localhost:$BACKEND_PORT/metrics"
     echo ""
     echo "💡 Tips:"
     echo "   • The backend uses SQLite database at data/dev.db"
     echo "   • Frontend has hot module replacement enabled"
+    echo "   • Use GraphiQL playground for interactive GraphQL queries and schema exploration"
+    echo "   • WebSocket endpoint available for real-time model synchronization"
     if [ "$TORQUE_CLIENT_MODE" = "production" ]; then
         echo "   • TorqueApp is running in production mode (faster loading)"
     else
