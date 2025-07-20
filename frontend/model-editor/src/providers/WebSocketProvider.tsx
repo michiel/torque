@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { useWebSocket, ModelChangeEvent } from '../hooks/useWebSocket';
 import { useApolloClient } from '@apollo/client';
-import { GET_MODELS } from '../graphql/queries';
+import { GET_MODELS, GET_MODEL, GET_LAYOUT } from '../graphql/queries';
 
 // Global client ID to persist across component re-renders in development mode
 let globalClientId: string | null = null;
@@ -49,6 +49,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (['ModelCreated', 'ModelUpdated', 'ModelDeleted'].includes(event.type)) {
       apolloClient.refetchQueries({
         include: [GET_MODELS],
+      });
+    }
+
+    // Handle layout-specific events
+    if (['LayoutCreated', 'LayoutUpdated', 'LayoutDeleted'].includes(event.type)) {
+      console.log('Layout change detected, invalidating relevant caches');
+      apolloClient.refetchQueries({
+        include: [GET_MODEL, GET_LAYOUT],
       });
     }
 

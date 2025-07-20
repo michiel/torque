@@ -37,8 +37,27 @@ export const LayoutEditorPage: React.FC = () => {
   });
 
   // GraphQL mutations
-  const [createLayout] = useMutation(CREATE_LAYOUT);
-  const [updateLayout] = useMutation(UPDATE_LAYOUT);
+  const [createLayout] = useMutation(CREATE_LAYOUT, {
+    refetchQueries: [{ query: GET_MODEL, variables: { id: modelId } }],
+    onCompleted: () => {
+      console.log('Layout created successfully - cache invalidated');
+    },
+    onError: (error) => {
+      console.error('Failed to create layout:', error);
+    }
+  });
+  const [updateLayout] = useMutation(UPDATE_LAYOUT, {
+    refetchQueries: [
+      { query: GET_MODEL, variables: { id: modelId } },
+      { query: GET_LAYOUT, variables: { id: layoutId } }
+    ],
+    onCompleted: () => {
+      console.log('Layout updated successfully - cache invalidated');
+    },
+    onError: (error) => {
+      console.error('Failed to update layout:', error);
+    }
+  });
 
   const entities = entitiesData?.entities || [];
   const model = modelData?.model;
