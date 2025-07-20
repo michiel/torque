@@ -642,6 +642,7 @@ impl ModelService {
                 position: c.position,
                 properties: serde_json::from_value(c.properties).unwrap_or_default(),
                 styling: serde_json::from_value(c.styling.unwrap_or_default()).unwrap_or_default(),
+                metadata: c.metadata.map(|m| serde_json::from_value(m).unwrap_or_default()),
             }).collect(),
             responsive: serde_json::from_value(input.responsive.unwrap_or_default()).unwrap_or_default(),
             created_at: now.clone(),
@@ -710,6 +711,7 @@ impl ModelService {
                     position: c.position,
                     properties: serde_json::from_value(c.properties).unwrap_or_default(),
                     styling: serde_json::from_value(c.styling.unwrap_or_default()).unwrap_or_default(),
+                    metadata: c.metadata.map(|m| serde_json::from_value(m).unwrap_or_default()),
                 }).collect();
             }
             if let Some(responsive) = input.responsive {
@@ -1201,6 +1203,7 @@ impl ModelService {
                             .and_then(|v| serde_json::from_value(v.clone()).ok())
                             .unwrap_or_default(),
                         styling: std::collections::HashMap::new(),
+                        metadata: None,
                     });
                 }
             }
@@ -1841,6 +1844,7 @@ impl ModelService {
             position,
             properties,
             styling,
+            metadata: None,
         })
     }
     
@@ -1971,6 +1975,7 @@ pub struct CreateLayoutComponentInput {
     pub position: ComponentPosition,
     pub properties: serde_json::Value,
     pub styling: Option<serde_json::Value>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone)]

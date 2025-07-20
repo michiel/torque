@@ -600,6 +600,7 @@ pub struct LayoutComponent {
     pub position: ComponentPosition,
     pub properties: HashMap<String, serde_json::Value>,
     pub styling: HashMap<String, serde_json::Value>,
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

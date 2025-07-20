@@ -10,6 +10,11 @@ export interface LegacyLayoutComponent {
   };
   properties: Record<string, any>;
   styling: Record<string, any>;
+  metadata?: {
+    createdWith?: string;
+    version?: string;
+    [key: string]: any;
+  };
 }
 
 export interface LegacyLayout {
@@ -38,13 +43,40 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
     return legacyLayout.puckData;
   }
 
-  // Check if this layout has components created with Visual Editor
-  const hasVisualEditorComponents = legacyLayout.components?.some(comp => 
+  // Check if this layout has components created with Visual Editor (new clean format)
+  const hasCleanVisualEditorComponents = legacyLayout.components?.some(comp => 
+    comp.metadata?.createdWith === 'VisualEditor'
+  );
+
+  if (hasCleanVisualEditorComponents) {
+    // Convert clean Torque format to Puck format
+    const content = legacyLayout.components
+      .filter(comp => comp.metadata?.createdWith === 'VisualEditor')
+      .map((comp, index) => ({
+        type: comp.componentType,
+        props: {
+          ...comp.properties,
+          id: `component-${index}`
+        }
+      }));
+
+    return {
+      content,
+      root: {
+        props: {
+          title: legacyLayout.name || 'Layout'
+        }
+      }
+    };
+  }
+
+  // Check if this layout has components created with Visual Editor (legacy format with _puckData)
+  const hasLegacyVisualEditorComponents = legacyLayout.components?.some(comp => 
     comp.properties?._visualEditor && comp.properties?._puckData
   );
 
-  if (hasVisualEditorComponents) {
-    // Reconstruct from stored Puck data
+  if (hasLegacyVisualEditorComponents) {
+    // Reconstruct from stored Puck data (legacy support)
     const content = legacyLayout.components
       .filter(comp => comp.properties?._puckData)
       .map(comp => {
@@ -60,7 +92,9 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
     return {
       content,
       root: {
-        title: legacyLayout.name || 'Layout'
+        props: {
+          title: legacyLayout.name || 'Layout'
+        }
       }
     };
   }
@@ -170,6 +204,7 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
 
 /**
  * Converts Puck Data format to legacy layout format for backend compatibility
+ * This creates a clean Torque-native format without Puck-specific references
  */
 export const convertPuckToLegacyLayout = (
   puckData: Data,
@@ -185,6 +220,14 @@ export const convertPuckToLegacyLayout = (
       targetEntities.push(item.props.entityType);
     }
 
+    // Create clean component properties without Puck-specific data
+    const cleanProps = { ...item.props };
+    
+    // Remove any internal Puck properties that shouldn't be stored
+    delete cleanProps.id;
+    delete cleanProps.editableProps;
+    delete cleanProps.droppableProps;
+
     return {
       componentType: item.type,
       position: {
@@ -193,13 +236,13 @@ export const convertPuckToLegacyLayout = (
         width: 12,
         height: item.type === 'DataGrid' ? 6 : item.type === 'TorqueForm' ? 8 : 2
       },
-      properties: {
-        ...item.props,
-        // Store Puck data as serialized JSON for future use
-        _puckData: JSON.stringify(item),
-        _visualEditor: true // Flag to indicate this was created with Visual Editor
-      },
-      styling: {}
+      properties: cleanProps,
+      styling: {},
+      // Store metadata to indicate this was created with Visual Editor
+      metadata: {
+        createdWith: 'VisualEditor',
+        version: '1.0'
+      }
     };
   });
 
@@ -236,7 +279,7 @@ export const convertPuckToLegacyLayout = (
         { name: 'desktop', minWidth: 1024, columns: 3 }
       ]
     }
-    // Note: puckData is stored in component properties for future use
+    // Note: Puck-specific data is not stored - transformations happen at runtime
   };
 };
 
@@ -247,14 +290,63 @@ export const needsMigration = (layout: LegacyLayout): boolean => {
   // No migration needed if already has Puck data
   if (layout.puckData) return false;
   
-  // No migration needed if has Visual Editor components
-  const hasVisualEditorComponents = layout.components?.some(comp => 
+  // No migration needed if has clean Visual Editor components
+  const hasCleanVisualEditorComponents = layout.components?.some(comp => 
+    comp.metadata?.createdWith === 'VisualEditor'
+  );
+  if (hasCleanVisualEditorComponents) return false;
+  
+  // No migration needed if has legacy Visual Editor components
+  const hasLegacyVisualEditorComponents = layout.components?.some(comp => 
     comp.properties?._visualEditor && comp.properties?._puckData
   );
-  if (hasVisualEditorComponents) return false;
+  if (hasLegacyVisualEditorComponents) return false;
   
-  // Migration needed if has components but no Puck data
+  // Migration needed if has components but no Visual Editor data
   return layout.components && layout.components.length > 0;
+};
+
+/**
+ * Migrates legacy layouts with _puckData to the new clean format
+ * This removes Puck-specific data and creates a clean Torque-native format
+ */
+export const migrateLegacyLayoutToCleanFormat = (layout: LegacyLayout): LegacyLayout => {
+  const migratedComponents = layout.components?.map(comp => {
+    // If component already uses clean format, return as-is
+    if (comp.metadata?.createdWith === 'VisualEditor') {
+      return comp;
+    }
+
+    // If component has legacy _puckData, clean it up
+    if (comp.properties?._puckData || comp.properties?._visualEditor) {
+      const cleanProperties = { ...comp.properties };
+      
+      // Remove Puck-specific properties
+      delete cleanProperties._puckData;
+      delete cleanProperties._visualEditor;
+      delete cleanProperties.id;
+      delete cleanProperties.editableProps;
+      delete cleanProperties.droppableProps;
+
+      return {
+        ...comp,
+        properties: cleanProperties,
+        metadata: {
+          createdWith: 'VisualEditor',
+          version: '1.0',
+          migratedFrom: 'legacy'
+        }
+      };
+    }
+
+    // Return component as-is if no migration needed
+    return comp;
+  });
+
+  return {
+    ...layout,
+    components: migratedComponents || []
+  };
 };
 
 /**

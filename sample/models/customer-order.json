@@ -710,6 +710,11 @@
             "backgroundColor": "white",
             "borderRadius": "8px",
             "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+          },
+          "metadata": {
+            "createdWith": "SeedData",
+            "version": "1.0",
+            "description": "Customer management data grid component"
           }
         },
         {
@@ -729,6 +734,12 @@
               "entity": "customer",
               "mode": "create"
             }
+          },
+          "styling": {},
+          "metadata": {
+            "createdWith": "SeedData",
+            "version": "1.0",
+            "description": "Add new customer button component"
           }
         }
       ],
@@ -782,6 +793,11 @@
             "backgroundColor": "white",
             "borderRadius": "8px",
             "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+          },
+          "metadata": {
+            "createdWith": "SeedData",
+            "version": "1.0",
+            "description": "Order management data grid component"
           }
         },
         {
@@ -801,6 +817,12 @@
               "entity": "order",
               "mode": "create"
             }
+          },
+          "styling": {},
+          "metadata": {
+            "createdWith": "SeedData",
+            "version": "1.0",
+            "description": "Create new order button component"
           }
         }
       ]
@@ -863,6 +885,12 @@
               "label": "Cancel",
               "variant": "secondary"
             }
+          },
+          "styling": {},
+          "metadata": {
+            "createdWith": "SeedData",
+            "version": "1.0",
+            "description": "Customer information form component"
           }
         }
       ]

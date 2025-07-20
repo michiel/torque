@@ -802,6 +802,7 @@ impl OptimizedMutation {
                     },
                     properties: c.properties,
                     styling: c.styling,
+                    metadata: None,
                 }
             }).collect(),
             responsive: input.responsive,
@@ -840,6 +841,7 @@ impl OptimizedMutation {
                     },
                     properties: c.properties,
                     styling: c.styling,
+                    metadata: None,
                 }
             }).collect()),
             responsive: input.responsive,

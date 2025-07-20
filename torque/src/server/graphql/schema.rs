@@ -370,6 +370,7 @@ impl Mutation {
                 position: serde_json::from_value(c.position).unwrap_or_default(),
                 properties: serde_json::from_value(c.properties).unwrap_or_default(),
                 styling: c.styling.map(|s| serde_json::from_value(s).unwrap_or_default()),
+                metadata: c.metadata.map(|m| serde_json::from_value(m).unwrap_or_default()),
             }).collect(),
             responsive: input.responsive.map(|r| serde_json::from_value(r).unwrap_or_default()),
         };
@@ -562,6 +563,7 @@ pub struct LayoutComponent {
     pub position: JSON,
     pub properties: JSON,
     pub styling: JSON,
+    pub metadata: Option<JSON>,
 }
 
 /// Validation representation for GraphQL
@@ -870,6 +872,7 @@ pub struct UpdateLayoutInput {
     pub layout_type: Option<LayoutTypeEnum>,
     #[graphql(name = "targetEntities")]
     pub target_entities: Option<Vec<UuidString>>,
+    pub components: Option<Vec<CreateLayoutComponentInput>>,
     pub responsive: Option<JSON>,
 }
 
@@ -880,6 +883,7 @@ pub struct CreateLayoutComponentInput {
     pub position: JSON,
     pub properties: JSON,
     pub styling: Option<JSON>,
+    pub metadata: Option<JSON>,
 }
 
 // Event types for subscriptions
@@ -1040,6 +1044,7 @@ impl From<crate::model::types::LayoutComponent> for LayoutComponent {
             position: serde_json::to_value(comp.position).unwrap_or_default(),
             properties: serde_json::to_value(comp.properties).unwrap_or_default(),
             styling: serde_json::to_value(comp.styling).unwrap_or_default(),
+            metadata: comp.metadata.map(|m| serde_json::to_value(m).unwrap_or_default()),
         }
     }
 }

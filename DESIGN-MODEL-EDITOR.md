@@ -16,6 +16,8 @@
 
  - The visual layout editor allows the user to visually place and size torque app elements on a layout
  - The library for implementing the visual editor is pickeditor.com, with open source code at https://github.com/puckeditor/puck
+ - The format for storing layouts should be independent of puckeditor, and transformations to and from puckeditor format should be made as part of the puckeditor component management.
+ - The Torque Model layout json should not have direct references to puckeditor and should be editable by other components later
 
 ## Visual ERD editor
 
