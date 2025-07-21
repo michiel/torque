@@ -8,6 +8,8 @@ import { Data } from '@measured/puck';
 import { GET_MODEL, GET_ENTITIES, GET_LAYOUT } from '../graphql/queries';
 import { CREATE_LAYOUT, UPDATE_LAYOUT } from '../graphql/mutations';
 import { migrateLegacyLayout, convertPuckToLegacyLayout, needsMigration, getMigrationWarnings } from '../components/VisualLayoutEditor/migration/layoutMigration';
+import { withRetry, isNetworkError, isValidationError, isPermissionError } from '../utils/retryUtils';
+import { validateLayoutData, sanitizeLayoutData } from '../utils/layoutValidation';
 
 interface RouteParams extends Record<string, string | undefined> {
   id: string;
@@ -104,60 +106,125 @@ export const LayoutEditorPage: React.FC = () => {
 
     console.log('Starting save with Puck data:', data);
 
+    // Validate and sanitize layout data before processing
+    const validation = validateLayoutData(data, modelId);
+    
+    if (!validation.isValid) {
+      // Show validation errors to user
+      notifications.show({
+        title: 'Validation Failed',
+        message: `Cannot save layout: ${validation.errors.join(', ')}`,
+        color: 'red',
+        autoClose: 8000
+      });
+      return;
+    }
+
+    // Show warnings if any
+    if (validation.warnings.length > 0) {
+      console.warn('Layout validation warnings:', validation.warnings);
+      notifications.show({
+        title: 'Layout Warnings',
+        message: `${validation.warnings.length} warning(s) found. Check console for details.`,
+        color: 'yellow',
+        autoClose: 5000
+      });
+    }
+
+    // Sanitize the data to remove problematic fields
+    const sanitizedData = sanitizeLayoutData(data);
+
     // Convert Puck data to legacy GraphQL format using migration utility
-    const layoutData = convertPuckToLegacyLayout(data, layoutId, modelId, layout, entities);
+    const layoutData = convertPuckToLegacyLayout(sanitizedData, layoutId, modelId, layout, entities);
 
     console.log('Converted layout data for save:', JSON.stringify(layoutData, null, 2));
 
     setIsLoading(true);
     try {
+      // Wrap save operations with retry logic for network failures
+      await withRetry(async () => {
+        if (layoutId) {
+          // Update existing layout
+          await updateLayout({
+            variables: {
+              id: layoutId,
+              input: layoutData
+            }
+          });
 
-      if (layoutId) {
-        // Update existing layout
-        await updateLayout({
-          variables: {
-            id: layoutId,
-            input: layoutData
+          // Only show notification for manual saves
+          if (isManualSave) {
+            notifications.show({
+              title: 'Layout Updated',
+              message: 'Your layout has been saved successfully',
+              color: 'green'
+            });
           }
-        });
+        } else {
+          // Create new layout
+          const result = await createLayout({
+            variables: {
+              input: layoutData
+            }
+          });
 
-        // Only show notification for manual saves
-        if (isManualSave) {
           notifications.show({
-            title: 'Layout Updated',
-            message: 'Your layout has been saved successfully',
+            title: 'Layout Created',
+            message: 'Your layout has been created successfully',
             color: 'green'
           });
-        }
-      } else {
-        // Create new layout
-        const result = await createLayout({
-          variables: {
-            input: layoutData
+
+          // Navigate to the new layout
+          const newLayoutId = result.data?.createLayout?.id;
+          if (newLayoutId) {
+            navigate(`/models/${modelId}/editor/layouts/${newLayoutId}`);
           }
-        });
-
-        notifications.show({
-          title: 'Layout Created',
-          message: 'Your layout has been created successfully',
-          color: 'green'
-        });
-
-        // Navigate to the new layout
-        const newLayoutId = result.data?.createLayout?.id;
-        if (newLayoutId) {
-          navigate(`/models/${modelId}/editor/layouts/${newLayoutId}`);
         }
-      }
+      }, {
+        maxRetries: 2,
+        delayMs: 1000,
+        shouldRetry: (error) => isNetworkError(error) && !isValidationError(error) && !isPermissionError(error)
+      });
     } catch (error) {
       // Log the exact payload being sent for debugging
       console.error('Layout save failed with payload:', JSON.stringify(layoutData, null, 2));
       console.error('Failed to save layout:', error);
       
+      // Enhanced error handling with specific error types using utility functions
+      let errorMessage = 'An unexpected error occurred while saving the layout.';
+      let errorTitle = 'Save Failed';
+      
+      if (error instanceof Error) {
+        // Network errors
+        if (isNetworkError(error)) {
+          errorTitle = 'Connection Error';
+          errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+        }
+        // Validation errors
+        else if (isValidationError(error)) {
+          errorTitle = 'Validation Error';
+          errorMessage = 'The layout data is invalid. Please check your components and try again.';
+        }
+        // Permission errors
+        else if (isPermissionError(error)) {
+          errorTitle = 'Permission Error';
+          errorMessage = 'You do not have permission to save this layout.';
+        }
+        // GraphQL errors
+        else if (error.message.includes('GraphQL error')) {
+          errorTitle = 'Server Error';
+          errorMessage = 'The server encountered an error processing your layout. Please try again.';
+        }
+        else {
+          errorMessage = `Failed to save layout: ${error.message}`;
+        }
+      }
+      
       notifications.show({
-        title: 'Save Failed',
-        message: `Failed to save layout: ${error instanceof Error ? error.message : String(error)}`,
-        color: 'red'
+        title: errorTitle,
+        message: errorMessage,
+        color: 'red',
+        autoClose: 8000 // Give users more time to read error messages
       });
       
       // Re-throw the error for the Visual Layout Editor to handle

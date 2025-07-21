@@ -288,7 +288,7 @@ impl Mutation {
     async fn update_relationship(&self, ctx: &Context<'_>, _id: String, _input: UpdateRelationshipInput) -> Result<Relationship> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement relationship update
-        unimplemented!("Relationship update not yet implemented")
+        Err(async_graphql::Error::new(format!("Relationship update is not yet implemented for ID: {}", _id)))
     }
 
     /// Delete a relationship
@@ -339,7 +339,7 @@ impl Mutation {
     async fn update_flow(&self, ctx: &Context<'_>, _id: String, _input: UpdateFlowInput) -> Result<Flow> {
         let _state = ctx.data::<AppState>()?;
         // TODO: Implement flow update
-        unimplemented!("Flow update not yet implemented")
+        Err(async_graphql::Error::new(format!("Flow update is not yet implemented for ID: {}", _id)))
     }
 
     /// Delete a flow
