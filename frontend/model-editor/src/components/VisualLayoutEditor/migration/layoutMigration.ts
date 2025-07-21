@@ -224,9 +224,9 @@ export const convertPuckToLegacyLayout = (
     const cleanProps = { ...item.props };
     
     // Remove any internal Puck properties that shouldn't be stored
-    delete cleanProps.id;
-    delete cleanProps.editableProps;
-    delete cleanProps.droppableProps;
+    delete (cleanProps as any).id;
+    delete (cleanProps as any).editableProps;
+    delete (cleanProps as any).droppableProps;
 
     return {
       componentType: item.type,

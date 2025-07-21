@@ -382,10 +382,36 @@ impl Mutation {
     }
 
     /// Update an existing layout
-    async fn update_layout(&self, ctx: &Context<'_>, _id: String, _input: UpdateLayoutInput) -> Result<Layout> {
-        let _state = ctx.data::<AppState>()?;
-        // TODO: Implement layout update
-        unimplemented!("Layout update not yet implemented")
+    async fn update_layout(&self, ctx: &Context<'_>, id: String, input: UpdateLayoutInput) -> Result<Layout> {
+        let state = ctx.data::<AppState>()?;
+        let layout_id = id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid layout ID format"))?;
+        
+        let service_input = crate::services::model::UpdateLayoutInput {
+            name: input.name,
+            layout_type: input.layout_type.map(|lt| match lt {
+                LayoutTypeEnum::List => crate::model::types::LayoutType::List,
+                LayoutTypeEnum::Grid => crate::model::types::LayoutType::Grid,
+                LayoutTypeEnum::Dashboard => crate::model::types::LayoutType::Dashboard,
+                LayoutTypeEnum::Form => crate::model::types::LayoutType::Form,
+                LayoutTypeEnum::Detail => crate::model::types::LayoutType::Detail,
+                LayoutTypeEnum::Custom => crate::model::types::LayoutType::Custom,
+            }),
+            target_entities: input.target_entities,
+            components: input.components.map(|components| components.into_iter().map(|c| crate::services::model::CreateLayoutComponentInput {
+                component_type: c.component_type,
+                position: serde_json::from_value(c.position).unwrap_or_default(),
+                properties: serde_json::from_value(c.properties).unwrap_or_default(),
+                styling: c.styling.map(|s| serde_json::from_value(s).unwrap_or_default()),
+                metadata: c.metadata.map(|m| serde_json::from_value(m).unwrap_or_default()),
+            }).collect()),
+            responsive: input.responsive.map(|r| serde_json::from_value(r).unwrap_or_default()),
+        };
+        
+        let layout = state.services.model_service.update_layout(layout_id, service_input).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to update layout: {}", e)))?;
+            
+        Ok(Layout::from(layout))
     }
 
     /// Delete a layout

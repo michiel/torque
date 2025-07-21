@@ -145,7 +145,10 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
           ...data,
           root: {
             ...data.root,
-            title: layoutName
+            props: {
+              ...data.root?.props,
+              title: layoutName
+            }
           }
         };
         await onSave(updatedData, false); // Auto-save
