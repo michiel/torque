@@ -15,7 +15,7 @@ import '@mantine/notifications/styles.css'
 import './styles/global.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <BrowserRouter future={{ v7_startTransition: true }}>
+  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     <ApolloProvider client={apolloClient}>
       <MantineProvider theme={theme}>
         <ModalsProvider>
