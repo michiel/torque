@@ -19,6 +19,7 @@
   },
   "entities": [
     {
+      "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
       "name": "customer",
       "display_name": "Customer",
       "description": "Customer information and contact details",
@@ -44,7 +45,8 @@
             "label": "Customer ID",
             "visibility": "Visible",
             "edit_mode": "ReadOnly"
-          }
+          },
+          "id": "7d67d0e1-ab31-411c-b9ea-50d6856c7c7a"
         },
         {
           "name": "first_name",
@@ -72,7 +74,8 @@
             "placeholder": "Enter first name",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "fa584606-713f-4e2b-af91-bb393444818f"
         },
         {
           "name": "last_name",
@@ -95,7 +98,8 @@
             "placeholder": "Enter last name",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "f5637757-ffc0-479c-acd8-0a444c2a11b5"
         },
         {
           "name": "email",
@@ -124,7 +128,8 @@
             "help_text": "We'll use this to send order confirmations",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "def5482b-1fa2-4204-957b-0a1a182dc48a"
         },
         {
           "name": "phone",
@@ -147,7 +152,8 @@
             "placeholder": "+1 (555) 123-4567",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "f5c2da47-c657-4414-93c7-f5292dde99bb"
         },
         {
           "name": "address",
@@ -163,14 +169,20 @@
             "placeholder": "Street address, city, state, ZIP",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "b911f301-7a37-44ef-bf8e-23c62095ebfc"
         },
         {
           "name": "customer_type",
           "display_name": "Customer Type",
           "field_type": {
             "type": "Enum",
-            "values": ["Individual", "Business", "Premium", "Enterprise"]
+            "values": [
+              "Individual",
+              "Business",
+              "Premium",
+              "Enterprise"
+            ]
           },
           "required": true,
           "default_value": "Individual",
@@ -179,7 +191,8 @@
             "label": "Customer Type",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "ad0e7322-fba6-4881-bc0e-5acc19be9279"
         },
         {
           "name": "registration_date",
@@ -194,7 +207,8 @@
             "label": "Registration Date",
             "visibility": "Visible",
             "edit_mode": "ReadOnly"
-          }
+          },
+          "id": "291d82e7-2a59-47a3-ad30-049172b1acd6"
         },
         {
           "name": "active",
@@ -209,32 +223,41 @@
             "label": "Active Customer",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "23e27acb-1a57-4cd3-9ff5-8c3702eef3aa"
         }
       ],
       "constraints": [
         {
           "type": "PrimaryKey",
           "name": "pk_customer_id",
-          "fields": ["id"]
+          "fields": [
+            "id"
+          ]
         },
         {
           "type": "UniqueKey",
           "name": "uk_customer_email",
-          "fields": ["email"],
+          "fields": [
+            "email"
+          ],
           "message": "Email address must be unique"
         }
       ],
       "indexes": [
         {
           "name": "idx_customer_email",
-          "fields": ["email"],
+          "fields": [
+            "email"
+          ],
           "type": "BTree",
           "unique": true
         },
         {
           "name": "idx_customer_type",
-          "fields": ["customer_type"],
+          "fields": [
+            "customer_type"
+          ],
           "type": "BTree",
           "unique": false
         }
@@ -243,7 +266,14 @@
         "icon": "user",
         "color": "#3B82F6",
         "list_view": {
-          "columns": ["first_name", "last_name", "email", "customer_type", "registration_date", "active"],
+          "columns": [
+            "first_name",
+            "last_name",
+            "email",
+            "customer_type",
+            "registration_date",
+            "active"
+          ],
           "default_sort": {
             "field": "last_name",
             "direction": "asc"
@@ -272,11 +302,21 @@
           "sections": [
             {
               "title": "Basic Information",
-              "fields": ["first_name", "last_name", "email", "phone"]
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone"
+              ]
             },
             {
               "title": "Address & Details",
-              "fields": ["address", "customer_type", "registration_date", "active"]
+              "fields": [
+                "address",
+                "customer_type",
+                "registration_date",
+                "active"
+              ]
             }
           ]
         },
@@ -302,6 +342,7 @@
       }
     },
     {
+      "id": "b2c3d4e5-f6g7-8901-2345-678901bcdefg",
       "name": "order",
       "display_name": "Order",
       "description": "Customer orders with items and payment information",
@@ -327,7 +368,8 @@
             "label": "Order ID",
             "visibility": "Visible",
             "edit_mode": "ReadOnly"
-          }
+          },
+          "id": "89c03d74-233f-493f-bc00-4cc39c8bbd06"
         },
         {
           "name": "customer_id",
@@ -349,7 +391,8 @@
             "label": "Customer",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "7ddfdcc4-8e9d-483c-b482-3b17e1ab6321"
         },
         {
           "name": "order_date",
@@ -364,14 +407,23 @@
             "label": "Order Date",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "69df2490-43c2-4bc4-8e35-b89632c87dc5"
         },
         {
           "name": "status",
           "display_name": "Order Status",
           "field_type": {
             "type": "Enum",
-            "values": ["Draft", "Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled"]
+            "values": [
+              "Draft",
+              "Pending",
+              "Confirmed",
+              "Processing",
+              "Shipped",
+              "Delivered",
+              "Cancelled"
+            ]
           },
           "required": true,
           "default_value": "Draft",
@@ -380,7 +432,8 @@
             "label": "Order Status",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "becaa800-6d49-4c52-923b-1961a3e9b769"
         },
         {
           "name": "total_amount",
@@ -402,7 +455,8 @@
             "label": "Total Amount ($)",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "1124f3a9-d32d-447d-acc7-0e600d553df0"
         },
         {
           "name": "shipping_address",
@@ -418,14 +472,21 @@
             "placeholder": "Complete shipping address",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "5f38f6be-23f5-481b-9dbd-4db1f711dae7"
         },
         {
           "name": "payment_method",
           "display_name": "Payment Method",
           "field_type": {
             "type": "Enum",
-            "values": ["Credit Card", "Debit Card", "PayPal", "Bank Transfer", "Cash on Delivery"]
+            "values": [
+              "Credit Card",
+              "Debit Card",
+              "PayPal",
+              "Bank Transfer",
+              "Cash on Delivery"
+            ]
           },
           "required": true,
           "default_value": "Credit Card",
@@ -434,14 +495,21 @@
             "label": "Payment Method",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "0bf87659-5531-46fc-ba14-739a90b1dcf6"
         },
         {
           "name": "payment_status",
           "display_name": "Payment Status",
           "field_type": {
             "type": "Enum",
-            "values": ["Pending", "Processing", "Completed", "Failed", "Refunded"]
+            "values": [
+              "Pending",
+              "Processing",
+              "Completed",
+              "Failed",
+              "Refunded"
+            ]
           },
           "required": true,
           "default_value": "Pending",
@@ -450,7 +518,8 @@
             "label": "Payment Status",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "7695ca53-73ed-4206-8077-a69922dbf697"
         },
         {
           "name": "notes",
@@ -466,7 +535,8 @@
             "placeholder": "Special instructions or notes",
             "visibility": "Visible",
             "edit_mode": "Editable"
-          }
+          },
+          "id": "ff026029-4550-4b22-bbcc-bf5ac41f9cfb"
         },
         {
           "name": "created_at",
@@ -481,7 +551,8 @@
             "label": "Created At",
             "visibility": "Visible",
             "edit_mode": "ReadOnly"
-          }
+          },
+          "id": "2d30727d-6f27-4591-b30b-d8d6c1c4e8eb"
         },
         {
           "name": "updated_at",
@@ -496,38 +567,49 @@
             "label": "Updated At",
             "visibility": "Visible",
             "edit_mode": "ReadOnly"
-          }
+          },
+          "id": "b4bb0a60-411a-43c9-bf8d-5d36e295935a"
         }
       ],
       "constraints": [
         {
           "type": "PrimaryKey",
           "name": "pk_order_id",
-          "fields": ["id"]
+          "fields": [
+            "id"
+          ]
         },
         {
           "type": "ForeignKey",
           "name": "fk_order_customer",
-          "fields": ["customer_id"],
+          "fields": [
+            "customer_id"
+          ],
           "message": "Customer must exist"
         }
       ],
       "indexes": [
         {
           "name": "idx_order_customer_id",
-          "fields": ["customer_id"],
+          "fields": [
+            "customer_id"
+          ],
           "type": "BTree",
           "unique": false
         },
         {
           "name": "idx_order_status",
-          "fields": ["status"],
+          "fields": [
+            "status"
+          ],
           "type": "BTree",
           "unique": false
         },
         {
           "name": "idx_order_date",
-          "fields": ["order_date"],
+          "fields": [
+            "order_date"
+          ],
           "type": "BTree",
           "unique": false
         }
@@ -536,7 +618,14 @@
         "icon": "shopping-cart",
         "color": "#10B981",
         "list_view": {
-          "columns": ["id", "customer_id", "order_date", "status", "total_amount", "payment_status"],
+          "columns": [
+            "id",
+            "customer_id",
+            "order_date",
+            "status",
+            "total_amount",
+            "payment_status"
+          ],
           "default_sort": {
             "field": "order_date",
             "direction": "desc"
@@ -570,15 +659,29 @@
           "sections": [
             {
               "title": "Order Information",
-              "fields": ["id", "customer_id", "order_date", "status", "total_amount"]
+              "fields": [
+                "id",
+                "customer_id",
+                "order_date",
+                "status",
+                "total_amount"
+              ]
             },
             {
               "title": "Payment & Shipping",
-              "fields": ["payment_method", "payment_status", "shipping_address"]
+              "fields": [
+                "payment_method",
+                "payment_status",
+                "shipping_address"
+              ]
             },
             {
               "title": "Notes & Timestamps",
-              "fields": ["notes", "created_at", "updated_at"]
+              "fields": [
+                "notes",
+                "created_at",
+                "updated_at"
+              ]
             }
           ]
         },
@@ -617,7 +720,8 @@
         "display_in_form": true,
         "display_in_list": true,
         "component_type": "table"
-      }
+      },
+      "id": "b11c58c9-a5e5-4fe9-aeb7-ac86ea9443aa"
     }
   ],
   "flows": [
@@ -645,14 +749,16 @@
               "Shipped can transition to Delivered",
               "Delivered and Cancelled are final states"
             ]
-          }
+          },
+          "id": "ca8dfdb2-9ff3-4e0c-a192-cc9501fc0c4f"
         }
       ],
       "error_handling": {
         "retry_attempts": 0,
         "retry_delay_seconds": 0,
         "on_error": "Stop"
-      }
+      },
+      "id": "3a7707c6-3f6f-40b4-99d3-86f3e3e89ae8"
     },
     {
       "name": "order_confirmation_email",
@@ -673,21 +779,25 @@
             "email_template": "order_confirmation",
             "recipient": "customer.email",
             "subject": "Order Confirmation - Order #{{order.id}}"
-          }
+          },
+          "id": "36f6e5e1-074f-4d7f-9070-ae9543e24527"
         }
       ],
       "error_handling": {
         "retry_attempts": 3,
         "retry_delay_seconds": 60,
         "on_error": "Continue"
-      }
+      },
+      "id": "db0be1db-1ddc-43fe-be42-1d5472e945a5"
     }
   ],
   "layouts": [
     {
       "name": "customer_dashboard",
       "type": "Dashboard",
-      "target_entities": ["customer"],
+      "target_entities": [
+        "customer"
+      ],
       "components": [
         {
           "type": "DataGrid",
@@ -700,7 +810,14 @@
           "properties": {
             "entity": "customer",
             "title": "Customer Management",
-            "columns": ["first_name", "last_name", "email", "customer_type", "registration_date", "active"],
+            "columns": [
+              "first_name",
+              "last_name",
+              "email",
+              "customer_type",
+              "registration_date",
+              "active"
+            ],
             "sortable": true,
             "filterable": true,
             "pagination": true,
@@ -761,12 +878,15 @@
             "columns": 3
           }
         ]
-      }
+      },
+      "id": "7be4e672-1510-4595-ab91-3831e1628790"
     },
     {
       "name": "order_management",
       "type": "Dashboard",
-      "target_entities": ["order"],
+      "target_entities": [
+        "order"
+      ],
       "components": [
         {
           "type": "DataGrid",
@@ -779,7 +899,14 @@
           "properties": {
             "entity": "order",
             "title": "Order Management",
-            "columns": ["id", "customer_id", "order_date", "status", "total_amount", "payment_status"],
+            "columns": [
+              "id",
+              "customer_id",
+              "order_date",
+              "status",
+              "total_amount",
+              "payment_status"
+            ],
             "sortable": true,
             "filterable": true,
             "pagination": true,
@@ -825,12 +952,15 @@
             "description": "Create new order button component"
           }
         }
-      ]
+      ],
+      "id": "8ebcf4e1-33a9-4822-85d7-b33438decf69"
     },
     {
       "name": "customer_form",
       "type": "Form",
-      "target_entities": ["customer"],
+      "target_entities": [
+        "customer"
+      ],
       "components": [
         {
           "type": "TorqueForm",
@@ -848,21 +978,31 @@
               {
                 "name": "first_name",
                 "required": true,
-                "validation": ["required", "min:2"]
+                "validation": [
+                  "required",
+                  "min:2"
+                ]
               },
               {
                 "name": "last_name",
                 "required": true,
-                "validation": ["required"]
+                "validation": [
+                  "required"
+                ]
               },
               {
                 "name": "email",
                 "required": true,
-                "validation": ["required", "email"]
+                "validation": [
+                  "required",
+                  "email"
+                ]
               },
               {
                 "name": "phone",
-                "validation": ["phone"]
+                "validation": [
+                  "phone"
+                ]
               },
               {
                 "name": "address",
@@ -893,7 +1033,8 @@
             "description": "Customer information form component"
           }
         }
-      ]
+      ],
+      "id": "24154ff3-0de5-4c69-a87a-c60166a51ca9"
     }
   ],
   "sample_data": {
@@ -973,7 +1114,7 @@
         "customer_id": 2,
         "order_date": "2024-06-15T14:30:00Z",
         "status": "Processing",
-        "total_amount": 1250.00,
+        "total_amount": 1250.0,
         "shipping_address": "456 Business Ave, Suite 100, Commerce City, ST 23456",
         "payment_method": "Bank Transfer",
         "payment_status": "Completed",
@@ -999,7 +1140,7 @@
         "customer_id": 4,
         "order_date": "2024-07-01T08:00:00Z",
         "status": "Confirmed",
-        "total_amount": 2750.00,
+        "total_amount": 2750.0,
         "shipping_address": "321 Enterprise Plaza, Corporate Center, ST 45678",
         "payment_method": "Credit Card",
         "payment_status": "Processing",
@@ -1025,7 +1166,7 @@
         "customer_id": 2,
         "order_date": "2024-07-10T15:00:00Z",
         "status": "Draft",
-        "total_amount": 850.00,
+        "total_amount": 850.0,
         "shipping_address": "456 Business Ave, Suite 100, Commerce City, ST 23456",
         "payment_method": "Bank Transfer",
         "payment_status": "Pending",

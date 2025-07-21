@@ -237,7 +237,11 @@ export const convertPuckToLegacyLayout = (
         height: item.type === 'DataGrid' ? 6 : item.type === 'TorqueForm' ? 8 : 2
       },
       properties: cleanProps,
-      styling: {}
+      styling: {},
+      metadata: {
+        createdWith: 'VisualEditor',
+        version: '1.0'
+      }
     };
   });
 

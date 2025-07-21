@@ -393,6 +393,10 @@ impl LayoutComponentWrapper {
     async fn styling(&self) -> serde_json::Value {
         serde_json::to_value(&self.inner.styling).unwrap_or_default()
     }
+
+    async fn metadata(&self) -> Option<serde_json::Value> {
+        self.inner.metadata.as_ref().map(|m| serde_json::to_value(m).unwrap_or_default())
+    }
 }
 
 pub struct LayoutWrapper {

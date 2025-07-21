@@ -15,6 +15,7 @@ export const GET_LAYOUT = gql`
         position
         properties
         styling
+        metadata
       }
       responsive
       createdAt
@@ -143,6 +144,7 @@ export const GET_MODEL = gql`
           position
           properties
           styling
+          metadata
         }
         responsive
       }

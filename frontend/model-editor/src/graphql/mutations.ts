@@ -184,6 +184,7 @@ export const CREATE_LAYOUT = gql`
         position
         properties
         styling
+        metadata
       }
       responsive
     }
@@ -204,6 +205,7 @@ export const UPDATE_LAYOUT = gql`
         position
         properties
         styling
+        metadata
       }
       responsive
     }
