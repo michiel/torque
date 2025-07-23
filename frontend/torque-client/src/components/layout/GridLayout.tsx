@@ -5,10 +5,11 @@ import { ComponentRenderer } from '../dynamic/ComponentRenderer'
 interface GridLayoutProps {
   components: ComponentConfig[]
   modelId: string
+  apiBaseUrl?: string
   onAction?: (action: any) => void
 }
 
-export function GridLayout({ components, modelId, onAction }: GridLayoutProps) {
+export function GridLayout({ components, modelId, apiBaseUrl, onAction }: GridLayoutProps) {
   return (
     <Grid>
       {components.map((component) => (
@@ -23,6 +24,7 @@ export function GridLayout({ components, modelId, onAction }: GridLayoutProps) {
           <ComponentRenderer
             config={component}
             modelId={modelId}
+            apiBaseUrl={apiBaseUrl}
             onAction={onAction}
           />
         </Grid.Col>

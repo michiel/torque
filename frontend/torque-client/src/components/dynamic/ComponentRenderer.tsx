@@ -10,10 +10,11 @@ import { Modal } from './Modal'
 interface ComponentRendererProps {
   config: ComponentConfig
   modelId: string
+  apiBaseUrl?: string
   onAction?: (action: any) => void
 }
 
-export const ComponentRenderer = memo(function ComponentRenderer({ config, modelId, onAction }: ComponentRendererProps) {
+export const ComponentRenderer = memo(function ComponentRenderer({ config, modelId, apiBaseUrl, onAction }: ComponentRendererProps) {
   const { type, properties } = config
 
   // Component props will be spread individually for each component type
@@ -24,8 +25,9 @@ export const ComponentRenderer = memo(function ComponentRenderer({ config, model
         <DataGrid 
           id={config.id}
           modelId={modelId}
+          apiBaseUrl={apiBaseUrl}
           onAction={onAction}
-          entityName={properties.entityName || 'Unknown'}
+          entityName={properties.entity || properties.entityName || 'Unknown'}
           columns={properties.columns || []}
           features={properties.features || []}
           pageSize={properties.pageSize || 20}

@@ -8,10 +8,12 @@ import { Modal } from '../dynamic/Modal'
 interface PageRendererProps {
   modelId: string
   pageName?: string
+  apiBaseUrl?: string
+  onAction?: (action: any) => void
 }
 
-export const PageRenderer = memo(function PageRenderer({ modelId, pageName }: PageRendererProps) {
-  const { data, loading, error } = useLoadPage(modelId, pageName)
+export const PageRenderer = memo(function PageRenderer({ modelId, pageName, apiBaseUrl, onAction: externalOnAction }: PageRendererProps) {
+  const { data, loading, error } = useLoadPage(modelId, pageName, apiBaseUrl)
   const [modalState, setModalState] = useState<{
     opened: boolean
     type?: string
@@ -23,6 +25,11 @@ export const PageRenderer = memo(function PageRenderer({ modelId, pageName }: Pa
 
   const handleAction = useCallback((action: any) => {
     console.log('Page action:', action)
+    
+    // Forward action to external handler if provided
+    if (externalOnAction) {
+      externalOnAction(action)
+    }
     
     switch (action.type) {
       case 'openModal':
@@ -101,6 +108,7 @@ export const PageRenderer = memo(function PageRenderer({ modelId, pageName }: Pa
         <GridLayout
           components={layout.components}
           modelId={modelId}
+          apiBaseUrl={apiBaseUrl}
           onAction={handleAction}
         />
       )}

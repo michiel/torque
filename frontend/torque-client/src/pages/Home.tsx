@@ -5,9 +5,9 @@ export function Home() {
   const { data: capabilities, loading, error } = useCapabilities()
 
   const handleOpenSampleApp = () => {
-    // TODO: Create a sample model and navigate to it
-    // For now, just show a placeholder message
-    alert('Sample app functionality coming soon!')
+    // Navigate to the Todo Application sample
+    const todoAppModelId = '492a9e29-c546-469b-b565-b0a69988a5d3'
+    window.open(`/app/${todoAppModelId}`, '_blank')
   }
 
   return (
@@ -71,6 +71,13 @@ export function Home() {
           <Text size="sm" c="dimmed">
             To run a TorqueApp, provide a model ID in the URL:<br />
             <code>/app/[modelId]</code> or <code>/app/[modelId]/[pageName]</code>
+          </Text>
+          <br />
+          <Text size="sm" c="blue">
+            Try the Todo Application: <br />
+            <a href="/app/492a9e29-c546-469b-b565-b0a69988a5d3" target="_blank">
+              /app/492a9e29-c546-469b-b565-b0a69988a5d3
+            </a>
           </Text>
         </div>
       </Stack>

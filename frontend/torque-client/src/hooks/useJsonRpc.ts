@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { jsonRpcClient } from '../services/jsonrpc-client'
+import { jsonRpcClient, JsonRpcClient } from '../services/jsonrpc-client'
 
 interface UseJsonRpcState<T> {
   data: T | null
@@ -10,7 +10,8 @@ interface UseJsonRpcState<T> {
 export function useJsonRpc<T = any>(
   method: string,
   params?: Record<string, any>,
-  dependencies: any[] = []
+  dependencies: any[] = [],
+  client: JsonRpcClient = jsonRpcClient
 ): UseJsonRpcState<T> & { refetch: () => Promise<void> } {
   const [state, setState] = useState<UseJsonRpcState<T>>({
     data: null,
@@ -34,7 +35,7 @@ export function useJsonRpc<T = any>(
     setState(prev => ({ ...prev, loading: true, error: null }))
     
     try {
-      const result = await jsonRpcClient.call<T>(method, stableParams)
+      const result = await client.call<T>(method, stableParams)
       setState({ data: result, loading: false, error: null })
     } catch (error) {
       setState({
@@ -43,7 +44,7 @@ export function useJsonRpc<T = any>(
         error: error instanceof Error ? error.message : 'Unknown error'
       })
     }
-  }, [method, stableParams])
+  }, [method, stableParams, client])
 
   // Only include dependencies if explicitly provided to avoid re-render loops
   useEffect(() => {
@@ -57,19 +58,22 @@ export function useJsonRpc<T = any>(
 }
 
 // Specific hooks for common TorqueApp operations
-export function useLoadPage(modelId: string, pageName?: string) {
+export function useLoadPage(modelId: string, pageName?: string, apiBaseUrl?: string) {
   const params = useMemo(() => ({ modelId, pageName }), [modelId, pageName])
-  return useJsonRpc('loadPage', params)
+  const client = useMemo(() => apiBaseUrl ? new JsonRpcClient(apiBaseUrl) : jsonRpcClient, [apiBaseUrl])
+  return useJsonRpc('loadPage', params, [], client)
 }
 
 export function useLoadEntityData(
   modelId: string,
   entityName: string,
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
+  apiBaseUrl?: string
 ) {
   const params = useMemo(() => ({ modelId, entityName, page, limit }), [modelId, entityName, page, limit])
-  return useJsonRpc('loadEntityData', params)
+  const client = useMemo(() => apiBaseUrl ? new JsonRpcClient(apiBaseUrl) : jsonRpcClient, [apiBaseUrl])
+  return useJsonRpc('loadEntityData', params, [], client)
 }
 
 export function useFormDefinition(modelId: string, entityName: string) {

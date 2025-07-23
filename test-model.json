@@ -1,0 +1,51 @@
+{
+  "name": "Test Model",
+  "description": "Simple test model",
+  "version": "1.0.0",
+  "created_by": "test",
+  "entities": [
+    {
+      "name": "projects",
+      "description": "Test projects",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "primary_key": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "layouts": [
+    {
+      "name": "start",
+      "type": "grid",
+      "components": [
+        {
+          "id": "projects-grid",
+          "type": "DataGrid",
+          "position": { "row": 0, "col": 0, "span": 12 },
+          "properties": {
+            "entityName": "projects",
+            "columns": [
+              { "key": "name", "title": "Name", "dataType": "string" },
+              { "key": "description", "title": "Description", "dataType": "text" }
+            ],
+            "features": ["pagination", "filtering"],
+            "pageSize": 10
+          }
+        }
+      ]
+    }
+  ]
+}

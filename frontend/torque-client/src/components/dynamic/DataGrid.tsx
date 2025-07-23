@@ -11,6 +11,7 @@ interface DataGridProps {
   columns: DataGridColumn[]
   features: string[]
   pageSize: number
+  apiBaseUrl?: string
   onAction?: (action: any) => void
 }
 
@@ -20,6 +21,7 @@ export const DataGrid = memo(function DataGrid({
   columns,
   features = [],
   pageSize = 20,
+  apiBaseUrl,
   onAction
 }: DataGridProps) {
   const [currentPage, setCurrentPage] = useState(1)
@@ -29,7 +31,8 @@ export const DataGrid = memo(function DataGrid({
     modelId,
     entityName,
     currentPage,
-    pageSize
+    pageSize,
+    apiBaseUrl
   )
 
   const handleCreate = useCallback(() => {

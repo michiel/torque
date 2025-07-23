@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TorqueApp Embed Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .example-container {
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .example-title {
+            color: #333;
+            margin-top: 0;
+        }
+        .torque-app-container {
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>TorqueApp Embeddable Component Examples</h1>
+    
+    <div class="example-container">
+        <h2 class="example-title">Example 1: Todo Application Project Dashboard</h2>
+        <p>This shows the Todo Application model with the project dashboard layout, displaying a DataGrid of project entities.</p>
+        
+        <div id="torque-app-1" class="torque-app-container">
+            <!-- TorqueApp will render here -->
+            <div style="padding: 20px; text-align: center; color: #666;">
+                <p>TorqueApp would render here with:</p>
+                <ul style="text-align: left; display: inline-block;">
+                    <li>Model ID: 492a9e29-c546-469b-b565-b0a69988a5d3</li>
+                    <li>API Endpoint: http://localhost:8081</li>
+                    <li>Layout: project_dashboard (default start page)</li>
+                    <li>Components: DataGrid with 4 project entities</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h3>React Usage:</h3>
+        <pre><code>&lt;TorqueAppEmbed 
+  modelId="492a9e29-c546-469b-b565-b0a69988a5d3"
+  apiBaseUrl="http://localhost:8081"
+  onAction={(action) =&gt; console.log('Action:', action)}
+/&gt;</code></pre>
+    </div>
+
+    <div class="example-container">
+        <h2 class="example-title">Example 2: Custom API Endpoint</h2>
+        <p>This shows how to use TorqueApp with a custom API endpoint (e.g., production server).</p>
+        
+        <div id="torque-app-2" class="torque-app-container">
+            <div style="padding: 20px; text-align: center; color: #666;">
+                <p>TorqueApp with custom API endpoint would render here</p>
+            </div>
+        </div>
+        
+        <h3>React Usage:</h3>
+        <pre><code>&lt;TorqueAppEmbed 
+  modelId="492a9e29-c546-469b-b565-b0a69988a5d3"
+  pageName="project_dashboard"
+  apiBaseUrl="https://production-api.company.com"
+  style={{ height: '500px', border: '1px solid #ccc' }}
+/&gt;</code></pre>
+    </div>
+
+    <div class="example-container">
+        <h2 class="example-title">Integration Notes</h2>
+        <ul>
+            <li><strong>Self-contained:</strong> TorqueApp includes all necessary dependencies (Mantine UI, JSON-RPC client, etc.)</li>
+            <li><strong>Responsive:</strong> Automatically adapts to container size</li>
+            <li><strong>Real-time:</strong> Connects directly to Torque server via JSON-RPC API</li>
+            <li><strong>Configurable:</strong> Supports custom themes, API endpoints, and action handlers</li>
+            <li><strong>TypeScript:</strong> Full TypeScript support with exported types</li>
+        </ul>
+    </div>
+
+    <script>
+        // Simulate what would happen if this were a React app
+        console.log('TorqueApp Embed Examples loaded');
+        console.log('To use in React, import: import { TorqueAppEmbed } from "torque-client"');
+        
+        // Test API connectivity
+        fetch('http://localhost:8081/rpc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'ping',
+                id: 1
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('✅ Torque API is responding:', data);
+        })
+        .catch(error => {
+            console.log('❌ Torque API connection failed:', error);
+            console.log('Make sure to run: cargo run -- server --bind 127.0.0.1:8081');
+        });
+    </script>
+</body>
+</html>
