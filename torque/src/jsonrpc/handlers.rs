@@ -210,31 +210,34 @@ async fn load_entity_data(state: &AppState, params: &Value) -> Result<Value, (i3
         .find(|e| e.name == entity_name)
         .ok_or((-32605, format!("Entity '{}' not found in model", entity_name)))?;
     
-    // Create query with filters
-    let query_filters = DirectMapping::build_query_filter(filters);
-    let mut filter_map = HashMap::new();
-    for (k, v) in query_filters {
-        filter_map.insert(k, v);
-    }
+    // Note: Filtering will be implemented in a future iteration
+    // For now, we return all entities with basic pagination
     
-    let query = EntityQuery {
-        application_id: Some(model_uuid),
-        entity_type: Some(entity_name.to_string()),
-        limit: Some(limit),
-        offset: Some((page - 1) * limit),
-        filters: if filter_map.is_empty() { None } else { Some(filter_map) },
-    };
+    // Query entities using the app database service (where sample data is stored)
+    let offset = (page - 1) * limit;
     
-    // Query entities using the entity service
-    let entities = state.services.entity_service.query_entities(query.clone()).await
+    let entities = state.services.app_database_service
+        .get_entities(model_id, entity_name, limit, offset)
+        .await
         .map_err(|e| (-32603, format!("Failed to query entities: {}", e)))?;
     
-    // Count total entities
-    let total = state.services.entity_service.count_entities(query).await
-        .map_err(|e| (-32603, format!("Failed to count entities: {}", e)))?;
+    let total = state.services.app_database_service
+        .get_entity_count(model_id, entity_name)
+        .await
+        .map_err(|e| (-32603, format!("Failed to get entity count: {}", e)))?;
     
-    // Format response with direct mapping
-    let response = DirectMapping::format_entity_list(entities, page, limit, total);
+    // Format response directly since we already have JSON data
+    let response = serde_json::json!({
+        "data": entities,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "totalPages": (total as f64 / limit as f64).ceil() as u64,
+            "hasNextPage": page * limit < total,
+            "hasPreviousPage": page > 1
+        }
+    });
     
     Ok(json!({
         "modelId": model_id,
