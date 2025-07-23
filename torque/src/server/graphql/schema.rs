@@ -447,6 +447,14 @@ impl Mutation {
             .map_err(|e| async_graphql::Error::new(format!("Failed to import model: {}", e)))?;
         Ok(Model::from(model))
     }
+
+    /// Load sample data for a model
+    async fn load_sample_data(&self, ctx: &Context<'_>, model_id: String) -> Result<u64> {
+        let state = ctx.data::<AppState>()?;
+        let count = state.services.app_database_service.load_sample_data(&model_id).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to load sample data: {}", e)))?;
+        Ok(count)
+    }
 }
 
 /// Subscription type for real-time updates (placeholder for now)

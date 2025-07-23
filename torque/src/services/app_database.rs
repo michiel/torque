@@ -329,4 +329,57 @@ impl AppDatabaseService {
 
         Ok(overview)
     }
+
+    /// Load sample data from model JSON into the database
+    pub async fn load_sample_data(&self, model_id: &str) -> Result<u64> {
+        // Get model definition
+        let model_uuid = model_id.parse::<Uuid>()
+            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
+        let model = self.model_service.get_model(model_uuid).await
+            .map_err(|_| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?
+            .ok_or_else(|| AppDatabaseError::ModelNotFound { model_id: model_id.to_string() })?;
+
+        // For now, we need to read the original JSON file to get sample data
+        // This is a temporary approach until we store sample data in the model
+        let sample_model_path = std::path::Path::new("sample/models/todo-app.json");
+        if !sample_model_path.exists() {
+            tracing::warn!("Sample model file not found at {}", sample_model_path.display());
+            return Ok(0);
+        }
+
+        let json_content = tokio::fs::read_to_string(sample_model_path).await
+            .map_err(|e| Error::Io(e))?;
+        let data: serde_json::Value = serde_json::from_str(&json_content)
+            .map_err(|e| Error::Serialization(e))?;
+
+        let mut total_created = 0u64;
+
+        // Load sample data if it exists
+        if let Some(sample_data) = data.get("sample_data") {
+            if let Some(sample_data_obj) = sample_data.as_object() {
+                for (entity_type, entity_data) in sample_data_obj {
+                    if let Some(data_array) = entity_data.as_array() {
+                        tracing::info!("Loading {} {} entities from sample data", data_array.len(), entity_type);
+                        
+                        for entity_instance in data_array {
+                            let entity_json = serde_json::to_value(entity_instance)
+                                .map_err(|e| Error::Serialization(e))?;
+                            
+                            match self.create_entity(model_id, entity_type, entity_json).await {
+                                Ok(_) => {
+                                    total_created += 1;
+                                }
+                                Err(e) => {
+                                    tracing::warn!("Failed to create {} entity: {}", entity_type, e);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        tracing::info!("Loaded {} sample entities for model {}", total_created, model.name);
+        Ok(total_created)
+    }
 }

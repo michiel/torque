@@ -1411,6 +1411,19 @@ impl ModelService {
         // Emit model created event
         self.emit_event(ModelChangeEvent::model_created(model.clone()));
         
+        // TODO: Load sample data - requires entity service integration
+        // For now, we just log that sample data exists
+        if let Some(sample_data) = data.get("sample_data") {
+            tracing::info!("Model {} contains sample data that needs to be loaded", model.name);
+            if let Some(sample_data_obj) = sample_data.as_object() {
+                for (entity_type, entity_data) in sample_data_obj {
+                    if let Some(data_array) = entity_data.as_array() {
+                        tracing::info!("  - {} {} entities", data_array.len(), entity_type);
+                    }
+                }
+            }
+        }
+        
         Ok(model)
     }
     

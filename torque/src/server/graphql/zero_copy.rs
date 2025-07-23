@@ -1009,6 +1009,14 @@ impl OptimizedMutation {
             }).collect(),
         })
     }
+
+    /// Load sample data for a model
+    async fn load_sample_data(&self, ctx: &Context<'_>, model_id: String) -> Result<u64> {
+        let state = ctx.data::<AppState>()?;
+        let count = state.services.app_database_service.load_sample_data(&model_id).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to load sample data: {}", e)))?;
+        Ok(count)
+    }
 }
 
 impl OptimizedMutation {
