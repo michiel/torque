@@ -829,7 +829,7 @@
             "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
           },
           "metadata": {
-            "createdWith": "SeedData",
+            "createdWith": "VisualEditor",
             "version": "1.0",
             "description": "Customer management data grid component"
           }
@@ -854,7 +854,7 @@
           },
           "styling": {},
           "metadata": {
-            "createdWith": "SeedData",
+            "createdWith": "VisualEditor",
             "version": "1.0",
             "description": "Add new customer button component"
           }
@@ -922,7 +922,7 @@
             "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
           },
           "metadata": {
-            "createdWith": "SeedData",
+            "createdWith": "VisualEditor",
             "version": "1.0",
             "description": "Order management data grid component"
           }
@@ -947,7 +947,7 @@
           },
           "styling": {},
           "metadata": {
-            "createdWith": "SeedData",
+            "createdWith": "VisualEditor",
             "version": "1.0",
             "description": "Create new order button component"
           }
@@ -1028,7 +1028,7 @@
           },
           "styling": {},
           "metadata": {
-            "createdWith": "SeedData",
+            "createdWith": "VisualEditor",
             "version": "1.0",
             "description": "Customer information form component"
           }

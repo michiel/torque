@@ -1292,23 +1292,30 @@ impl ModelService {
             }
         }
         
-        // Load the customer-order model
-        let sample_model_path = std::path::Path::new("sample/models/customer-order.json");
-        if sample_model_path.exists() {
-            tracing::info!("Loading customer-order sample model");
-            let json_content = tokio::fs::read_to_string(sample_model_path).await?;
-            
-            // Parse the JSON as a simplified format and convert to TorqueModel
-            match self.parse_sample_model(&json_content).await {
-                Ok(model) => {
-                    tracing::info!("Successfully loaded customer-order model: {} with {} entities", model.name, model.entities.len());
+        // Load sample models
+        let sample_models = vec![
+            ("customer-order.json", "Customer Order Management"),
+            ("todo-app.json", "Todo Application")
+        ];
+        
+        for (filename, description) in sample_models {
+            let sample_model_path = std::path::Path::new("sample/models").join(filename);
+            if sample_model_path.exists() {
+                tracing::info!("Loading {} sample model from {}", description, filename);
+                let json_content = tokio::fs::read_to_string(&sample_model_path).await?;
+                
+                // Parse the JSON as a simplified format and convert to TorqueModel
+                match self.parse_sample_model(&json_content).await {
+                    Ok(model) => {
+                        tracing::info!("Successfully loaded {} model: {} with {} entities", description, model.name, model.entities.len());
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to parse {} model: {}", description, e);
+                    }
                 }
-                Err(e) => {
-                    tracing::warn!("Failed to parse customer-order model: {}", e);
-                }
+            } else {
+                tracing::info!("No sample model found at {}", sample_model_path.display());
             }
-        } else {
-            tracing::info!("No sample model found at {}", sample_model_path.display());
         }
         
         Ok(())

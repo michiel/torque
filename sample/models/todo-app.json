@@ -1,0 +1,1419 @@
+{
+  "name": "Todo Application",
+  "description": "Complete task management system with projects, tasks, categories, and user assignments featuring collaborative features and progress tracking",
+  "version": "1.0.0",
+  "created_by": "system",
+  "config": {
+    "database": {
+      "type": "sqlite",
+      "migration_strategy": "auto"
+    },
+    "performance": {
+      "caching_enabled": true,
+      "cache_ttl_seconds": 1800
+    },
+    "ui": {
+      "theme": "modern",
+      "layout": "responsive"
+    }
+  },
+  "entities": [
+    {
+      "id": "c1d2e3f4-g5h6-7890-1234-abcdef123456",
+      "name": "project",
+      "display_name": "Project",
+      "description": "Organization container for related tasks and todos",
+      "entity_type": "Data",
+      "fields": [
+        {
+          "id": "p1f2e3d4-c5b6-7890-1234-567890abcdef",
+          "name": "id",
+          "display_name": "Project ID",
+          "field_type": {
+            "type": "Integer",
+            "min": 1
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Project ID is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Project ID",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "id": "p2f3e4d5-c6b7-8901-2345-678901bcdefg",
+          "name": "name",
+          "display_name": "Project Name",
+          "field_type": {
+            "type": "String",
+            "max_length": 100
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Project name is required",
+              "severity": "Error"
+            },
+            {
+              "type": "MinLength",
+              "message": "Project name must be at least 2 characters",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Project Name",
+            "placeholder": "Enter project name",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "p3f4e5d6-c7b8-9012-3456-789012cdefgh",
+          "name": "description",
+          "display_name": "Description",
+          "field_type": {
+            "type": "String",
+            "max_length": 500
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "textarea",
+            "label": "Project Description",
+            "placeholder": "Describe the project goals and scope",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "p4f5e6d7-c8b9-0123-4567-890123defghi",
+          "name": "status",
+          "display_name": "Project Status",
+          "field_type": {
+            "type": "Enum",
+            "values": ["Planning", "Active", "On Hold", "Completed", "Cancelled"]
+          },
+          "required": true,
+          "default_value": "Planning",
+          "ui_config": {
+            "component_type": "select",
+            "label": "Project Status",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "p5f6e7d8-c9b0-1234-5678-901234efghij",
+          "name": "priority",
+          "display_name": "Priority",
+          "field_type": {
+            "type": "Enum",
+            "values": ["Low", "Medium", "High", "Critical"]
+          },
+          "required": true,
+          "default_value": "Medium",
+          "ui_config": {
+            "component_type": "select",
+            "label": "Priority Level",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "p6f7e8d9-c0b1-2345-6789-012345fghijk",
+          "name": "start_date",
+          "display_name": "Start Date",
+          "field_type": {
+            "type": "Date"
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "date",
+            "label": "Start Date",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "p7f8e9d0-c1b2-3456-7890-123456ghijkl",
+          "name": "due_date",
+          "display_name": "Due Date",
+          "field_type": {
+            "type": "Date"
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "date",
+            "label": "Due Date",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "p8f9e0d1-c2b3-4567-8901-234567hijklm",
+          "name": "created_at",
+          "display_name": "Created At",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": true,
+          "default_value": "now()",
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Created At",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "id": "p9f0e1d2-c3b4-5678-9012-345678ijklmn",
+          "name": "updated_at",
+          "display_name": "Updated At",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": true,
+          "default_value": "now()",
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Updated At",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        }
+      ],
+      "constraints": [
+        {
+          "type": "PrimaryKey",
+          "name": "pk_project_id",
+          "fields": ["id"]
+        },
+        {
+          "type": "UniqueKey",
+          "name": "uk_project_name",
+          "fields": ["name"],
+          "message": "Project name must be unique"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_project_status",
+          "fields": ["status"],
+          "type": "BTree",
+          "unique": false
+        },
+        {
+          "name": "idx_project_priority",
+          "fields": ["priority"],
+          "type": "BTree",
+          "unique": false
+        }
+      ],
+      "ui_config": {
+        "icon": "folder",
+        "color": "#8B5CF6",
+        "list_view": {
+          "columns": ["name", "status", "priority", "start_date", "due_date", "created_at"],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "page_size": 20,
+          "filters": [
+            {
+              "field": "status",
+              "type": "select",
+              "label": "Status"
+            },
+            {
+              "field": "priority",
+              "type": "select",
+              "label": "Priority"
+            }
+          ]
+        },
+        "detail_view": {
+          "layout": "Single",
+          "sections": [
+            {
+              "title": "Project Information",
+              "fields": ["name", "description", "status", "priority"]
+            },
+            {
+              "title": "Timeline",
+              "fields": ["start_date", "due_date", "created_at", "updated_at"]
+            }
+          ]
+        }
+      },
+      "behavior": {
+        "auditing": {
+          "enabled": true,
+          "track_changes": true,
+          "track_access": false
+        },
+        "caching": {
+          "enabled": true,
+          "ttl_seconds": 1800
+        }
+      }
+    },
+    {
+      "id": "d2e3f4g5-h6i7-8901-2345-bcdefg234567",
+      "name": "category",
+      "display_name": "Category",
+      "description": "Classification system for organizing tasks by type or theme",
+      "entity_type": "Data",
+      "fields": [
+        {
+          "id": "c1g2f3e4-d5c6-7890-1234-567890abcdef",
+          "name": "id",
+          "display_name": "Category ID",
+          "field_type": {
+            "type": "Integer",
+            "min": 1
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Category ID is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Category ID",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "id": "c2g3f4e5-d6c7-8901-2345-678901bcdefg",
+          "name": "name",
+          "display_name": "Category Name",
+          "field_type": {
+            "type": "String",
+            "max_length": 50
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Category name is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Category Name",
+            "placeholder": "Enter category name",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "c3g4f5e6-d7c8-9012-3456-789012cdefgh",
+          "name": "color",
+          "display_name": "Color",
+          "field_type": {
+            "type": "String",
+            "max_length": 7
+          },
+          "required": true,
+          "default_value": "#3B82F6",
+          "ui_config": {
+            "component_type": "color",
+            "label": "Category Color",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "c4g5f6e7-d8c9-0123-4567-890123defghi",
+          "name": "description",
+          "display_name": "Description",
+          "field_type": {
+            "type": "String",
+            "max_length": 200
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "textarea",
+            "label": "Category Description",
+            "placeholder": "Describe this category",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "c5g6f7e8-d9c0-1234-5678-901234efghij",
+          "name": "active",
+          "display_name": "Active",
+          "field_type": {
+            "type": "Boolean"
+          },
+          "required": true,
+          "default_value": true,
+          "ui_config": {
+            "component_type": "checkbox",
+            "label": "Active Category",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        }
+      ],
+      "constraints": [
+        {
+          "type": "PrimaryKey",
+          "name": "pk_category_id",
+          "fields": ["id"]
+        },
+        {
+          "type": "UniqueKey",
+          "name": "uk_category_name",
+          "fields": ["name"],
+          "message": "Category name must be unique"
+        }
+      ],
+      "ui_config": {
+        "icon": "tag",
+        "color": "#10B981",
+        "list_view": {
+          "columns": ["name", "color", "description", "active"],
+          "default_sort": {
+            "field": "name",
+            "direction": "asc"
+          },
+          "page_size": 15
+        }
+      }
+    },
+    {
+      "id": "e3f4g5h6-i7j8-9012-3456-cdefgh345678",
+      "name": "task",
+      "display_name": "Task",
+      "description": "Individual todo items with assignments, priorities, and progress tracking",
+      "entity_type": "Data",
+      "fields": [
+        {
+          "id": "t1h2g3f4-e5d6-7890-1234-567890abcdef",
+          "name": "id",
+          "display_name": "Task ID",
+          "field_type": {
+            "type": "Integer",
+            "min": 1
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Task ID is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Task ID",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "id": "t2h3g4f5-e6d7-8901-2345-678901bcdefg",
+          "name": "project_id",
+          "display_name": "Project",
+          "field_type": {
+            "type": "Reference",
+            "entity": "project"
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Project assignment is required",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "select",
+            "label": "Project",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t3h4g5f6-e7d8-9012-3456-789012cdefgh",
+          "name": "category_id",
+          "display_name": "Category",
+          "field_type": {
+            "type": "Reference",
+            "entity": "category"
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "select",
+            "label": "Category",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t4h5g6f7-e8d9-0123-4567-890123defghi",
+          "name": "title",
+          "display_name": "Task Title",
+          "field_type": {
+            "type": "String",
+            "max_length": 200
+          },
+          "required": true,
+          "validation": [
+            {
+              "type": "Required",
+              "message": "Task title is required",
+              "severity": "Error"
+            },
+            {
+              "type": "MinLength",
+              "message": "Task title must be at least 3 characters",
+              "severity": "Error"
+            }
+          ],
+          "ui_config": {
+            "component_type": "input",
+            "label": "Task Title",
+            "placeholder": "Enter task title",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t5h6g7f8-e9d0-1234-5678-901234efghij",
+          "name": "description",
+          "display_name": "Description",
+          "field_type": {
+            "type": "String",
+            "max_length": 1000
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "textarea",
+            "label": "Task Description",
+            "placeholder": "Detailed task description and requirements",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t6h7g8f9-e0d1-2345-6789-012345fghijk",
+          "name": "status",
+          "display_name": "Status",
+          "field_type": {
+            "type": "Enum",
+            "values": ["Todo", "In Progress", "Review", "Done", "Cancelled"]
+          },
+          "required": true,
+          "default_value": "Todo",
+          "ui_config": {
+            "component_type": "select",
+            "label": "Task Status",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t7h8g9f0-e1d2-3456-7890-123456ghijkl",
+          "name": "priority",
+          "display_name": "Priority",
+          "field_type": {
+            "type": "Enum",
+            "values": ["Low", "Medium", "High", "Urgent"]
+          },
+          "required": true,
+          "default_value": "Medium",
+          "ui_config": {
+            "component_type": "select",
+            "label": "Priority Level",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t8h9g0f1-e2d3-4567-8901-234567hijklm",
+          "name": "estimated_hours",
+          "display_name": "Estimated Hours",
+          "field_type": {
+            "type": "Float",
+            "min": 0
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "input",
+            "label": "Estimated Hours",
+            "placeholder": "0.0",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t9h0g1f2-e3d4-5678-9012-345678ijklmn",
+          "name": "actual_hours",
+          "display_name": "Actual Hours",
+          "field_type": {
+            "type": "Float",
+            "min": 0
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "input",
+            "label": "Actual Hours",
+            "placeholder": "0.0",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t0h1g2f3-e4d5-6789-0123-456789jklmno",
+          "name": "due_date",
+          "display_name": "Due Date",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Due Date",
+            "visibility": "Visible",
+            "edit_mode": "Editable"
+          }
+        },
+        {
+          "id": "t1h2g3f4-e5d6-7890-1234-567890klmnop",
+          "name": "completed_at",
+          "display_name": "Completed At",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": false,
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Completed At",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "id": "t2h3g4f5-e6d7-8901-2345-678901lmnopq",
+          "name": "created_at",
+          "display_name": "Created At",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": true,
+          "default_value": "now()",
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Created At",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        },
+        {
+          "id": "t3h4g5f6-e7d8-9012-3456-789012mnopqr",
+          "name": "updated_at",
+          "display_name": "Updated At",
+          "field_type": {
+            "type": "DateTime"
+          },
+          "required": true,
+          "default_value": "now()",
+          "ui_config": {
+            "component_type": "datetime",
+            "label": "Updated At",
+            "visibility": "Visible",
+            "edit_mode": "ReadOnly"
+          }
+        }
+      ],
+      "constraints": [
+        {
+          "type": "PrimaryKey",
+          "name": "pk_task_id",
+          "fields": ["id"]
+        },
+        {
+          "type": "ForeignKey",
+          "name": "fk_task_project",
+          "fields": ["project_id"],
+          "message": "Project must exist"
+        },
+        {
+          "type": "ForeignKey",
+          "name": "fk_task_category",
+          "fields": ["category_id"],
+          "message": "Category must exist"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_task_project_id",
+          "fields": ["project_id"],
+          "type": "BTree",
+          "unique": false
+        },
+        {
+          "name": "idx_task_status",
+          "fields": ["status"],
+          "type": "BTree",
+          "unique": false
+        },
+        {
+          "name": "idx_task_priority",
+          "fields": ["priority"],
+          "type": "BTree",
+          "unique": false
+        },
+        {
+          "name": "idx_task_due_date",
+          "fields": ["due_date"],
+          "type": "BTree",
+          "unique": false
+        }
+      ],
+      "ui_config": {
+        "icon": "check-circle",
+        "color": "#F59E0B",
+        "list_view": {
+          "columns": ["title", "project_id", "status", "priority", "due_date", "estimated_hours"],
+          "default_sort": {
+            "field": "due_date",
+            "direction": "asc"
+          },
+          "page_size": 25,
+          "filters": [
+            {
+              "field": "status",
+              "type": "select",
+              "label": "Status"
+            },
+            {
+              "field": "priority",
+              "type": "select",
+              "label": "Priority"
+            },
+            {
+              "field": "project_id",
+              "type": "select",
+              "label": "Project"
+            },
+            {
+              "field": "category_id",
+              "type": "select",
+              "label": "Category"
+            }
+          ]
+        },
+        "detail_view": {
+          "layout": "Tabbed",
+          "sections": [
+            {
+              "title": "Task Details",
+              "fields": ["title", "description", "project_id", "category_id"]
+            },
+            {
+              "title": "Progress & Status",
+              "fields": ["status", "priority", "estimated_hours", "actual_hours"]
+            },
+            {
+              "title": "Timeline",
+              "fields": ["due_date", "completed_at", "created_at", "updated_at"]
+            }
+          ]
+        },
+        "form_view": {
+          "layout": "Sections",
+          "validation": {
+            "client_side": true,
+            "server_side": true,
+            "real_time": true
+          }
+        }
+      },
+      "behavior": {
+        "auditing": {
+          "enabled": true,
+          "track_changes": true,
+          "track_access": false
+        },
+        "caching": {
+          "enabled": true,
+          "ttl_seconds": 900
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r1i2j3k4-l5m6-7890-1234-cdefgh456789",
+      "name": "project_tasks",
+      "type": "OneToMany",
+      "from_entity": "project",
+      "to_entity": "task",
+      "from_field": "id",
+      "to_field": "project_id",
+      "cascade": "Cascade",
+      "ui_config": {
+        "display_in_form": true,
+        "display_in_list": true,
+        "component_type": "table"
+      }
+    },
+    {
+      "id": "r2i3j4k5-l6m7-8901-2345-defghi567890",
+      "name": "category_tasks",
+      "type": "OneToMany",
+      "from_entity": "category",
+      "to_entity": "task",
+      "from_field": "id",
+      "to_field": "category_id",
+      "cascade": "SetNull",
+      "ui_config": {
+        "display_in_form": true,
+        "display_in_list": true,
+        "component_type": "table"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1j2k3l4-m5n6-7890-1234-efghij678901",
+      "name": "task_status_automation",
+      "type": "Automation",
+      "trigger": {
+        "type": "EntityEvent",
+        "config": {
+          "entity": "task",
+          "event": "AfterUpdate"
+        }
+      },
+      "steps": [
+        {
+          "id": "s1k2l3m4-n5o6-7890-1234-fghijk789012",
+          "name": "auto_complete_timestamp",
+          "type": "DataUpdate",
+          "condition": "status == 'Done' && completed_at == null",
+          "configuration": {
+            "update_fields": {
+              "completed_at": "now()"
+            }
+          }
+        },
+        {
+          "id": "s2k3l4m5-n6o7-8901-2345-ghijkl890123",
+          "name": "clear_complete_timestamp",
+          "type": "DataUpdate",
+          "condition": "status != 'Done' && completed_at != null",
+          "configuration": {
+            "update_fields": {
+              "completed_at": null
+            }
+          }
+        }
+      ],
+      "error_handling": {
+        "retry_attempts": 2,
+        "retry_delay_seconds": 5,
+        "on_error": "Continue"
+      }
+    },
+    {
+      "id": "f2j3k4l5-m6n7-8901-2345-fghijk789012",
+      "name": "overdue_task_notification",
+      "type": "Notification",
+      "trigger": {
+        "type": "Schedule",
+        "config": {
+          "cron": "0 9 * * *",
+          "timezone": "UTC"
+        }
+      },
+      "steps": [
+        {
+          "id": "s3k4l5m6-n7o8-9012-3456-hijklm901234",
+          "name": "send_overdue_alerts",
+          "type": "Notification",
+          "condition": "due_date < today() && status != 'Done' && status != 'Cancelled'",
+          "configuration": {
+            "notification_type": "email",
+            "template": "overdue_task_alert",
+            "subject": "Overdue Tasks Alert - {{task.title}}"
+          }
+        }
+      ],
+      "error_handling": {
+        "retry_attempts": 3,
+        "retry_delay_seconds": 30,
+        "on_error": "Stop"
+      }
+    }
+  ],
+  "layouts": [
+    {
+      "id": "l1k2l3m4-n5o6-7890-1234-ghijkl901234",
+      "name": "project_dashboard",
+      "type": "Dashboard",
+      "target_entities": ["project"],
+      "components": [
+        {
+          "type": "DataGrid",
+          "position": {
+            "row": 0,
+            "column": 0,
+            "width": 12,
+            "height": 6
+          },
+          "properties": {
+            "entity": "project",
+            "title": "Projects Overview",
+            "columns": ["name", "status", "priority", "start_date", "due_date", "created_at"],
+            "sortable": true,
+            "filterable": true,
+            "pagination": true,
+            "pageSize": 20,
+            "actions": ["view", "edit", "delete"]
+          },
+          "styling": {
+            "backgroundColor": "white",
+            "borderRadius": "8px",
+            "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+          },
+          "metadata": {
+            "createdWith": "VisualEditor",
+            "version": "1.0",
+            "description": "Project management dashboard grid"
+          }
+        },
+        {
+          "type": "TorqueButton",
+          "position": {
+            "row": 6,
+            "column": 0,
+            "width": 3,
+            "height": 1
+          },
+          "properties": {
+            "label": "New Project",
+            "variant": "primary",
+            "action": "openModal",
+            "modalConfig": {
+              "title": "Create New Project",
+              "entity": "project",
+              "mode": "create"
+            }
+          },
+          "styling": {},
+          "metadata": {
+            "createdWith": "VisualEditor",
+            "version": "1.0",
+            "description": "Create new project button"
+          }
+        }
+      ],
+      "responsive": {
+        "breakpoints": [
+          {
+            "name": "mobile",
+            "min_width": 0,
+            "columns": 1
+          },
+          {
+            "name": "tablet",
+            "min_width": 768,
+            "columns": 2
+          },
+          {
+            "name": "desktop",
+            "min_width": 1024,
+            "columns": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "l2k3l4m5-n6o7-8901-2345-hijklm012345",
+      "name": "task_board",
+      "type": "Dashboard", 
+      "target_entities": ["task"],
+      "components": [
+        {
+          "type": "DataGrid",
+          "position": {
+            "row": 0,
+            "column": 0,
+            "width": 12,
+            "height": 8
+          },
+          "properties": {
+            "entity": "task",
+            "title": "Task Management Board",
+            "columns": ["title", "project_id", "category_id", "status", "priority", "due_date", "estimated_hours"],
+            "sortable": true,
+            "filterable": true,
+            "pagination": true,
+            "pageSize": 30,
+            "groupBy": "status",
+            "actions": ["view", "edit", "delete"],
+            "defaultSort": {
+              "field": "priority",
+              "direction": "desc"
+            }
+          },
+          "styling": {
+            "backgroundColor": "white",
+            "borderRadius": "8px",
+            "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+          },
+          "metadata": {
+            "createdWith": "VisualEditor", 
+            "version": "1.0",
+            "description": "Task management board with kanban-style grouping"
+          }
+        },
+        {
+          "type": "TorqueButton",
+          "position": {
+            "row": 8,
+            "column": 0,
+            "width": 3,
+            "height": 1
+          },
+          "properties": {
+            "label": "Add Task",
+            "variant": "primary",
+            "action": "openModal",
+            "modalConfig": {
+              "title": "Create New Task",
+              "entity": "task",
+              "mode": "create"
+            }
+          },
+          "styling": {},
+          "metadata": {
+            "createdWith": "VisualEditor",
+            "version": "1.0", 
+            "description": "Add new task button"
+          }
+        },
+        {
+          "type": "TorqueButton",
+          "position": {
+            "row": 8,
+            "column": 3,
+            "width": 3,
+            "height": 1
+          },
+          "properties": {
+            "label": "Manage Categories",
+            "variant": "outline",
+            "action": "navigate",
+            "navigationConfig": {
+              "route": "/categories",
+              "target": "_self"
+            }
+          },
+          "styling": {},
+          "metadata": {
+            "createdWith": "VisualEditor",
+            "version": "1.0",
+            "description": "Navigate to category management"
+          }
+        }
+      ]
+    },
+    {
+      "id": "l3k4l5m6-n7o8-9012-3456-ijklmn123456",
+      "name": "category_management",
+      "type": "List",
+      "target_entities": ["category"],
+      "components": [
+        {
+          "type": "DataGrid",
+          "position": {
+            "row": 0,
+            "column": 0,
+            "width": 8,
+            "height": 6
+          },
+          "properties": {
+            "entity": "category",
+            "title": "Task Categories",
+            "columns": ["name", "color", "description", "active"],
+            "sortable": true,
+            "filterable": false,
+            "pagination": true,
+            "pageSize": 15,
+            "actions": ["edit", "delete"]
+          },
+          "styling": {
+            "backgroundColor": "white",
+            "borderRadius": "8px",
+            "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+          },
+          "metadata": {
+            "createdWith": "VisualEditor",
+            "version": "1.0",
+            "description": "Category management grid"
+          }
+        },
+        {
+          "type": "TorqueForm",
+          "position": {
+            "row": 0,
+            "column": 8,
+            "width": 4,
+            "height": 6
+          },
+          "properties": {
+            "entity": "category",
+            "title": "Add Category",
+            "layout": "stacked",
+            "fields": [
+              {
+                "name": "name",
+                "required": true,
+                "validation": ["required", "min:2"]
+              },
+              {
+                "name": "color",
+                "required": true,
+                "validation": ["required"]
+              },
+              {
+                "name": "description"
+              },
+              {
+                "name": "active",
+                "type": "checkbox"
+              }
+            ],
+            "submitButton": {
+              "label": "Add Category",
+              "variant": "primary"
+            },
+            "resetButton": {
+              "label": "Clear",
+              "variant": "outline"
+            }
+          },
+          "styling": {
+            "backgroundColor": "#F8FAFC",
+            "borderRadius": "8px",
+            "padding": "16px"
+          },
+          "metadata": {
+            "createdWith": "VisualEditor",
+            "version": "1.0",
+            "description": "Quick category creation form"
+          }
+        }
+      ]
+    },
+    {
+      "id": "l4k5l6m7-n8o9-0123-4567-jklmno234567",
+      "name": "task_form",
+      "type": "Form",
+      "target_entities": ["task"],
+      "components": [
+        {
+          "type": "TorqueForm",
+          "position": {
+            "row": 0,
+            "column": 0,
+            "width": 12,
+            "height": 10
+          },
+          "properties": {
+            "entity": "task",
+            "title": "Task Details",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "title",
+                "required": true,
+                "validation": ["required", "min:3"],
+                "colspan": 2
+              },
+              {
+                "name": "description",
+                "colspan": 2
+              },
+              {
+                "name": "project_id",
+                "required": true,
+                "validation": ["required"]
+              },
+              {
+                "name": "category_id"
+              },
+              {
+                "name": "status",
+                "required": true
+              },
+              {
+                "name": "priority",
+                "required": true
+              },
+              {
+                "name": "estimated_hours"
+              },
+              {
+                "name": "actual_hours"
+              },
+              {
+                "name": "due_date",
+                "colspan": 2
+              }
+            ],
+            "submitButton": {
+              "label": "Save Task",
+              "variant": "primary"
+            },
+            "cancelButton": {
+              "label": "Cancel",
+              "variant": "secondary"
+            }
+          },
+          "styling": {},
+          "metadata": {
+            "createdWith": "VisualEditor",
+            "version": "1.0",
+            "description": "Comprehensive task creation and editing form"
+          }
+        }
+      ]
+    }
+  ],
+  "sample_data": {
+    "project": [
+      {
+        "id": 1,
+        "name": "Website Redesign",
+        "description": "Complete overhaul of company website with modern design and improved UX",
+        "status": "Active",
+        "priority": "High",
+        "start_date": "2024-01-15",
+        "due_date": "2024-03-30",
+        "created_at": "2024-01-10T09:00:00Z",
+        "updated_at": "2024-01-15T14:30:00Z"
+      },
+      {
+        "id": 2,
+        "name": "Mobile App Development",
+        "description": "Native mobile application for iOS and Android platforms",
+        "status": "Planning",
+        "priority": "Medium",
+        "start_date": "2024-02-01",
+        "due_date": "2024-06-15",
+        "created_at": "2024-01-20T11:15:00Z",
+        "updated_at": "2024-01-25T16:45:00Z"
+      },
+      {
+        "id": 3,
+        "name": "Database Migration",
+        "description": "Migrate legacy database to modern cloud infrastructure",
+        "status": "Completed",
+        "priority": "Critical",
+        "start_date": "2023-11-01",
+        "due_date": "2024-01-15",
+        "created_at": "2023-10-15T08:30:00Z",
+        "updated_at": "2024-01-15T17:20:00Z"
+      },
+      {
+        "id": 4,
+        "name": "API Documentation",
+        "description": "Comprehensive documentation for public API endpoints",
+        "status": "On Hold",
+        "priority": "Low",
+        "start_date": "2024-02-15",
+        "due_date": "2024-04-30",
+        "created_at": "2024-02-01T13:45:00Z",
+        "updated_at": "2024-02-10T10:15:00Z"
+      }
+    ],
+    "category": [
+      {
+        "id": 1,
+        "name": "Development",
+        "color": "#3B82F6",
+        "description": "Software development and coding tasks",
+        "active": true
+      },
+      {
+        "id": 2,
+        "name": "Design",
+        "color": "#8B5CF6",
+        "description": "UI/UX design and visual elements",
+        "active": true
+      },
+      {
+        "id": 3,
+        "name": "Testing",
+        "color": "#10B981",
+        "description": "Quality assurance and testing tasks",
+        "active": true
+      },
+      {
+        "id": 4,
+        "name": "Documentation",
+        "color": "#F59E0B",
+        "description": "Writing and maintaining documentation",
+        "active": true
+      },
+      {
+        "id": 5,
+        "name": "Infrastructure",
+        "color": "#EF4444",
+        "description": "System administration and infrastructure",
+        "active": true
+      },
+      {
+        "id": 6,
+        "name": "Research",
+        "color": "#6B7280",
+        "description": "Research and investigation tasks",
+        "active": false
+      }
+    ],
+    "task": [
+      {
+        "id": 1,
+        "project_id": 1,
+        "category_id": 2,
+        "title": "Create wireframes for homepage",
+        "description": "Design low-fidelity wireframes for the new homepage layout including header, hero section, and content areas",
+        "status": "Done",
+        "priority": "High",
+        "estimated_hours": 8.0,
+        "actual_hours": 6.5,
+        "due_date": "2024-01-20T17:00:00Z",
+        "completed_at": "2024-01-19T15:30:00Z",
+        "created_at": "2024-01-15T09:15:00Z",
+        "updated_at": "2024-01-19T15:30:00Z"
+      },
+      {
+        "id": 2,
+        "project_id": 1,
+        "category_id": 1,
+        "title": "Implement responsive navigation",
+        "description": "Code responsive navigation component with mobile menu functionality",
+        "status": "In Progress",
+        "priority": "High",
+        "estimated_hours": 12.0,
+        "actual_hours": 8.0,
+        "due_date": "2024-01-25T17:00:00Z",
+        "completed_at": null,
+        "created_at": "2024-01-16T10:30:00Z",
+        "updated_at": "2024-01-22T14:15:00Z"
+      },
+      {
+        "id": 3,
+        "project_id": 1,
+        "category_id": 3,
+        "title": "Cross-browser testing",
+        "description": "Test website compatibility across Chrome, Firefox, Safari, and Edge browsers",
+        "status": "Todo",
+        "priority": "Medium",
+        "estimated_hours": 4.0,
+        "actual_hours": 0.0,
+        "due_date": "2024-03-15T17:00:00Z",
+        "completed_at": null,
+        "created_at": "2024-01-18T11:45:00Z",
+        "updated_at": "2024-01-18T11:45:00Z"
+      },
+      {
+        "id": 4,
+        "project_id": 2,
+        "category_id": 1,
+        "title": "Set up React Native environment",
+        "description": "Configure development environment for React Native with necessary dependencies and tools",
+        "status": "Todo",
+        "priority": "High",
+        "estimated_hours": 6.0,
+        "actual_hours": 0.0,
+        "due_date": "2024-02-05T17:00:00Z",
+        "completed_at": null,
+        "created_at": "2024-01-25T14:20:00Z",
+        "updated_at": "2024-01-25T14:20:00Z"
+      },
+      {
+        "id": 5,
+        "project_id": 2,
+        "category_id": 2,
+        "title": "Design app icons and splash screen",
+        "description": "Create app icons for iOS and Android, plus splash screen designs",
+        "status": "Todo",
+        "priority": "Low",
+        "estimated_hours": 10.0,
+        "actual_hours": 0.0,
+        "due_date": "2024-02-20T17:00:00Z",
+        "completed_at": null,
+        "created_at": "2024-01-26T09:10:00Z",
+        "updated_at": "2024-01-26T09:10:00Z"
+      },
+      {
+        "id": 6,
+        "project_id": 3,
+        "category_id": 5,
+        "title": "Data migration script",
+        "description": "Write and test data migration scripts for moving to new database schema",
+        "status": "Done",
+        "priority": "Critical",
+        "estimated_hours": 20.0,
+        "actual_hours": 24.5,
+        "due_date": "2024-01-10T17:00:00Z",
+        "completed_at": "2024-01-12T19:45:00Z",
+        "created_at": "2023-12-15T08:30:00Z",
+        "updated_at": "2024-01-12T19:45:00Z"
+      },
+      {
+        "id": 7,
+        "project_id": 4,
+        "category_id": 4,
+        "title": "API endpoint documentation",
+        "description": "Document all public API endpoints with examples and parameter descriptions",
+        "status": "Todo",
+        "priority": "Medium",
+        "estimated_hours": 16.0,
+        "actual_hours": 0.0,
+        "due_date": "2024-04-01T17:00:00Z",
+        "completed_at": null,
+        "created_at": "2024-02-05T13:25:00Z",
+        "updated_at": "2024-02-05T13:25:00Z"
+      },
+      {
+        "id": 8,
+        "project_id": 1,
+        "category_id": 1,
+        "title": "Contact form integration",
+        "description": "Implement contact form with email validation and spam protection",
+        "status": "Review",
+        "priority": "Medium",
+        "estimated_hours": 8.0,
+        "actual_hours": 7.5,
+        "due_date": "2024-02-01T17:00:00Z",
+        "completed_at": null,
+        "created_at": "2024-01-20T16:40:00Z",
+        "updated_at": "2024-01-28T11:20:00Z"
+      }
+    ]
+  }
+}
