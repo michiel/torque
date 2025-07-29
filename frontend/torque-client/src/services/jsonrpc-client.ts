@@ -17,7 +17,7 @@ export class JsonRpcClient {
   private requestId: number = 1
   private pendingRequests: Map<string, Promise<any>> = new Map()
 
-  constructor(baseUrl: string = 'http://localhost:8081') {
+  constructor(baseUrl: string = 'http://localhost:8080') {
     this.baseUrl = baseUrl
   }
 

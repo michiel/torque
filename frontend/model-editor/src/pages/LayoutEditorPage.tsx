@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Alert, LoadingOverlay } from '@mantine/core';
 import { useQuery, useMutation } from '@apollo/client';
 import { notifications } from '@mantine/notifications';
+import TorqueAppPreviewModal from '../components/TorqueAppPreviewModal';
 import { VisualLayoutEditor } from '../components/VisualLayoutEditor';
 import { Data } from '@measured/puck';
 import { GET_MODEL, GET_ENTITIES, GET_LAYOUT } from '../graphql/queries';
@@ -21,6 +22,7 @@ export const LayoutEditorPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [initialData, setInitialData] = useState<Data | undefined>(undefined);
+  const [previewModalOpened, setPreviewModalOpened] = useState(false);
 
   // GraphQL queries
   const { data: modelData, loading: modelLoading, error: modelError } = useQuery(GET_MODEL, {
@@ -235,31 +237,8 @@ export const LayoutEditorPage: React.FC = () => {
   };
 
   const handlePreview = (data: Data) => {
-    // Convert Puck data to TorqueApp format and open preview
-    const layoutConfig = {
-      id: layoutId || 'preview',
-      title: data.root?.props?.title || 'Layout Preview',
-      layout: {
-        type: 'grid',
-        rows: 12,
-        columns: 12
-      },
-      components: data.content.map((item, index) => ({
-        type: item.type,
-        id: `preview-${index}`,
-        position: {
-          row: index,
-          col: 0,
-          rowSpan: 2,
-          colSpan: 12
-        },
-        properties: item.props
-      }))
-    };
-
-    // Open preview in new window
-    const previewUrl = `/torqueapp/${modelId}/preview?layout=${encodeURIComponent(JSON.stringify(layoutConfig))}`;
-    window.open(previewUrl, '_blank', 'width=1200,height=800');
+    // Open the TorqueApp preview modal
+    setPreviewModalOpened(true);
   };
 
   const handleBack = () => {
@@ -316,6 +295,15 @@ export const LayoutEditorPage: React.FC = () => {
         onSave={handleSave}
         onPreview={handlePreview}
         onBack={handleBack}
+      />
+      
+      {/* TorqueApp Preview Modal */}
+      <TorqueAppPreviewModal
+        opened={previewModalOpened}
+        onClose={() => setPreviewModalOpened(false)}
+        modelId={modelId!}
+        modelName={model?.name || 'Unknown Model'}
+        model={model}
       />
     </div>
   );

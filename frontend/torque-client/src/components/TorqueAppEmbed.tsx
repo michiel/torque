@@ -12,7 +12,7 @@ export interface TorqueAppEmbedProps {
   modelId: string
   /** Specific page/layout to render (optional, defaults to start page) */
   pageName?: string
-  /** Custom API base URL (optional, defaults to localhost:8081) */
+  /** Custom API base URL (optional, defaults to localhost:8080) */
   apiBaseUrl?: string
   /** Custom theme for Mantine (optional) */
   theme?: any
@@ -37,12 +37,12 @@ export interface TorqueAppEmbedProps {
  * ```tsx
  * // Basic usage
  * <TorqueAppEmbed 
- *   modelId="492a9e29-c546-469b-b565-b0a69988a5d3" 
+ *   modelId="f878c0d7-b53c-4783-bafa-9f951fbac633" 
  * />
  * 
  * // With custom page and API endpoint
  * <TorqueAppEmbed 
- *   modelId="492a9e29-c546-469b-b565-b0a69988a5d3"
+ *   modelId="f878c0d7-b53c-4783-bafa-9f951fbac633"
  *   pageName="project_dashboard"
  *   apiBaseUrl="https://api.example.com"
  *   onAction={(action) => console.log('TorqueApp action:', action)}

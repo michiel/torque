@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -20,26 +21,40 @@ export default defineConfig({
     ],
   },
   
-  // Build optimizations
+  // Build configuration for library mode
   build: {
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
-    
-    // Manual chunking strategy
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'mantine-vendor': [
-            '@mantine/core',
-            '@mantine/hooks',
-            '@mantine/notifications',
-            '@mantine/dates'
-          ],
-          'icons': ['@tabler/icons-react'],
-        },
-      },
+    lib: {
+      entry: resolve(__dirname, 'src/index.ts'),
+      name: 'TorqueClient',
+      formats: ['es', 'cjs'],
+      fileName: (format) => `index.${format}.js`
     },
+    rollupOptions: {
+      // Make sure to externalize deps that shouldn't be bundled
+      external: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@mantine/core',
+        '@mantine/hooks',
+        '@mantine/notifications',
+        '@mantine/dates',
+        '@mantine/modals',
+        '@tabler/icons-react',
+        'dayjs',
+        'react-hook-form',
+        '@hookform/resolvers',
+        'uuid',
+        'zod'
+      ],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+          'react-router-dom': 'ReactRouterDOM'
+        }
+      }
+    }
   },
   
   // Server configuration for development

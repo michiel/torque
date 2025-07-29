@@ -45,20 +45,24 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
 
   // Check if this layout has components created with Visual Editor (new clean format)
   const hasCleanVisualEditorComponents = legacyLayout.components?.some(comp => 
-    comp.metadata?.createdWith === 'VisualEditor'
+    comp.properties?._visualEditor === true
   );
 
   if (hasCleanVisualEditorComponents) {
     // Convert clean Torque format to Puck format
     const content = legacyLayout.components
-      .filter(comp => comp.metadata?.createdWith === 'VisualEditor')
-      .map((comp, index) => ({
-        type: comp.componentType,
-        props: {
-          ...comp.properties,
-          id: `component-${index}`
-        }
-      }));
+      .filter(comp => comp.properties?._visualEditor === true)
+      .map((comp, index) => {
+        // Clean props by removing internal markers
+        const { _visualEditor, ...cleanProps } = comp.properties;
+        return {
+          type: comp.componentType,
+          props: {
+            ...cleanProps,
+            id: `component-${index}`
+          }
+        };
+      });
 
     return {
       content,
@@ -106,7 +110,7 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
     switch (comp.componentType) {
       case 'DataGrid':
         props = {
-          entityType: comp.properties?.entityType || 'customer',
+          entityType: comp.properties?.entityType || 'project',
           columns: comp.properties?.columns || [
             { field: 'id', header: 'ID', type: 'text', sortable: true, filterable: true },
             { field: 'name', header: 'Name', type: 'text', sortable: true, filterable: true }
@@ -122,7 +126,7 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
 
       case 'TorqueForm':
         props = {
-          entityType: comp.properties?.entityType || 'customer',
+          entityType: comp.properties?.entityType || 'project',
           formTitle: comp.properties?.formTitle || 'Create New Entry',
           fields: comp.properties?.fields || [
             { name: 'name', label: 'Name', type: 'text', required: true }
@@ -236,12 +240,11 @@ export const convertPuckToLegacyLayout = (
         width: 12,
         height: item.type === 'DataGrid' ? 6 : item.type === 'TorqueForm' ? 8 : 2
       },
-      properties: cleanProps,
-      styling: {},
-      metadata: {
-        createdWith: 'VisualEditor',
-        version: '1.0'
-      }
+      properties: {
+        ...cleanProps,
+        _visualEditor: true // Marker to identify Visual Editor components
+      },
+      styling: {}
     };
   });
 
@@ -291,7 +294,7 @@ export const needsMigration = (layout: LegacyLayout): boolean => {
   
   // No migration needed if has clean Visual Editor components
   const hasCleanVisualEditorComponents = layout.components?.some(comp => 
-    comp.metadata?.createdWith === 'VisualEditor'
+    comp.properties?._visualEditor === true
   );
   if (hasCleanVisualEditorComponents) return false;
   
@@ -312,7 +315,7 @@ export const needsMigration = (layout: LegacyLayout): boolean => {
 export const migrateLegacyLayoutToCleanFormat = (layout: LegacyLayout): LegacyLayout => {
   const migratedComponents = layout.components?.map(comp => {
     // If component already uses clean format, return as-is
-    if (comp.metadata?.createdWith === 'VisualEditor') {
+    if (comp.properties?._visualEditor === true) {
       return comp;
     }
 
@@ -329,11 +332,9 @@ export const migrateLegacyLayoutToCleanFormat = (layout: LegacyLayout): LegacyLa
 
       return {
         ...comp,
-        properties: cleanProperties,
-        metadata: {
-          createdWith: 'VisualEditor',
-          version: '1.0',
-          migratedFrom: 'legacy'
+        properties: {
+          ...cleanProperties,
+          _visualEditor: true // Marker to identify Visual Editor components
         }
       };
     }
@@ -360,7 +361,7 @@ export const getMigrationWarnings = (layout: LegacyLayout): string[] => {
     switch (comp.componentType) {
       case 'DataGrid':
         if (!comp.properties?.entityType) {
-          warnings.push(`DataGrid component #${index + 1}: Missing entity type - will default to 'customer'`);
+          warnings.push(`DataGrid component #${index + 1}: Missing entity type - will default to 'project'`);
         }
         break;
       case 'TorqueForm':

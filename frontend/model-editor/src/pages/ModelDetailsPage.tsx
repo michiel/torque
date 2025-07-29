@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@apollo/client'
 import {
@@ -18,7 +18,8 @@ import {
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
-import { IconAlertCircle } from '@tabler/icons-react'
+import { IconAlertCircle, IconEye } from '@tabler/icons-react'
+import TorqueAppPreviewModal from '../components/TorqueAppPreviewModal'
 
 import { GET_MODEL } from '../graphql/queries'
 import { UPDATE_MODEL, UPDATE_MODEL_CONFIG } from '../graphql/mutations'
@@ -27,6 +28,7 @@ import { Model, Layout } from '../types/model'
 export function ModelDetailsPage() {
   const { id: modelId } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [previewModalOpened, setPreviewModalOpened] = useState(false)
   
   // Fetch model data
   const { data, loading, error } = useQuery(GET_MODEL, {
@@ -231,20 +233,38 @@ export function ModelDetailsPage() {
               </Alert>
             </Group>
             
-            <Group justify="flex-end" mt="md">
-              <Button variant="outline" onClick={handleCancel}>
-                Cancel
-              </Button>
+            <Group justify="space-between" mt="md">
               <Button 
-                type="submit" 
-                loading={updatingModel || updatingConfig}
+                variant="light" 
+                leftSection={<IconEye size={16} />}
+                onClick={() => setPreviewModalOpened(true)}
               >
-                Save Changes
+                Preview TorqueApp
               </Button>
+              <Group>
+                <Button variant="outline" onClick={handleCancel}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  loading={updatingModel || updatingConfig}
+                >
+                  Save Changes
+                </Button>
+              </Group>
             </Group>
           </Stack>
         </form>
       </Paper>
+      
+      {/* TorqueApp Preview Modal */}
+      <TorqueAppPreviewModal
+        opened={previewModalOpened}
+        onClose={() => setPreviewModalOpened(false)}
+        modelId={modelId!}
+        modelName={model?.name || 'Unknown Model'}
+        model={model}
+      />
     </Container>
   )
 }

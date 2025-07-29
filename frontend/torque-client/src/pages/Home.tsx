@@ -6,7 +6,7 @@ export function Home() {
 
   const handleOpenSampleApp = () => {
     // Navigate to the Todo Application sample
-    const todoAppModelId = '492a9e29-c546-469b-b565-b0a69988a5d3'
+    const todoAppModelId = 'f878c0d7-b53c-4783-bafa-9f951fbac633'
     window.open(`/app/${todoAppModelId}`, '_blank')
   }
 
@@ -75,8 +75,8 @@ export function Home() {
           <br />
           <Text size="sm" c="blue">
             Try the Todo Application: <br />
-            <a href="/app/492a9e29-c546-469b-b565-b0a69988a5d3" target="_blank">
-              /app/492a9e29-c546-469b-b565-b0a69988a5d3
+            <a href="/app/f878c0d7-b53c-4783-bafa-9f951fbac633" target="_blank">
+              /app/f878c0d7-b53c-4783-bafa-9f951fbac633
             </a>
           </Text>
         </div>

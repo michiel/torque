@@ -26,10 +26,9 @@ export const DataGridComponent: ComponentConfig<DataGridProps> = {
       type: 'select',
       label: 'Entity Type',
       options: [
-        { label: 'Customer', value: 'customer' },
-        { label: 'Order', value: 'order' },
-        { label: 'Product', value: 'product' },
-        { label: 'Invoice', value: 'invoice' }
+        { label: 'Project', value: 'project' },
+        { label: 'Task', value: 'task' },
+        { label: 'Category', value: 'category' }
       ]
     },
     columns: {
@@ -50,10 +49,13 @@ export const DataGridComponent: ComponentConfig<DataGridProps> = {
           options: [
             { label: 'ID', value: 'id' },
             { label: 'Name', value: 'name' },
-            { label: 'Email', value: 'email' },
+            { label: 'Description', value: 'description' },
+            { label: 'Priority', value: 'priority' },
+            { label: 'Status', value: 'status' },
+            { label: 'Start Date', value: 'start_date' },
+            { label: 'Due Date', value: 'due_date' },
             { label: 'Created Date', value: 'created_at' },
-            { label: 'Updated Date', value: 'updated_at' },
-            { label: 'Status', value: 'status' }
+            { label: 'Updated Date', value: 'updated_at' }
           ]
         },
         header: {
@@ -136,12 +138,13 @@ export const DataGridComponent: ComponentConfig<DataGridProps> = {
     }
   },
   defaultProps: {
-    entityType: 'customer',
+    entityType: 'project',
     columns: [
       { field: 'id', header: 'ID', type: 'text', sortable: true, filterable: true },
       { field: 'name', header: 'Name', type: 'text', sortable: true, filterable: true },
-      { field: 'email', header: 'Email', type: 'text', sortable: true, filterable: true },
-      { field: 'status', header: 'Status', type: 'status', sortable: true, filterable: true }
+      { field: 'priority', header: 'Priority', type: 'text', sortable: true, filterable: true },
+      { field: 'status', header: 'Status', type: 'status', sortable: true, filterable: true },
+      { field: 'due_date', header: 'Due Date', type: 'date', sortable: true, filterable: true }
     ],
     showPagination: true,
     pageSize: 10,
@@ -152,9 +155,9 @@ export const DataGridComponent: ComponentConfig<DataGridProps> = {
   render: ({ entityType, columns, showPagination, pageSize, showFilters, showSearch, height, maxHeight }) => {
     // Sample data for preview
     const sampleData = [
-      { id: '1', name: 'John Doe', email: 'john@example.com', status: 'active', created_at: '2024-01-15' },
-      { id: '2', name: 'Jane Smith', email: 'jane@example.com', status: 'active', created_at: '2024-01-16' },
-      { id: '3', name: 'Bob Johnson', email: 'bob@example.com', status: 'inactive', created_at: '2024-01-17' }
+      { id: '1', name: 'Website Redesign', description: 'Update company website', priority: 'High', status: 'Active', start_date: '2024-01-15', due_date: '2024-02-15', created_at: '2024-01-15' },
+      { id: '2', name: 'Mobile App Development', description: 'Build mobile application', priority: 'Critical', status: 'Planning', start_date: '2024-02-01', due_date: '2024-06-01', created_at: '2024-01-16' },
+      { id: '3', name: 'Database Migration', description: 'Migrate to new database system', priority: 'Medium', status: 'Completed', start_date: '2024-01-01', due_date: '2024-01-31', created_at: '2024-01-17' }
     ];
 
     const renderCellValue = (value: any, type: string) => {

@@ -17,6 +17,7 @@ Torque is a high-performance platform for designing, running and presenting appl
  - Use any relevant cargo tooling, request its installation if it is not available
  - Remember to use playwright-mcp for frontend verification and troubleshooting
  - Request any relevant tooling
+ - Whenever you stop to ask a question AND complete a task, use the command 'notify-send' to send a notification with a summary
 
 ## Architecture Principles
 

@@ -17,7 +17,7 @@ import {
   IconAlertCircle,
   IconWorldWww
 } from '@tabler/icons-react';
-import { PageRenderer } from './TorqueApp/PageRenderer';
+import { TorqueAppEmbed } from 'torque-client';
 
 interface Layout {
   id: string;
@@ -96,15 +96,48 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
     setError(null);
     
     try {
-      // In a real implementation, this would make an API call to check if the TorqueApp is running
-      // For now, we'll simulate checking the app status
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate that the app is available
+      // Test if the TorqueApp API is running by calling the ping endpoint
+      const response = await fetch('http://localhost:8080/rpc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'ping',
+          id: 1
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+
+      // Test if the specific model exists
+      const modelResponse = await fetch('http://localhost:8080/rpc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'loadPage',
+          params: { modelId },
+          id: 2
+        })
+      });
+
+      const modelData = await modelResponse.json();
+      if (modelData.error) {
+        throw new Error(`Model not available: ${modelData.error.message}`);
+      }
+
       setIsAppRunning(true);
-      setAppUrl(`/torque-app/${modelId}`);
+      setAppUrl(`http://localhost:3004/app/${modelId}`);
     } catch (err) {
-      setError('Failed to connect to TorqueApp');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect to TorqueApp';
+      setError(errorMessage);
       setIsAppRunning(false);
     } finally {
       setLoading(false);
@@ -116,17 +149,12 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
   };
 
   const handleLaunchApp = async () => {
-    setLoading(true);
-    try {
-      // In a real implementation, this would launch the TorqueApp
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setIsAppRunning(true);
-      setAppUrl(`/torque-app/${modelId}`);
-    } catch (err) {
-      setError('Failed to launch TorqueApp');
-    } finally {
-      setLoading(false);
-    }
+    // Instead of launching, open the TorqueApp in a new tab
+    const torqueAppUrl = `http://localhost:3004/app/${modelId}`;
+    window.open(torqueAppUrl, '_blank');
+    
+    // Also refresh the status to check if it's working
+    await checkAppStatus();
   };
 
   if (loading) {
@@ -224,9 +252,15 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
           position: 'relative'
         }}
       >
-        <PageRenderer 
-          modelId={modelId} 
+        <TorqueAppEmbed 
+          modelId={modelId}
           pageName={getStartPageInfo().pageName !== 'Default Dashboard' ? getStartPageInfo().pageName : undefined}
+          apiBaseUrl="http://localhost:8080"
+          style={{ height: '100%', minHeight: '400px' }}
+          onAction={(action) => {
+            console.log('TorqueApp action in Model Editor:', action);
+            // TODO: Handle actions from embedded TorqueApp
+          }}
         />
       </Box>
     </Box>
