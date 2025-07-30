@@ -119,10 +119,12 @@ export const DataGrid = memo(function DataGrid({
               </Table.Td>
             </Table.Tr>
           ) : (
-            entityData.map((row: any, index: number) => (
-              <Table.Tr key={row.id || index}>
+            entityData.map((row: any, index: number) => {
+              const rowKey = row.id ?? `row-${index}`
+              return (
+              <Table.Tr key={rowKey}>
                 {displayColumns.map((column: DataGridColumn) => (
-                  <Table.Td key={column.key}>
+                  <Table.Td key={`${rowKey}-${column.key}`}>
                     <CellValue value={row[column.key]} dataType={column.dataType} />
                   </Table.Td>
                 ))}
@@ -146,7 +148,8 @@ export const DataGrid = memo(function DataGrid({
                   </Group>
                 </Table.Td>
               </Table.Tr>
-            ))
+              )
+            })
           )}
         </Table.Tbody>
       </Table>
