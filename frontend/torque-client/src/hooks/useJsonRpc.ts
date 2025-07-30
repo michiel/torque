@@ -32,16 +32,20 @@ export function useJsonRpc<T = any>(
   }, [currentParamsString])
   
   const fetchData = useCallback(async () => {
+    console.log('[useJsonRpc] Starting fetch:', { method, params: stableParams });
     setState(prev => ({ ...prev, loading: true, error: null }))
     
     try {
       const result = await client.call<T>(method, stableParams)
+      console.log('[useJsonRpc] Fetch successful:', { method, resultType: typeof result });
       setState({ data: result, loading: false, error: null })
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[useJsonRpc] Fetch failed:', { method, error: errorMessage });
       setState({
         data: null,
         loading: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       })
     }
   }, [method, stableParams, client])
@@ -61,6 +65,13 @@ export function useJsonRpc<T = any>(
 export function useLoadPage(modelId: string, pageName?: string, apiBaseUrl?: string) {
   const params = useMemo(() => ({ modelId, pageName }), [modelId, pageName])
   const client = useMemo(() => apiBaseUrl ? new JsonRpcClient(apiBaseUrl) : jsonRpcClient, [apiBaseUrl])
+  
+  console.log('[useLoadPage] Hook initialized:', { 
+    modelId, 
+    pageName: pageName || 'default (start page)', 
+    apiBaseUrl: apiBaseUrl || 'default (localhost:8080)'
+  });
+  
   return useJsonRpc('loadPage', params, [], client)
 }
 
@@ -99,14 +110,17 @@ export function useJsonRpcMutation<T = any>() {
   })
 
   const mutate = useCallback(async (method: string, params?: Record<string, any>) => {
+    console.log('[useJsonRpcMutation] Starting mutation:', { method, params });
     setState(prev => ({ ...prev, loading: true, error: null }))
     
     try {
       const result = await jsonRpcClient.call<T>(method, params)
+      console.log('[useJsonRpcMutation] Mutation successful:', { method, resultType: typeof result });
       setState({ data: result, loading: false, error: null })
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[useJsonRpcMutation] Mutation failed:', { method, error: errorMessage });
       setState({
         data: null,
         loading: false,

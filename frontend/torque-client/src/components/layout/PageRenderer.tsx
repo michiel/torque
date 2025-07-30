@@ -13,6 +13,13 @@ interface PageRendererProps {
 }
 
 export const PageRenderer = memo(function PageRenderer({ modelId, pageName, apiBaseUrl, onAction: externalOnAction }: PageRendererProps) {
+  console.log('[PageRenderer] Initializing with props:', {
+    modelId,
+    pageName: pageName || 'default (start page)',
+    apiBaseUrl: apiBaseUrl || 'default (localhost:8080)',
+    hasOnAction: !!externalOnAction
+  });
+
   const { data, loading, error } = useLoadPage(modelId, pageName, apiBaseUrl)
   const [modalState, setModalState] = useState<{
     opened: boolean
@@ -24,15 +31,17 @@ export const PageRenderer = memo(function PageRenderer({ modelId, pageName, apiB
   })
 
   const handleAction = useCallback((action: any) => {
-    console.log('Page action:', action)
+    console.log('[PageRenderer] Action received:', action)
     
     // Forward action to external handler if provided
     if (externalOnAction) {
+      console.log('[PageRenderer] Forwarding action to external handler');
       externalOnAction(action)
     }
     
     switch (action.type) {
       case 'openModal':
+        console.log('[PageRenderer] Opening modal:', { modalType: action.modalType, entityName: action.entityName, entityId: action.entityId });
         setModalState({
           opened: true,
           type: action.modalType,
@@ -42,10 +51,12 @@ export const PageRenderer = memo(function PageRenderer({ modelId, pageName, apiB
         break
       
       case 'closeModal':
+        console.log('[PageRenderer] Closing modal');
         setModalState({ opened: false })
         break
       
       case 'edit':
+        console.log('[PageRenderer] Opening edit form:', { entityName: action.entityName, entityId: action.entityId });
         setModalState({
           opened: true,
           type: 'form',
@@ -55,35 +66,36 @@ export const PageRenderer = memo(function PageRenderer({ modelId, pageName, apiB
         break
       
       case 'delete':
-        // TODO: Implement delete confirmation
-        console.log('Delete action:', action)
+        console.log('[PageRenderer] Delete action received (not implemented):', action)
         break
       
       case 'navigateTo':
-        // TODO: Implement navigation
-        console.log('Navigate action:', action)
+        console.log('[PageRenderer] Navigate action received (not implemented):', action)
         break
       
       default:
-        console.warn('Unknown action type:', action.type)
+        console.warn('[PageRenderer] Unknown action type:', action.type, action)
     }
   }, [])
 
   const handleFormSuccess = useCallback((result: any) => {
-    console.log('Form success:', result)
+    console.log('[PageRenderer] Form success:', result)
     setModalState({ opened: false })
     // TODO: Refresh data
   }, [])
 
   const handleFormCancel = useCallback(() => {
+    console.log('[PageRenderer] Form cancelled');
     setModalState({ opened: false })
   }, [])
 
   if (loading) {
+    console.log('[PageRenderer] Loading page data...');
     return <LoadingOverlay visible />
   }
 
   if (error) {
+    console.error('[PageRenderer] Error loading page:', error);
     return (
       <Alert color="red" title="Error loading page">
         {error}
@@ -92,6 +104,7 @@ export const PageRenderer = memo(function PageRenderer({ modelId, pageName, apiB
   }
 
   if (!data) {
+    console.warn('[PageRenderer] No page data received for model:', modelId);
     return (
       <Alert color="yellow" title="No page data">
         Page data not found for model {modelId}
@@ -100,11 +113,16 @@ export const PageRenderer = memo(function PageRenderer({ modelId, pageName, apiB
   }
 
   const { layout } = data
+  console.log('[PageRenderer] Page data loaded successfully:', {
+    layoutType: layout?.type,
+    componentCount: layout?.components?.length || 0,
+    hasLayout: !!layout
+  });
 
   return (
     <div>
       {/* Main page content */}
-      {layout.type === 'grid' && (
+      {(layout.type === 'grid' || layout.type === 'dashboard') && (
         <GridLayout
           components={layout.components}
           modelId={modelId}

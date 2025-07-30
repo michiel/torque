@@ -26,12 +26,15 @@ export class JsonRpcClient {
   }
 
   async call<T = any>(method: string, params?: Record<string, any>): Promise<T> {
+    console.log('[JsonRpcClient] Starting call:', { method, params, baseUrl: this.baseUrl });
+    
     // Create a cache key for request deduplication
     const cacheKey = `${method}:${JSON.stringify(params || {})}`
     
     // Check if an identical request is already pending
     const pendingRequest = this.pendingRequests.get(cacheKey)
     if (pendingRequest) {
+      console.log('[JsonRpcClient] Using cached pending request for:', method);
       return pendingRequest as Promise<T>
     }
 
@@ -42,13 +45,19 @@ export class JsonRpcClient {
       id: this.generateId()
     }
 
+    console.log('[JsonRpcClient] Created request:', request);
+
     // Create the request promise and store it for deduplication
     const requestPromise = this.makeRequest<T>(request)
     this.pendingRequests.set(cacheKey, requestPromise)
     
     try {
       const result = await requestPromise
+      console.log('[JsonRpcClient] Call completed successfully:', { method, resultType: typeof result });
       return result
+    } catch (error) {
+      console.error('[JsonRpcClient] Call failed:', { method, error });
+      throw error;
     } finally {
       // Clean up pending request after completion
       this.pendingRequests.delete(cacheKey)
@@ -56,8 +65,11 @@ export class JsonRpcClient {
   }
 
   private async makeRequest<T>(request: JsonRpcRequest): Promise<T> {
+    const url = `${this.baseUrl}/rpc`;
+    console.log('[JsonRpcClient] Making HTTP request to:', url);
+    
     try {
-      const response = await fetch(`${this.baseUrl}/rpc`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,22 +77,36 @@ export class JsonRpcClient {
         body: JSON.stringify(request)
       })
 
+      console.log('[JsonRpcClient] HTTP response received:', { 
+        status: response.status, 
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
       const jsonResponse: JsonRpcResponse<T> = await response.json()
+      console.log('[JsonRpcClient] JSON-RPC response parsed:', {
+        hasResult: jsonResponse.result !== undefined,
+        hasError: !!jsonResponse.error,
+        id: jsonResponse.id
+      });
 
       if (jsonResponse.error) {
+        console.error('[JsonRpcClient] JSON-RPC error in response:', jsonResponse.error);
         throw new JsonRpcClientError(jsonResponse.error)
       }
 
       if (jsonResponse.result === undefined) {
+        console.error('[JsonRpcClient] Invalid JSON-RPC response: missing result');
         throw new Error('Invalid JSON-RPC response: missing result')
       }
 
       return jsonResponse.result
     } catch (error) {
+      console.error('[JsonRpcClient] Request failed:', error);
       if (error instanceof JsonRpcClientError) {
         throw error
       }

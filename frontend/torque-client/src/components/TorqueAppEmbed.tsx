@@ -58,6 +58,21 @@ export function TorqueAppEmbed({
   className,
   onAction
 }: TorqueAppEmbedProps) {
+  console.log('[TorqueAppEmbed] Initializing with props:', {
+    modelId,
+    pageName,
+    apiBaseUrl: apiBaseUrl || 'default (localhost:8080)',
+    hasTheme: !!theme,
+    hasStyle: !!style,
+    hasClassName: !!className,
+    hasOnAction: !!onAction
+  });
+
+  const handleAction = (action: any) => {
+    console.log('[TorqueAppEmbed] Action received:', action);
+    onAction?.(action);
+  };
+
   return (
     <div style={style} className={className}>
       <MantineProvider theme={theme}>
@@ -67,7 +82,7 @@ export function TorqueAppEmbed({
             modelId={modelId}
             pageName={pageName}
             apiBaseUrl={apiBaseUrl}
-            onAction={onAction}
+            onAction={handleAction}
           />
         </ModalsProvider>
       </MantineProvider>
