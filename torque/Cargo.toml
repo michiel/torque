@@ -46,11 +46,11 @@ boa_engine = "0.17"
 boa_runtime = "0.17"
 
 # Validation (fast schema validation)
-jsonschema = "0.17"
+jsonschema = { version = "0.32", default-features = false }
 validator = { version = "0.16", features = ["derive"] }
 
 # HTTP client for webhooks (performance optimized)
-reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
 
 # Cron scheduling
 tokio-cron-scheduler = "0.10"
