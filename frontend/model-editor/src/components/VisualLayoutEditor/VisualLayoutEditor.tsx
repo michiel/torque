@@ -36,7 +36,8 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
   onPreview,
   onBack
 }) => {
-  const defaultData: Data = initialData || {
+
+  const defaultData: Data = {
     content: [],
     root: {
       props: {
@@ -45,21 +46,25 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
     }
   };
 
-  const [currentData, setCurrentData] = React.useState<Data>(defaultData);
+  const [currentData, setCurrentData] = React.useState<Data>(initialData || defaultData);
   const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [lastSaved, setLastSaved] = React.useState<Date | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [layoutName, setLayoutName] = useState(defaultData.root?.props?.title || 'New Layout');
-  const autoSaveTimer = useRef<number | null>(null);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
   const config = useMemo(() => {
     return createTorqueComponentConfig(entities);
   }, [entities]);
 
-  // Update layout name when initial data changes
+
+  // Update current data and layout name when initial data changes
   useEffect(() => {
-    if (initialData?.root?.props?.title) {
-      setLayoutName(initialData.root.props.title);
+    if (initialData) {
+      setCurrentData(initialData);
+      if (initialData.root?.props?.title) {
+        setLayoutName(initialData.root.props.title);
+      }
     }
   }, [initialData]);
 
@@ -320,17 +325,30 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
 
       {/* Puck Editor */}
       <div className="visual-layout-editor-canvas">
-        <Puck
-          config={config}
-          data={currentData}
-          onPublish={handlePublish}
-          onChange={handleDataChange}
-          viewports={[
-            { width: 360, height: 'auto', label: 'Mobile' },
-            { width: 768, height: 'auto', label: 'Tablet' },
-            { width: 1024, height: 'auto', label: 'Desktop' }
-          ]}
-        />
+        {initialData || !layoutId ? (
+          <Puck
+            config={config}
+            data={currentData}
+            onPublish={handlePublish}
+            onChange={handleDataChange}
+            viewports={[
+              { width: 360, height: 'auto', label: 'Mobile' },
+              { width: 768, height: 'auto', label: 'Tablet' },
+              { width: 1024, height: 'auto', label: 'Desktop' }
+            ]}
+          />
+        ) : (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: '400px',
+            color: '#666',
+            fontSize: '18px'
+          }}>
+            Loading layout data...
+          </div>
+        )}
       </div>
     </div>
   );

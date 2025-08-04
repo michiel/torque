@@ -13,6 +13,7 @@ import { LayoutEditorPage } from './pages/LayoutEditorPage'
 import { EntityEditorPage } from './pages/EntityEditorPage'
 import { RelationshipEditorPage } from './pages/RelationshipEditorPage'
 import { ERDEditorPage } from './pages/ERDEditorPage'
+import { DebugLayoutPage } from './pages/DebugLayoutPage'
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="/models/:id/editor/layouts/new" element={<LayoutEditorPage />} />
           <Route path="/models/:id/editor/layouts/:layoutId" element={<LayoutEditorPage />} />
           <Route path="/models/:id/editor/erd" element={<ERDEditorPage />} />
+          <Route path="/debug-layout" element={<DebugLayoutPage />} />
         </Routes>
       </AppShell.Main>
     </AppShell>

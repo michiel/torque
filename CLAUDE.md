@@ -18,6 +18,7 @@ Torque is a high-performance platform for designing, running and presenting appl
  - Remember to use playwright-mcp for frontend verification and troubleshooting
  - Request any relevant tooling
  - Whenever you stop to ask a question AND complete a task, use the command 'notify-send' to send a notification with a summary
+ - Use playwright to verify, analyze and debug browser or frontend issues. playwright is installed via distrobox (command : `distrobox enter --root pw` to access)
 
 ## Architecture Principles
 
