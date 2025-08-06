@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::net::TcpListener;
+use std::sync::Arc;
 use log::{info, error};
+use torque::{Config, database, services::ServiceRegistry, server};
 
 /// Start the embedded Torque server on a random available port
 pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std::error::Error + Send + Sync>> {
@@ -8,6 +10,7 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     let listener = TcpListener::bind("127.0.0.1:0")?;
     let addr = listener.local_addr()?;
     let port = addr.port();
+    drop(listener); // Release the port for Torque server to use
     
     info!("Found available port: {}", port);
     
@@ -18,7 +21,6 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     info!("Using database: {}", database_url);
     
     // Start Torque server using the main torque crate
-    // This will use the existing server implementation
     tokio::spawn(async move {
         match start_torque_server(database_url, port).await {
             Ok(_) => info!("Torque server running successfully on port {}", port),
@@ -27,32 +29,38 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     });
     
     // Give the server a moment to start
-    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
     
     Ok(port)
 }
 
 async fn start_torque_server(database_url: String, port: u16) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Use the torque crate's server functionality
-    // This is a simplified version - we'll need to adapt based on the actual torque server API
-    
     info!("Starting Torque server with database: {}", database_url);
     info!("Server will bind to 127.0.0.1:{}", port);
     
-    // For now, we'll create a placeholder that uses the torque crate
-    // This will need to be implemented based on the actual server structure
+    // Create Torque configuration
+    let mut config = Config::default();
+    config.database.url = database_url;
+    config.server.bind = format!("127.0.0.1:{}", port);
     
-    // Example of how this might work:
-    // let server = torque::server::TorqueServer::new()
-    //     .database_url(&database_url)
-    //     .bind(format!("127.0.0.1:{}", port))
-    //     .build()
-    //     .await?;
-    // 
-    // server.run().await?;
+    // Initialize database connection
+    let db = database::setup_database(&config).await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+    info!("Database connection established");
     
-    // For now, just keep the task alive
-    loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    // Initialize service registry
+    let services = Arc::new(ServiceRegistry::new(db, config.clone()).await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?);
+    info!("Service registry initialized");
+    
+    // Load seed data for development
+    if let Err(e) = services.model_service.load_seed_data().await {
+        log::warn!("Failed to load seed data: {}", e);
     }
+    
+    // Start the HTTP server - this will run indefinitely
+    server::start_server(config, services).await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+    
+    Ok(())
 }

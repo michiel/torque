@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { invoke } from '@tauri-apps/api/core'
 
 // Import existing frontend components (will need to be adapted)
 // import ModelEditor from '../model-editor/src/App'
@@ -20,18 +21,36 @@ function App() {
   }, []);
 
   const detectServerPort = async () => {
-    // This will be implemented to communicate with Tauri backend
-    // For now, simulate server detection
     try {
-      // Try common ports or get from Tauri commands
-      const port = 8080; // This will be dynamic
+      // Get port from Tauri backend with polling
+      let port: number | null = null;
+      let attempts = 0;
+      const maxAttempts = 30; // 30 seconds max wait time
+
+      while (!port && attempts < maxAttempts) {
+        try {
+          port = await invoke<number | null>('get_server_port');
+          if (port) {
+            break;
+          }
+        } catch (error) {
+          console.log('Waiting for server port...', error);
+        }
+        
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      }
+
+      if (!port) {
+        throw new Error('Server failed to start within timeout period');
+      }
       
       // Test if server is accessible
       const response = await fetch(`http://127.0.0.1:${port}/health`);
       if (response.ok) {
         setServerInfo({ port, status: 'running' });
       } else {
-        throw new Error('Server not responding');
+        throw new Error('Server not responding to health check');
       }
     } catch (error) {
       console.error('Failed to detect server:', error);
