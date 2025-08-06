@@ -29,5 +29,8 @@ directories = "5.0"
 # Async runtime and server
 tokio = { workspace = true }
 
+# HTTP client for server health checks
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
+
 # Main Torque library
 torque = { path = "../torque" }

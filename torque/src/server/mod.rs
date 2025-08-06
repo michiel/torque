@@ -67,10 +67,13 @@ pub fn create_router(services: Arc<ServiceRegistry>) -> Router {
     let websocket_routes = Router::new()
         .route("/ws", get(handlers::websocket::websocket_handler));
 
-    // Static frontend routes (placeholder)
+    // Static frontend routes - serve built React applications
     let frontend_routes = Router::new()
         .route("/", get(handlers::frontend::serve_model_editor))
-        .route("/app/*path", get(handlers::frontend::serve_torque_app));
+        .route("/models", get(handlers::frontend::serve_model_editor))
+        .route("/models/*path", get(handlers::frontend::serve_model_editor))
+        .route("/app/*path", get(handlers::frontend::serve_torque_app))
+        .route("/assets/*path", get(handlers::frontend::serve_static_assets));
 
     // Configure CORS
     let cors = CorsLayer::new()

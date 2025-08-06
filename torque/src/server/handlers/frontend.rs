@@ -1,120 +1,61 @@
 use axum::{
     extract::Path,
-    http::StatusCode,
-    response::Html,
+    http::{StatusCode, header, HeaderValue},
+    response::{Html, Response},
+    body::Body,
 };
+use std::path::PathBuf;
 
-/// Serve the Model Editor frontend (placeholder for Phase 2)
-pub async fn serve_model_editor() -> Html<&'static str> {
-    Html(r#"
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Torque Model Editor</title>
-        <style>
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-                margin: 0;
-                padding: 20px;
-                background: #f5f5f5;
-            }
-            .container {
-                max-width: 800px;
-                margin: 0 auto;
-                background: white;
-                padding: 40px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            .header {
-                text-align: center;
-                margin-bottom: 30px;
-            }
-            .logo {
-                font-size: 2.5em;
-                font-weight: bold;
-                color: #2563eb;
-                margin-bottom: 10px;
-            }
-            .subtitle {
-                color: #6b7280;
-                font-size: 1.1em;
-            }
-            .feature-list {
-                list-style: none;
-                padding: 0;
-            }
-            .feature-list li {
-                padding: 8px 0;
-                border-bottom: 1px solid #e5e7eb;
-            }
-            .feature-list li:last-child {
-                border-bottom: none;
-            }
-            .status {
-                background: #fef3c7;
-                padding: 15px;
-                border-radius: 6px;
-                margin: 20px 0;
-                border-left: 4px solid #f59e0b;
-            }
-            .api-links {
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #e5e7eb;
-            }
-            .api-links a {
-                display: inline-block;
-                margin: 5px 10px 5px 0;
-                padding: 8px 12px;
-                background: #e5e7eb;
-                text-decoration: none;
-                border-radius: 4px;
-                color: #374151;
-            }
-            .api-links a:hover {
-                background: #d1d5db;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <div class="logo">Torque</div>
-                <div class="subtitle">High-Performance Application Platform</div>
-            </div>
-            
-            <div class="status">
-                <strong>Phase 1 Development Active</strong><br>
-                The Model Editor frontend will be available in Phase 2 (Weeks 7-12)
-            </div>
-            
-            <h3>Planned Model Editor Features:</h3>
-            <ul class="feature-list">
-                <li>📊 Visual model designer with drag-and-drop interface</li>
-                <li>🔗 Entity relationship modeling</li>
-                <li>⚡ Real-time collaboration</li>
-                <li>🔍 Model validation and error checking</li>
-                <li>📱 Responsive design for all devices</li>
-                <li>🎨 Customizable themes and layouts</li>
-                <li>📤 Export models to various formats</li>
-                <li>🔄 Version control and history</li>
-            </ul>
-            
-            <div class="api-links">
-                <strong>Available APIs:</strong><br>
-                <a href="/health">Health Check</a>
-                <a href="/metrics">Metrics</a>
-                <a href="/status">Status</a>
-                <a href="/api/v1/entities">Entity API</a>
-                <a href="/graphql/playground">GraphQL Playground</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    "#)
+/// Serve the Model Editor frontend - serve the built React app
+pub async fn serve_model_editor() -> Result<Response<Body>, StatusCode> {
+    tracing::info!("Serving Model Editor index.html");
+    serve_static_file("../frontend/model-editor/dist/index.html").await
+}
+
+
+/// Serve static assets (CSS, JS files)
+pub async fn serve_static_assets(Path(path): Path<String>) -> Result<Response<Body>, StatusCode> {
+    let file_path = format!("../frontend/model-editor/dist/assets/{}", path);
+    serve_static_file(&file_path).await
+}
+
+/// Helper function to serve static files with proper MIME types
+async fn serve_static_file(file_path: &str) -> Result<Response<Body>, StatusCode> {
+    let current_dir = std::env::current_dir()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let full_path = current_dir.join(file_path);
+    
+    tracing::info!("Attempting to serve static file: {} (resolved to: {})", file_path, full_path.display());
+    
+    let content = tokio::fs::read(&full_path).await
+        .map_err(|e| {
+            tracing::error!("Failed to read static file {}: {}", full_path.display(), e);
+            StatusCode::NOT_FOUND
+        })?;
+    
+    let content_type = determine_content_type(&full_path);
+    
+    Response::builder()
+        .header(header::CONTENT_TYPE, content_type)
+        .header(header::CACHE_CONTROL, "public, max-age=3600")
+        .body(Body::from(content))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+/// Determine MIME type based on file extension
+fn determine_content_type(path: &PathBuf) -> HeaderValue {
+    match path.extension().and_then(|ext| ext.to_str()) {
+        Some("html") => HeaderValue::from_static("text/html; charset=utf-8"),
+        Some("js") => HeaderValue::from_static("application/javascript"),
+        Some("css") => HeaderValue::from_static("text/css"),
+        Some("png") => HeaderValue::from_static("image/png"),
+        Some("jpg") | Some("jpeg") => HeaderValue::from_static("image/jpeg"),
+        Some("gif") => HeaderValue::from_static("image/gif"),
+        Some("svg") => HeaderValue::from_static("image/svg+xml"),
+        Some("ico") => HeaderValue::from_static("image/x-icon"),
+        Some("json") => HeaderValue::from_static("application/json"),
+        _ => HeaderValue::from_static("application/octet-stream"),
+    }
 }
 
 /// Serve TorqueApp frontend (placeholder for Phase 3)
