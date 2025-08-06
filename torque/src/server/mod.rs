@@ -106,7 +106,13 @@ pub async fn start_server(config: Config, services: Arc<ServiceRegistry>) -> Res
     tracing::info!("Starting HTTP server on {}", config.server.bind);
     
     let listener = tokio::net::TcpListener::bind(&config.server.bind).await
-        .map_err(|e| crate::Error::Io(e))?;
+        .map_err(|e| {
+            tracing::error!("Failed to bind to {}: {}", config.server.bind, e);
+            crate::Error::Io(e)
+        })?;
+    
+    let bound_addr = listener.local_addr().map_err(|e| crate::Error::Io(e))?;
+    tracing::info!("Successfully bound to {}", bound_addr);
     
     // Start background task for cache cleanup
     let cleanup_services = services.clone();
@@ -118,10 +124,18 @@ pub async fn start_server(config: Config, services: Arc<ServiceRegistry>) -> Res
         }
     });
     
-    axum::serve(listener, router).await
-        .map_err(|e| crate::Error::Io(e))?;
-    
-    Ok(())
+    tracing::info!("Starting axum server with router...");
+    match axum::serve(listener, router).await {
+        Ok(_) => {
+            tracing::warn!("axum::serve() completed normally - this should never happen as server should run indefinitely");
+            Ok(())
+        }
+        Err(e) => {
+            tracing::error!("axum::serve() failed: {}", e);
+            tracing::error!("Error details: {:?}", e);
+            Err(crate::Error::Io(e))
+        }
+    }
 }
 
 pub use http::TorqueServer;
