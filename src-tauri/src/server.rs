@@ -20,11 +20,7 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     
     // Configure database URL for SQLite in data directory
     let db_path = data_dir.join("torque.db");
-    let database_url = if db_path.is_absolute() {
-        format!("sqlite:{}", db_path.display())
-    } else {
-        format!("sqlite://{}", db_path.display())
-    };
+    let database_url = format!("sqlite:{}", db_path.display());
     
     info!("Using database: {}", database_url);
     
