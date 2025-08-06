@@ -313,57 +313,57 @@ Once MVP is complete, return to original implementation plan:
 **Plan Document**: `docs/plans/2025-08-06-tauri-implementation-plan.md`  
 **Target**: Cross-platform desktop app with embedded HTTP server
 
-### Phase 1: Foundation (Week 1) - **🟡 PLANNED**
-- [ ] **P1** Initialize Tauri v2 project structure
-  - [ ] Install Tauri CLI and create `src-tauri/` directory
-  - [ ] Configure `Tauri.toml` with cross-platform settings
-  - [ ] Set up workspace dependencies with main `torque` crate
-  - [ ] Create basic app icons and metadata
+### Phase 1: Foundation (Week 1) - **✅ COMPLETED**
+- [x] **P1** Initialize Tauri v2 project structure ✅
+  - [x] Install Tauri CLI and create `src-tauri/` directory ✅
+  - [x] Configure `Tauri.toml` with cross-platform settings ✅
+  - [x] Set up workspace dependencies with main `torque` crate ✅
+  - [x] Create basic app icons and metadata ✅
 
-- [ ] **P1** Embedded HTTP server integration
-  - [ ] Implement server startup in `src-tauri/src/main.rs`
-  - [ ] Configure random port binding for localhost isolation
-  - [ ] Pass server port information to frontend
-  - [ ] Test basic Torque server functionality in desktop context
+- [x] **P1** Embedded HTTP server integration ✅
+  - [x] Implement server startup in `src-tauri/src/main.rs` ✅
+  - [x] Configure random port binding for localhost isolation ✅
+  - [x] Pass server port information to frontend ✅
+  - [x] Test basic Torque server functionality in desktop context ✅
 
-### Phase 2: Data Storage & Frontend (Week 2) - **🟡 PLANNED**
-- [ ] **P1** Cross-platform data storage
-  - [ ] Integrate `directories` crate for platform-appropriate paths
-  - [ ] Configure SQLite database in user data directory
-  - [ ] Implement data migration from web version (if needed)
-  - [ ] Test data persistence across app restarts
+### Phase 2: Real Server Integration (Week 2) - **✅ COMPLETED**
+- [x] **P1** Real Torque server integration ✅
+  - [x] Replace placeholder with actual `torque::server::start_server()` ✅
+  - [x] Integrate ServiceRegistry, database setup, and config system ✅
+  - [x] Configure SQLite database in platform-appropriate directories ✅
+  - [x] Test full server functionality with all API endpoints ✅
 
-- [ ] **P1** Frontend integration
-  - [ ] Create `frontend/tauri/` wrapper application
-  - [ ] Implement dynamic endpoint detection for embedded server
-  - [ ] Bundle existing model-editor and torque-client
-  - [ ] Test full offline functionality
+- [x] **P1** Tauri-Frontend communication ✅
+  - [x] Add Tauri commands for dynamic port communication ✅
+  - [x] Implement frontend polling to detect embedded server startup ✅
+  - [x] Add health check validation and error handling ✅
+  - [x] Test complete development workflow: `cargo tauri dev` ✅
 
 ### Phase 3: Desktop Features (Week 3) - **🟡 PLANNED**
 - [ ] **P1** File associations and OS integration
   - [ ] Configure `.torque.json` file associations in `Tauri.toml`
-  - [ ] Implement file opening workflow
+  - [ ] Implement file opening workflow via Tauri commands
   - [ ] Test double-click to open functionality
-  - [ ] Add desktop-specific UI enhancements if needed
+  - [ ] Add desktop-specific UI enhancements for file handling
 
 - [ ] **P2** Auto-updater setup
-  - [ ] Configure GitHub-based auto-updater
-  - [ ] Set up signing keys and certificates
+  - [ ] Configure GitHub-based auto-updater with signing
+  - [ ] Set up proper update endpoints and certificate management
   - [ ] Test update workflow end-to-end
-  - [ ] Implement graceful update notifications
+  - [ ] Implement graceful update notifications and restart logic
 
-### Phase 4: Packaging & Distribution (Week 4) - **🟡 PLANNED**
+### Phase 4: Production Polish & Distribution (Week 4) - **🟡 PLANNED**
 - [ ] **P1** Cross-platform builds and packaging
-  - [ ] Configure Windows MSI installer
-  - [ ] Set up macOS app bundle and notarization
-  - [ ] Create Linux AppImage/deb packages
-  - [ ] Test installation on all platforms
+  - [ ] Fix AppImage bundling (currently fails in build process)
+  - [ ] Test and optimize .deb and .rpm packages for Linux
+  - [ ] Configure Windows MSI installer with proper signing
+  - [ ] Set up macOS app bundle with notarization
 
-- [ ] **P2** CI/CD and release automation
-  - [ ] GitHub Actions for automated builds
-  - [ ] Release workflow with version tagging
-  - [ ] Distribution via GitHub Releases
-  - [ ] Documentation for users and contributors
+- [ ] **P2** Production features and CI/CD
+  - [ ] Add comprehensive error handling and crash reporting
+  - [ ] Implement proper logging and diagnostics
+  - [ ] GitHub Actions for automated cross-platform builds
+  - [ ] Release workflow with version tagging and distribution
 
 ### Technical Architecture Decisions
 - **Embedded HTTP Server**: Preserve existing GraphQL/JSON-RPC APIs unchanged
@@ -373,11 +373,16 @@ Once MVP is complete, return to original implementation plan:
 - **Offline-First**: Complete local functionality, remote connectivity as future feature
 
 ### Success Criteria
-- [ ] Desktop app starts and runs embedded Torque server successfully
+- [x] Desktop app starts and runs embedded Torque server successfully ✅
 - [ ] Model editor and TorqueApp preview work identically to web version
 - [ ] File associations allow double-clicking `.torque.json` files to open app
 - [ ] Cross-platform packages install and run on Windows, macOS, and Linux
 - [ ] Auto-updater successfully delivers updates from GitHub releases
+
+### Development Commands
+- **Start Tauri Development**: `./scripts/dev-tauri.sh` 
+- **Build Debug**: `cd src-tauri && cargo tauri build --debug`
+- **Test Compilation**: `cd src-tauri && cargo check`
 
 ---
 
