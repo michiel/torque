@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "torque",
+    "src-tauri",
     # Future crates will be added here:
     # "model-editor-frontend",
     # "torque-app-frontend",
