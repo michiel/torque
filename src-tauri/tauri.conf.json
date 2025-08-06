@@ -5,8 +5,8 @@
   "identifier": "com.torque.desktop",
   "build": {
     "frontendDist": "../frontend/model-editor/dist",
-    "devUrl": "http://localhost:3001",
-    "beforeDevCommand": "cd /home/michiel/dev/torque/frontend/tauri && npm run dev",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "cd /home/michiel/dev/torque/frontend/model-editor && npm run dev",
     "beforeBuildCommand": "cd /home/michiel/dev/torque/frontend/model-editor && npm run build"
   },
   "app": {
@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' 'unsafe-inline' torque:; script-src 'self' 'unsafe-inline' 'unsafe-eval' torque:; connect-src 'self' torque:; img-src 'self' data: torque:; style-src 'self' 'unsafe-inline' torque:;"
+      "csp": "default-src 'self' 'unsafe-inline' torque: 127.0.0.1:* localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' torque:; connect-src 'self' torque: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:*; img-src 'self' data: torque:; style-src 'self' 'unsafe-inline' torque:;"
     }
   },
   "bundle": {
