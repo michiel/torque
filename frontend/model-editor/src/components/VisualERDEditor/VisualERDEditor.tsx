@@ -21,8 +21,7 @@ import { EntityNode } from './EntityNode';
 import { RelationshipEdge } from './RelationshipEdge';
 import { EntityEditModal } from './EntityEditModal';
 import { RelationshipEditModal } from './RelationshipEditModal';
-import { useWebSocket } from '../../hooks/useWebSocket';
-import { useTorqueConfig } from '../../providers/TorqueConfigProvider';
+import { useWebSocketContext } from '../../providers/WebSocketProvider';
 import { generateTempId, generateUniqueName } from '../../utils/idGenerator';
 import './VisualERDEditor.css';
 
@@ -81,14 +80,8 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(true);
 
-  // Get dynamic configuration for WebSocket URL
-  const { config } = useTorqueConfig();
-
-  // WebSocket integration for real-time updates
-  const { isConnected, lastEvent } = useWebSocket({
-    url: config.websocketUrl,
-    modelFilter: modelId
-  });
+  // Use app-wide WebSocket connection for real-time updates
+  const { isConnected, lastEvent } = useWebSocketContext();
 
   // Handle real-time model changes
   useEffect(() => {
