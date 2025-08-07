@@ -134,7 +134,7 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
       }
       
       // Create new Apollo client
-      const newApolloClient = await getDynamicApolloClient(torqueConfig);
+      const newApolloClient = await getDynamicApolloClient();
       
       setConfig(torqueConfig);
       setApolloClient(newApolloClient);

@@ -29,7 +29,7 @@ export const ServerStatus: React.FC = () => {
     <>
       {!isConnected && (
         <div style={{ position: 'fixed', top: 10, right: 10, zIndex: 1000 }}>
-          <Alert size="xs" color="orange">
+          <Alert color="orange">
             <Text size="xs">
               Server connection lost. Auto-refresh in progress...
             </Text>
