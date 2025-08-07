@@ -65,6 +65,13 @@ const webConfig: TorqueConfig = {
 let cachedServerPort: number | null = null;
 let serverPortPromise: Promise<number> | null = null;
 
+// Function to clear cached port (useful when server restarts)
+export const clearPortCache = () => {
+  console.log('[TauriConfig] Clearing port cache');
+  cachedServerPort = null;
+  serverPortPromise = null;
+};
+
 // Get server port from Tauri
 const getServerPort = async (): Promise<number> => {
   if (cachedServerPort) {
@@ -98,12 +105,20 @@ const getServerPort = async (): Promise<number> => {
               console.log(`[TauriConfig] Found server port from file: ${port}`);
               
               // Verify the server is actually running
-              const healthResponse = await fetch(`http://127.0.0.1:${port}/health/health`);
-              if (healthResponse.ok) {
-                console.log(`[TauriConfig] Verified server health on port ${port}`);
-                cachedServerPort = port;
-                serverPortPromise = null;
-                return port;
+              try {
+                const healthResponse = await fetch(`http://127.0.0.1:${port}/health/health`);
+                if (healthResponse.ok) {
+                  console.log(`[TauriConfig] Verified server health on port ${port}`);
+                  cachedServerPort = port;
+                  serverPortPromise = null;
+                  return port;
+                } else {
+                  console.log(`[TauriConfig] Server health check failed: ${healthResponse.status}`);
+                }
+              } catch (healthError) {
+                console.log(`[TauriConfig] Server health check error:`, healthError);
+                // Clear the cached port since the server is not responding
+                cachedServerPort = null;
               }
             }
           }

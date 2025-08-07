@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ApolloProvider } from '@apollo/client';
 import { LoadingOverlay, Text, Stack } from '@mantine/core';
-import { getTorqueConfig, isTauri, testServerHealth } from '../utils/tauriConfig';
+import { getTorqueConfig, isTauri, testServerHealth, clearPortCache } from '../utils/tauriConfig';
 import { getDynamicApolloClient } from '../graphql/dynamicClient';
 import type { ApolloClient } from '@apollo/client';
 
@@ -16,6 +16,7 @@ interface TorqueConfigContextType {
   config: TorqueConfig;
   apolloClient: ApolloClient<any>;
   isTauriEnvironment: boolean;
+  refreshConfig: () => Promise<void>;
 }
 
 const TorqueConfigContext = createContext<TorqueConfigContextType | null>(null);
@@ -107,6 +108,45 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
     };
   }, [isTauriEnvironment]);
 
+  const refreshConfig = async () => {
+    console.log('[TorqueConfigProvider] Refreshing configuration...');
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Clear any cached port information
+      if (isTauriEnvironment) {
+        clearPortCache();
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('tauri_server_port');
+        }
+      }
+      
+      // Get fresh configuration
+      const torqueConfig = await getTorqueConfig();
+      console.log('[TorqueConfigProvider] Refreshed config:', torqueConfig);
+      
+      // Test server health
+      if (isTauriEnvironment) {
+        const isHealthy = await testServerHealth(torqueConfig);
+        if (!isHealthy) {
+          throw new Error('Server health check failed after refresh');
+        }
+      }
+      
+      // Create new Apollo client
+      const newApolloClient = await getDynamicApolloClient(torqueConfig);
+      
+      setConfig(torqueConfig);
+      setApolloClient(newApolloClient);
+    } catch (error) {
+      console.error('[TorqueConfigProvider] Failed to refresh config:', error);
+      setError(`Failed to refresh configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ position: 'relative', height: '100vh', width: '100vw' }}>
@@ -150,6 +190,7 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
     config,
     apolloClient,
     isTauriEnvironment,
+    refreshConfig,
   };
 
   return (

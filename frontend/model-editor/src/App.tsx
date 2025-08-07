@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { AppShell } from '@mantine/core'
 
 import { Header } from './components/Header'
+import { ServerStatus } from './components/ServerStatus'
 import { HomePage } from './pages/HomePage'
 import { ModelsPage } from './pages/ModelsPage'
 import { ModelOverviewPage } from './pages/ModelOverviewPage'
@@ -43,6 +44,7 @@ function App() {
           <Route path="/models/:id/editor/erd" element={<ERDEditorPage />} />
           <Route path="/debug-layout" element={<DebugLayoutPage />} />
         </Routes>
+        <ServerStatus />
       </AppShell.Main>
     </AppShell>
   )

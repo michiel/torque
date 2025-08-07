@@ -93,7 +93,16 @@ pub fn create_router(services: Arc<ServiceRegistry>) -> Router {
         .nest("/", frontend_routes)
         .layer(
             ServiceBuilder::new()
-                .layer(TraceLayer::new_for_http())
+                .layer(TraceLayer::new_for_http()
+                    .on_request(|request: &axum::extract::Request<_>, _span: &tracing::Span| {
+                        tracing::info!("Request: {} {}", request.method(), request.uri());
+                    })
+                    .on_response(|response: &axum::response::Response, latency: std::time::Duration, _span: &tracing::Span| {
+                        tracing::info!("Response: {} in {:?}", response.status(), latency);
+                    })
+                    .on_failure(|error: tower_http::classify::ServerErrorsFailureClass, latency: std::time::Duration, _span: &tracing::Span| {
+                        tracing::error!("Request failed: {:?} after {:?}", error, latency);
+                    }))
                 .layer(cors)
         )
         .with_state(state)
@@ -148,7 +157,17 @@ pub async fn start_server(config: Config, services: Arc<ServiceRegistry>) -> Res
     let start_time = std::time::Instant::now();
     
     // Create a manual shutdown signal that never triggers
-    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    let (_shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    
+    // Add periodic heartbeat logging to track server lifecycle
+    let heartbeat_addr = bound_addr;
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(10));
+        loop {
+            interval.tick().await;
+            tracing::debug!("Server heartbeat: still serving on {}", heartbeat_addr);
+        }
+    });
     
     // Start the server with explicit graceful shutdown handling
     let server_result = axum::serve(listener, router)
