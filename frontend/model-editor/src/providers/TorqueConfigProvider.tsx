@@ -52,9 +52,9 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
         if (isTauriEnvironment) {
           setStatus('Testing server connection...');
           
-          // Test server health with retries
+          // Test server health with retries - longer timeout for initialization
           let healthCheckPassed = false;
-          const maxRetries = 10;
+          const maxRetries = 20; // Increased retries
           
           for (let i = 0; i < maxRetries && isMounted; i++) {
             const isHealthy = await testServerHealth(torqueConfig);
@@ -65,7 +65,7 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
             
             if (i < maxRetries - 1) {
               setStatus(`Server not ready, retrying... (${i + 1}/${maxRetries})`);
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Longer delay between retries
             }
           }
           
@@ -126,12 +126,11 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
       const torqueConfig = await getTorqueConfig();
       console.log('[TorqueConfigProvider] Refreshed config:', torqueConfig);
       
-      // Test server health
+      // Test server health (skip health check during refresh to be more permissive)
       if (isTauriEnvironment) {
-        const isHealthy = await testServerHealth(torqueConfig);
-        if (!isHealthy) {
-          throw new Error('Server health check failed after refresh');
-        }
+        console.log('[TorqueConfigProvider] Skipping health check during refresh - using config as-is');
+        // Skip health check during refresh to allow recovery even if health endpoint is temporarily unavailable
+        // The WebSocket and GraphQL clients will handle their own connection validation
       }
       
       // Create new Apollo client

@@ -157,7 +157,12 @@ pub async fn start_server(config: Config, services: Arc<ServiceRegistry>) -> Res
     let start_time = std::time::Instant::now();
     
     // Create a manual shutdown signal that never triggers
-    let (_shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    // Keep a reference to the sender to ensure it's not dropped
+    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    
+    // Log when the shutdown sender is dropped (which would trigger shutdown)
+    let shutdown_guard = shutdown_tx;
+    std::mem::forget(shutdown_guard); // Prevent the sender from ever being dropped
     
     // Add periodic heartbeat logging to track server lifecycle
     let heartbeat_addr = bound_addr;

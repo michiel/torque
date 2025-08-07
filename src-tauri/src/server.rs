@@ -32,35 +32,35 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     
     info!("Using database: {}", database_url);
     
-    // Start Torque server using the main torque crate
+    // Start Torque server using the main torque crate with panic handling
     let server_port = port;
-    tokio::spawn(async move {
+    let server_handle = tokio::spawn(async move {
         info!("Server task started for port {}", port);
         
-        // Keep the task alive and periodically log server status
-        let server_future = start_torque_server(database_url, port);
-        let status_future = async {
-            let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
-            loop {
-                interval.tick().await;
-                info!("Server task still alive for port {}", port);
-            }
-        };
+        // Start server directly in the async context - no block_on needed
+        let server_result = start_torque_server(database_url, port).await;
         
-        tokio::select! {
-            result = server_future => {
-                match result {
-                    Ok(_) => {
-                        error!("Torque server task completed unexpectedly - server should run indefinitely on port {}", port);
-                    }
-                    Err(e) => {
-                        error!("Torque server failed on port {}: {}", port, e);
-                    }
-                }
-                error!("Server task ending for port {} - this should not happen", port);
+        match server_result {
+            Ok(_) => {
+                error!("Torque server task completed unexpectedly - server should run indefinitely on port {}", port);
             }
-            _ = status_future => {
-                error!("Status future ended unexpectedly");
+            Err(e) => {
+                error!("Torque server failed on port {}: {}", port, e);
+            }
+        }
+        error!("Server task ending for port {} - this should not happen", port);
+    });
+    
+    // Monitor server health in a separate task
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(10));
+        loop {
+            interval.tick().await;
+            if server_handle.is_finished() {
+                error!("Server task has finished unexpectedly!");
+                break;
+            } else {
+                info!("Server task still alive for port {}", server_port);
             }
         }
     });

@@ -95,35 +95,61 @@ const getServerPort = async (): Promise<number> => {
         // In development, try to read the port from the port file
         console.log('[TauriConfig] Development mode - looking for embedded server...');
         
-        // Try to read the port file that the Rust server writes
-        try {
-          const portFileResponse = await fetch('http://localhost:3000/api/tauri-port');
-          if (portFileResponse.ok) {
-            const portText = await portFileResponse.text();
-            const port = parseInt(portText.trim());
-            if (!isNaN(port)) {
-              console.log(`[TauriConfig] Found server port from file: ${port}`);
-              
-              // Verify the server is actually running
-              try {
-                const healthResponse = await fetch(`http://127.0.0.1:${port}/health/health`);
-                if (healthResponse.ok) {
-                  console.log(`[TauriConfig] Verified server health on port ${port}`);
-                  cachedServerPort = port;
-                  serverPortPromise = null;
-                  return port;
-                } else {
-                  console.log(`[TauriConfig] Server health check failed: ${healthResponse.status}`);
+        // Try to read the port file that the Rust server writes (with retries)
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            console.log(`[TauriConfig] Reading port file, attempt ${attempt + 1}/3`);
+            const portFileResponse = await fetch('http://localhost:3000/api/tauri-port');
+            if (portFileResponse.ok) {
+              const portText = await portFileResponse.text();
+              const port = parseInt(portText.trim());
+              if (!isNaN(port)) {
+                console.log(`[TauriConfig] Found server port from file: ${port}`);
+                
+                // Verify the server is actually running with a timeout
+                try {
+                  const controller = new AbortController();
+                  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for health checks
+                  
+                  const healthResponse = await fetch(`http://127.0.0.1:${port}/health/health`, {
+                    signal: controller.signal
+                  });
+                  clearTimeout(timeoutId);
+                  
+                  if (healthResponse.ok) {
+                    console.log(`[TauriConfig] Verified server health on port ${port}`);
+                    cachedServerPort = port;
+                    serverPortPromise = null;
+                    return port;
+                  } else {
+                    console.log(`[TauriConfig] Server health check failed: ${healthResponse.status} - port file may be stale`);
+                  }
+                } catch (healthError) {
+                  console.log(`[TauriConfig] Server health check error:`, healthError, '- port file likely stale');
+                  // Clear the cached port since the server is not responding
+                  cachedServerPort = null;
+                  // Try to clear the stale port file by making a delete request
+                  try {
+                    await fetch('http://localhost:3000/api/tauri-port', { method: 'DELETE' });
+                    console.log(`[TauriConfig] Requested clearing of stale port file`);
+                  } catch (deleteError) {
+                    console.log(`[TauriConfig] Could not clear stale port file:`, deleteError);
+                  }
                 }
-              } catch (healthError) {
-                console.log(`[TauriConfig] Server health check error:`, healthError);
-                // Clear the cached port since the server is not responding
-                cachedServerPort = null;
+              } else {
+                console.log(`[TauriConfig] Invalid port number in file: ${portText}`);
               }
+            } else {
+              console.log(`[TauriConfig] Port file request failed: ${portFileResponse.status}`);
             }
+          } catch (error) {
+            console.log(`[TauriConfig] Could not read port file (attempt ${attempt + 1}):`, error);
           }
-        } catch (error) {
-          console.log('[TauriConfig] Could not read port file:', error);
+          
+          // Wait before retry (except on last attempt)
+          if (attempt < 2) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Longer delay between retries
+          }
         }
         
         // Fallback: try localStorage cache
@@ -145,12 +171,20 @@ const getServerPort = async (): Promise<number> => {
           }
         }
         
-        // Final fallback: scan for the server (limited range)
+        // Final fallback: scan for the server (smart scanning)
         console.log('[TauriConfig] Scanning for embedded server...');
-        for (let port = 40000; port < 50000; port += 100) {
+        
+        // Start from current port if available, otherwise start from common range
+        const startPort = 32000;
+        const endPort = 50000;
+        const increment = 1; // Check every port for better coverage
+        
+        console.log(`[TauriConfig] Scanning ports ${startPort} to ${endPort}...`);
+        
+        for (let port = startPort; port <= endPort; port += increment) {
           try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 200);
+            const timeoutId = setTimeout(() => controller.abort(), 500); // More reasonable timeout for scanning
             
             const response = await fetch(`http://127.0.0.1:${port}/health/health`, { 
               signal: controller.signal 
@@ -166,6 +200,10 @@ const getServerPort = async (): Promise<number> => {
             }
           } catch {
             // Port not responding, continue scanning
+            // Log progress every 1000 ports
+            if (port % 1000 === 0) {
+              console.log(`[TauriConfig] Scanned up to port ${port}...`);
+            }
           }
         }
         
@@ -254,12 +292,20 @@ export const waitForConfig = async (): Promise<TorqueConfig> => {
   return getTorqueConfig();
 };
 
-// Test server health
+// Test server health with timeout
 export const testServerHealth = async (config: TorqueConfig): Promise<boolean> => {
   try {
-    const response = await fetch(`${config.baseUrl}/health/health`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for health checks
+    
+    const response = await fetch(`${config.baseUrl}/health/health`, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     return response.ok;
-  } catch {
+  } catch (error) {
+    console.log('[TauriConfig] Health check failed:', error);
     return false;
   }
 };

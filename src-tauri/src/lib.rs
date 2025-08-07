@@ -239,6 +239,13 @@ pub fn run() {
               info!("Torque server started on port {}", port);
               // Store the port in shared state
               *server_port_ref.lock().unwrap() = Some(port);
+              
+              // Block indefinitely to keep the server thread alive
+              // This prevents the thread from exiting and taking the server with it
+              info!("Server thread will now block indefinitely to keep server alive...");
+              loop {
+                tokio::time::sleep(std::time::Duration::from_secs(3600)).await; // Sleep for 1 hour at a time
+              }
             }
             Err(e) => {
               error!("Failed to start Torque server: {}", e);
