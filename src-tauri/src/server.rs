@@ -126,9 +126,11 @@ async fn start_torque_server(database_url: String, port: u16) -> Result<(), Box<
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?);
     info!("Step 6: Service registry initialized");
     
-    // Skip seed data loading for desktop app to improve startup time
-    // User can manually import models via the Model Editor UI
-    info!("Step 7: Skipping seed data loading for faster desktop startup");
+    // Load seed data for desktop development
+    info!("Step 7: Loading seed data for desktop development...");
+    if let Err(e) = services.model_service.load_seed_data().await {
+        log::warn!("Failed to load seed data: {}", e);
+    }
     
     // Start the HTTP server - this will run indefinitely
     info!("Step 8: Starting HTTP server...");
