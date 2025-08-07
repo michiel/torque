@@ -38,10 +38,13 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
     
     const initializeConfig = async () => {
       try {
+        console.log('[TorqueConfigProvider] Initializing config, isTauriEnvironment:', isTauriEnvironment);
         setStatus(isTauriEnvironment ? 'Connecting to embedded server...' : 'Configuring web endpoints...');
         
         // Get configuration
+        console.log('[TorqueConfigProvider] Getting Torque config...');
         const torqueConfig = await getTorqueConfig();
+        console.log('[TorqueConfigProvider] Received config:', torqueConfig);
         
         if (!isMounted) return;
         

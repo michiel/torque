@@ -1,12 +1,11 @@
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { ApolloProvider } from '@apollo/client'
 import { MantineProvider } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { ModalsProvider } from '@mantine/modals'
 
-import { apolloClient } from './graphql/client'
 import { theme } from './theme'
+import { TorqueConfigProvider } from './providers/TorqueConfigProvider'
 import { WebSocketProvider } from './providers/WebSocketProvider'
 import App from './App'
 
@@ -16,15 +15,15 @@ import './styles/global.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-    <ApolloProvider client={apolloClient}>
-      <MantineProvider theme={theme}>
+    <MantineProvider theme={theme}>
+      <TorqueConfigProvider>
         <ModalsProvider>
           <Notifications />
           <WebSocketProvider>
             <App />
           </WebSocketProvider>
         </ModalsProvider>
-      </MantineProvider>
-    </ApolloProvider>
+      </TorqueConfigProvider>
+    </MantineProvider>
   </BrowserRouter>,
 )

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { jsonRpcClient } from '../services/jsonrpcClient'
+import { dynamicJsonRpcClient } from '../services/dynamicJsonrpcClient'
 
 interface UseJsonRpcState<T> {
   data: T | null
@@ -34,7 +34,7 @@ export function useJsonRpc<T = any>(
     setState(prev => ({ ...prev, loading: true, error: null }))
     
     try {
-      const result = await jsonRpcClient.call<T>(method, stableParams)
+      const result = await dynamicJsonRpcClient.call<T>(method, stableParams)
       setState({ data: result, loading: false, error: null })
     } catch (error) {
       setState({
@@ -98,7 +98,7 @@ export function useJsonRpcMutation<T = any>() {
     setState(prev => ({ ...prev, loading: true, error: null }))
     
     try {
-      const result = await jsonRpcClient.call<T>(method, params)
+      const result = await dynamicJsonRpcClient.call<T>(method, params)
       setState({ data: result, loading: false, error: null })
       return result
     } catch (error) {

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { useWebSocket, ModelChangeEvent } from '../hooks/useWebSocket';
 import { useApolloClient } from '@apollo/client';
 import { GET_MODELS, GET_MODEL, GET_LAYOUT } from '../graphql/queries';
+import { useTorqueConfig } from './TorqueConfigProvider';
 
 // Global client ID to persist across component re-renders in development mode
 let globalClientId: string | null = null;
@@ -23,10 +24,14 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
-  url = 'ws://localhost:8080/ws',
+  url,
   clientId,
 }) => {
   const apolloClient = useApolloClient();
+  const { config } = useTorqueConfig();
+  
+  // Use provided URL or fall back to config URL
+  const wsUrl = url || config.websocketUrl;
 
   // Stabilize client ID to prevent reconnections, using global persistence for dev mode
   const stableClientId = useMemo(() => {
@@ -65,7 +70,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [apolloClient]);
 
   const webSocket = useWebSocket({
-    url,
+    url: wsUrl,
     clientId: stableClientId,
     onEvent: handleEvent,
     autoReconnect: true,

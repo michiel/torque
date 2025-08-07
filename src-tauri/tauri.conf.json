@@ -6,7 +6,7 @@
   "build": {
     "frontendDist": "../frontend/model-editor/dist",
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "cd /home/michiel/dev/torque/frontend/model-editor && npm run dev",
+    "beforeDevCommand": "cd /home/michiel/dev/torque/frontend/model-editor && VITE_TAURI_DEV=true npm run dev",
     "beforeBuildCommand": "cd /home/michiel/dev/torque/frontend/model-editor && npm run build"
   },
   "app": {

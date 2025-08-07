@@ -14,6 +14,14 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     
     info!("Found available port: {}", port);
     
+    // Write port to a file for development mode communication
+    let port_file = data_dir.join("server_port.txt");
+    if let Err(e) = std::fs::write(&port_file, port.to_string()) {
+        log::warn!("Failed to write port file: {}", e);
+    } else {
+        info!("Port written to {}", port_file.display());
+    }
+    
     // Ensure data directory exists
     std::fs::create_dir_all(&data_dir)?;
     info!("Ensured data directory exists: {}", data_dir.display());
@@ -128,16 +136,22 @@ async fn start_torque_server(database_url: String, port: u16) -> Result<(), Box<
     
     // Start the HTTP server - this runs indefinitely
     info!("Calling server::start_server() - server should run indefinitely...");
+    
+    // Add a small delay to ensure everything is ready
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    
     let start_result = server::start_server(config, services).await;
     match start_result {
         Ok(_) => {
             error!("Server::start_server() completed normally (this should NEVER happen - server should run indefinitely)");
             error!("This indicates the axum server exited unexpectedly!");
-            Ok(())
+            error!("The server may have shut down due to an internal error or signal");
+            Err("Server exited unexpectedly".into())
         }
         Err(e) => {
             error!("Server::start_server() failed with error: {}", e);
             error!("Error details: {:?}", e);
+            error!("Error type: {}", std::any::type_name_of_val(&e));
             Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
         }
     }

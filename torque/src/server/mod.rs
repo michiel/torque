@@ -114,6 +114,22 @@ pub async fn start_server(config: Config, services: Arc<ServiceRegistry>) -> Res
     let bound_addr = listener.local_addr().map_err(|e| crate::Error::Io(e))?;
     tracing::info!("Successfully bound to {}", bound_addr);
     
+    // Test if we can create a simple connection to verify the bind is working
+    tokio::spawn({
+        let addr = bound_addr;
+        async move {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            match tokio::net::TcpStream::connect(addr).await {
+                Ok(_stream) => {
+                    tracing::info!("Bind verification: Successfully connected to {}", addr);
+                }
+                Err(e) => {
+                    tracing::error!("Bind verification: Failed to connect to {}: {}", addr, e);
+                }
+            }
+        }
+    });
+    
     // Start background task for cache cleanup
     let cleanup_services = services.clone();
     let _cleanup_handle = tokio::spawn(async move {
@@ -125,14 +141,39 @@ pub async fn start_server(config: Config, services: Arc<ServiceRegistry>) -> Res
     });
     
     tracing::info!("Starting axum server with router...");
-    match axum::serve(listener, router).await {
+    tracing::info!("Server will handle requests on {}", bound_addr);
+    
+    // Add debug logging to understand exactly what's happening
+    tracing::info!("About to call axum::serve() - this should block indefinitely");
+    let start_time = std::time::Instant::now();
+    
+    // Create a manual shutdown signal that never triggers
+    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    
+    // Start the server with explicit graceful shutdown handling
+    let server_result = axum::serve(listener, router)
+        .with_graceful_shutdown(async {
+            // Wait for shutdown signal (this should never complete)
+            tracing::info!("Server graceful shutdown handler started - waiting indefinitely");
+            let _ = shutdown_rx.await;
+            tracing::warn!("Shutdown signal received - this should never happen in normal operation");
+        })
+        .await;
+    
+    // This should NEVER be reached unless there's an error
+    let elapsed = start_time.elapsed();
+    tracing::error!("axum::serve() returned after {:?} - THIS SHOULD NOT HAPPEN!", elapsed);
+    
+    match server_result {
         Ok(_) => {
             tracing::warn!("axum::serve() completed normally - this should never happen as server should run indefinitely");
+            tracing::warn!("Server shutdown gracefully");
             Ok(())
         }
         Err(e) => {
             tracing::error!("axum::serve() failed: {}", e);
             tracing::error!("Error details: {:?}", e);
+            tracing::error!("Error kind: {}", e.kind());
             Err(crate::Error::Io(e))
         }
     }
