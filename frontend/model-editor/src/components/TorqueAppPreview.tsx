@@ -52,6 +52,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
   const config = useTorqueConfig();
   
   console.log('[TorqueAppPreview] Config:', config);
+  console.log('[TorqueAppPreview] Passing apiBaseUrl to TorqueAppEmbed:', config.baseUrl);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appUrl, setAppUrl] = useState<string | null>(null);
