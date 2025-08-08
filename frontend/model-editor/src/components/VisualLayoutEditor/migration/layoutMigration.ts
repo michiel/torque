@@ -110,7 +110,7 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
     switch (comp.componentType) {
       case 'DataGrid':
         props = {
-          entityType: comp.properties?.entityType || 'project',
+          entityType: comp.properties?.entityType || comp.properties?.entity || 'project',
           columns: comp.properties?.columns || [
             { field: 'id', header: 'ID', type: 'text', sortable: true, filterable: true },
             { field: 'name', header: 'Name', type: 'text', sortable: true, filterable: true }
@@ -142,7 +142,7 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
 
       case 'TorqueButton':
         props = {
-          text: comp.properties?.text || 'Button',
+          text: comp.properties?.text || comp.properties?.label || 'Button',
           variant: comp.properties?.variant || 'filled',
           size: comp.properties?.size || 'md',
           color: comp.properties?.color || 'blue',
@@ -360,7 +360,7 @@ export const getMigrationWarnings = (layout: LegacyLayout): string[] => {
   layout.components.forEach((comp, index) => {
     switch (comp.componentType) {
       case 'DataGrid':
-        if (!comp.properties?.entityType) {
+        if (!comp.properties?.entityType && !comp.properties?.entity) {
           warnings.push(`DataGrid component #${index + 1}: Missing entity type - will default to 'project'`);
         }
         break;
@@ -370,7 +370,7 @@ export const getMigrationWarnings = (layout: LegacyLayout): string[] => {
         }
         break;
       case 'TorqueButton':
-        if (!comp.properties?.text) {
+        if (!comp.properties?.text && !comp.properties?.label) {
           warnings.push(`TorqueButton component #${index + 1}: Missing button text - will default to 'Button'`);
         }
         break;
