@@ -197,25 +197,35 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
 
   // Handle resize events for Puck editor
   useEffect(() => {
-    const handleResize = () => {
-      // Puck editor needs to recalculate dimensions on resize
+    const handleWindowResize = () => {
+      // Only handle actual window resize events
       if (editorRef.current) {
-        // Trigger a layout recalculation by dispatching a resize event
-        const resizeEvent = new Event('resize');
-        window.dispatchEvent(resizeEvent);
+        // Force Puck to recalculate its layout without triggering more events
+        const event = new CustomEvent('puck-resize');
+        editorRef.current.dispatchEvent(event);
       }
     };
 
-    const resizeObserver = new ResizeObserver(handleResize);
+    const resizeObserver = new ResizeObserver((entries) => {
+      // Handle container size changes without triggering window events
+      for (const entry of entries) {
+        if (entry.target === editorRef.current) {
+          // Force Puck internal layout update
+          const event = new CustomEvent('puck-container-resize');
+          editorRef.current?.dispatchEvent(event);
+        }
+      }
+    });
+
     if (editorRef.current) {
       resizeObserver.observe(editorRef.current);
     }
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleWindowResize);
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 

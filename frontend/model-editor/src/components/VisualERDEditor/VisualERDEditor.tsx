@@ -98,24 +98,33 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
 
   // Handle window resize for ReactFlow
   useEffect(() => {
-    const handleResize = () => {
-      // Trigger ReactFlow to recalculate its dimensions
+    const handleWindowResize = () => {
+      // Force ReactFlow to recalculate dimensions on window resize
       if (canvasRef.current) {
-        const event = new Event('resize');
-        window.dispatchEvent(event);
+        // ReactFlow will handle its own resize automatically on window events
+        // We just need to ensure the container is properly sized
       }
     };
 
-    const resizeObserver = new ResizeObserver(handleResize);
+    const resizeObserver = new ResizeObserver((entries) => {
+      // Handle container size changes
+      for (const entry of entries) {
+        if (entry.target === canvasRef.current) {
+          // ReactFlow will automatically detect container size changes
+          // No need to dispatch additional events
+        }
+      }
+    });
+
     if (canvasRef.current) {
       resizeObserver.observe(canvasRef.current);
     }
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleWindowResize);
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 
