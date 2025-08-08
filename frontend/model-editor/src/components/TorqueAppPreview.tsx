@@ -53,6 +53,16 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
   
   console.log('[TorqueAppPreview] Config:', config);
   console.log('[TorqueAppPreview] Passing apiBaseUrl to TorqueAppEmbed:', config.baseUrl);
+  
+  // Don't render until config is loaded
+  if (!config.baseUrl) {
+    console.log('[TorqueAppPreview] Waiting for config to load...');
+    return (
+      <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px' }}>
+        <Text>Loading app preview...</Text>
+      </Box>
+    );
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appUrl, setAppUrl] = useState<string | null>(null);

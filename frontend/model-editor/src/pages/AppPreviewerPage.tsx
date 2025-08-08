@@ -62,7 +62,9 @@ export const AppPreviewerPage: React.FC = () => {
   
   // Configure appDatabaseService with dynamic URL
   React.useEffect(() => {
-    appDatabaseService.configure(config.baseUrl);
+    if (config.baseUrl) {
+      appDatabaseService.configure(config.baseUrl);
+    }
   }, [config.baseUrl]);
   
   // Loading states

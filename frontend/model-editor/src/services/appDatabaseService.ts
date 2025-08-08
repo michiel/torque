@@ -57,6 +57,10 @@ class AppDatabaseService {
   
   // Allow dynamic configuration of base URL for Tauri environments
   public configure(baseUrl: string) {
+    if (!baseUrl) {
+      console.warn('[AppDatabaseService] configure called with undefined baseUrl');
+      return;
+    }
     // In Tauri environments, use the full URL directly
     // In web environments, use the proxy path
     this.baseUrl = baseUrl.startsWith('http') ? `${baseUrl}/api/v1` : '/api/v1';
