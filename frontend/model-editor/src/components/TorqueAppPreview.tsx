@@ -50,6 +50,8 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
   model
 }) => {
   const config = useTorqueConfig();
+  
+  console.log('[TorqueAppPreview] Config:', config);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appUrl, setAppUrl] = useState<string | null>(null);
