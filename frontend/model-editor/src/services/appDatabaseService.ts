@@ -54,6 +54,11 @@ export interface DatabaseStats {
 
 class AppDatabaseService {
   private baseUrl = '/api/v1';
+  
+  // Allow dynamic configuration of base URL for Tauri environments
+  public configure(baseUrl: string) {
+    this.baseUrl = `${baseUrl}/api/v1`;
+  }
 
   /**
    * Get database status and overview for a model

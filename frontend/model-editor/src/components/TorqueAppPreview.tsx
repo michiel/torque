@@ -18,6 +18,7 @@ import {
   IconWorldWww
 } from '@tabler/icons-react';
 import { TorqueAppEmbed } from 'torque-client';
+import { useTorqueConfig } from '../providers/TorqueConfigProvider';
 
 interface Layout {
   id: string;
@@ -48,6 +49,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
   modelName,
   model
 }) => {
+  const config = useTorqueConfig();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appUrl, setAppUrl] = useState<string | null>(null);
@@ -255,7 +257,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
         <TorqueAppEmbed 
           modelId={modelId}
           pageName={getStartPageInfo().pageName !== 'Default Dashboard' ? getStartPageInfo().pageName : undefined}
-          apiBaseUrl="http://localhost:8080"
+          apiBaseUrl={config.baseUrl}
           style={{ height: '100%', minHeight: '400px' }}
           onAction={(action) => {
             console.log('TorqueApp action in Model Editor:', action);
