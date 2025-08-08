@@ -27,9 +27,13 @@ export const DataGrid = memo(function DataGrid({
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   
+  // Use fallback values to prevent API errors
+  const safeModelId = modelId || 'unknown'
+  const safeEntityName = entityName || 'unknown'
+  
   const { data, loading, error } = useLoadEntityData(
-    modelId,
-    entityName,
+    safeModelId,
+    safeEntityName,
     currentPage,
     pageSize,
     apiBaseUrl
@@ -56,10 +60,27 @@ export const DataGrid = memo(function DataGrid({
     }
   }, [onAction, entityName])
 
+  // Handle missing props or entity errors gracefully
+  const hasValidProps = modelId && entityName
+  
+  if (!hasValidProps) {
+    return (
+      <div style={{ padding: '1rem', color: 'orange', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px' }}>
+        <strong>Configuration Error:</strong> DataGrid requires modelId and entityName properties
+      </div>
+    )
+  }
+
   if (error) {
     return (
-      <div style={{ padding: '1rem', color: 'red' }}>
-        Error loading {entityName} data: {error}
+      <div style={{ padding: '1rem', color: 'red', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px' }}>
+        <strong>Error loading {entityName} data:</strong><br />
+        {error}
+        {error.includes('not found') && (
+          <div style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#6c757d' }}>
+            This entity may not exist in the current model. Check your layout configuration.
+          </div>
+        )}
       </div>
     )
   }
@@ -103,12 +124,12 @@ export const DataGrid = memo(function DataGrid({
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
-            {displayColumns.map((column: DataGridColumn) => (
-              <Table.Th key={column.key} style={{ width: column.width }}>
+            {displayColumns.map((column: DataGridColumn, index: number) => (
+              <Table.Th key={column.key || `col-${index}`} style={{ width: column.width }}>
                 {column.title}
               </Table.Th>
             ))}
-            <Table.Th>Actions</Table.Th>
+            <Table.Th key="actions-header">Actions</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -123,12 +144,12 @@ export const DataGrid = memo(function DataGrid({
               const rowKey = row.id ?? `row-${index}`
               return (
               <Table.Tr key={rowKey}>
-                {displayColumns.map((column: DataGridColumn) => (
-                  <Table.Td key={`${rowKey}-${column.key}`}>
+                {displayColumns.map((column: DataGridColumn, colIndex: number) => (
+                  <Table.Td key={`${rowKey}-${column.key || colIndex}`}>
                     <CellValue value={row[column.key]} dataType={column.dataType} />
                   </Table.Td>
                 ))}
-                <Table.Td>
+                <Table.Td key={`${rowKey}-actions`}>
                   <Group gap="xs">
                     <Button
                       size="xs"
