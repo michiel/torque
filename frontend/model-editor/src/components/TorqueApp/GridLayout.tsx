@@ -1,4 +1,4 @@
-import React, { memo } from 'react'
+import React, { memo, useEffect, useRef, useState } from 'react'
 import { Box, Alert } from '@mantine/core'
 import type { ComponentConfig } from '../../types/jsonrpc'
 import { TorqueDataGrid } from './TorqueDataGrid'
@@ -17,15 +17,42 @@ export const GridLayout = memo(function GridLayout({
   modelId, 
   onAction 
 }: GridLayoutProps) {
+  const [containerHeight, setContainerHeight] = useState('600px');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const parentHeight = containerRef.current.parentElement?.clientHeight || 600;
+        const availableHeight = Math.max(parentHeight - 32, 400); // Account for padding
+        setContainerHeight(`${availableHeight}px`);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    if (containerRef.current?.parentElement) {
+      resizeObserver.observe(containerRef.current.parentElement);
+    }
+
+    window.addEventListener('resize', updateHeight);
+    updateHeight(); // Initial calculation
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, []);
+
   return (
     <Box
+      ref={containerRef}
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(12, 1fr)',
         gridTemplateRows: 'repeat(12, 1fr)',
         gap: '8px',
-        height: '100%',
-        minHeight: '600px',
+        height: containerHeight,
+        minHeight: '400px',
         padding: '16px'
       }}
     >

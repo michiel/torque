@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { 
   ReactFlow, 
   Controls, 
@@ -79,6 +79,7 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(true);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Use app-wide WebSocket connection for real-time updates
   const { isConnected, lastEvent } = useWebSocketContext();
@@ -94,6 +95,29 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
       }
     }
   }, [lastEvent, modelId]);
+
+  // Handle window resize for ReactFlow
+  useEffect(() => {
+    const handleResize = () => {
+      // Trigger ReactFlow to recalculate its dimensions
+      if (canvasRef.current) {
+        const event = new Event('resize');
+        window.dispatchEvent(event);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (canvasRef.current) {
+      resizeObserver.observe(canvasRef.current);
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Transform entities to React Flow nodes
   const initialNodes: Node[] = useMemo(() => {
@@ -330,7 +354,7 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
       </div>
 
       {/* ERD Canvas */}
-      <div className="visual-erd-editor-canvas">
+      <div className="visual-erd-editor-canvas" ref={canvasRef}>
         <ReactFlow
           nodes={nodes}
           edges={edges}

@@ -52,6 +52,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [layoutName, setLayoutName] = useState(defaultData.root?.props?.title || 'New Layout');
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   const config = useMemo(() => {
     return createTorqueComponentConfig(entities);
@@ -194,6 +195,30 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
 
   // Save status is now handled directly in the save functions
 
+  // Handle resize events for Puck editor
+  useEffect(() => {
+    const handleResize = () => {
+      // Puck editor needs to recalculate dimensions on resize
+      if (editorRef.current) {
+        // Trigger a layout recalculation by dispatching a resize event
+        const resizeEvent = new Event('resize');
+        window.dispatchEvent(resizeEvent);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (editorRef.current) {
+      resizeObserver.observe(editorRef.current);
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   // Cleanup auto-save timer on unmount
   useEffect(() => {
     return () => {
@@ -324,7 +349,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
       </div>
 
       {/* Puck Editor */}
-      <div className="visual-layout-editor-canvas">
+      <div className="visual-layout-editor-canvas" ref={editorRef}>
         {initialData || !layoutId ? (
           <Puck
             config={config}

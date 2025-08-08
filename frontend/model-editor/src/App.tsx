@@ -21,12 +21,13 @@ function App() {
     <AppShell
       header={{ height: { base: 50 } }}
       padding={0}
+      style={{ height: '100vh', overflow: 'hidden' }}
     >
       <AppShell.Header>
         <Header />
       </AppShell.Header>
 
-      <AppShell.Main>
+      <AppShell.Main style={{ height: 'calc(100vh - 50px)', overflow: 'auto' }}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/models" element={<ModelsPage />} />
