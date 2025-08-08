@@ -17,6 +17,10 @@ interface TorqueConfigContextType {
   apolloClient: ApolloClient<any>;
   isTauriEnvironment: boolean;
   refreshConfig: () => Promise<void>;
+  baseUrl: string;
+  jsonRpcUrl: string;
+  websocketUrl: string;
+  graphqlUrl: string;
 }
 
 const TorqueConfigContext = createContext<TorqueConfigContextType | null>(null);
@@ -190,6 +194,10 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
     apolloClient,
     isTauriEnvironment,
     refreshConfig,
+    baseUrl: config.baseUrl,
+    jsonRpcUrl: config.jsonRpcUrl,
+    websocketUrl: config.websocketUrl,
+    graphqlUrl: config.graphqlUrl,
   };
 
   return (

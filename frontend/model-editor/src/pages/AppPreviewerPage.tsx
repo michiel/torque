@@ -58,14 +58,20 @@ interface RouteParams extends Record<string, string | undefined> {
 export const AppPreviewerPage: React.FC = () => {
   const { id } = useParams<RouteParams>();
   const navigate = useNavigate();
-  const config = useTorqueConfig();
+  const { baseUrl } = useTorqueConfig();
+  
+  console.log('[AppPreviewerPage] baseUrl:', baseUrl);
   
   // Configure appDatabaseService with dynamic URL
   React.useEffect(() => {
-    if (config.baseUrl) {
-      appDatabaseService.configure(config.baseUrl);
+    console.log('[AppPreviewerPage] useEffect triggered, baseUrl:', baseUrl);
+    if (baseUrl) {
+      console.log('[AppPreviewerPage] Configuring appDatabaseService with:', baseUrl);
+      appDatabaseService.configure(baseUrl);
+    } else {
+      console.log('[AppPreviewerPage] baseUrl is falsy, not configuring service');
     }
-  }, [config.baseUrl]);
+  }, [baseUrl]);
   
   // Loading states
   const [isEmptyingDb, setIsEmptyingDb] = useState(false);

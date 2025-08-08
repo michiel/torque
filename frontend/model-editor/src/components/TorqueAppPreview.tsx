@@ -49,13 +49,13 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
   modelName,
   model
 }) => {
-  const config = useTorqueConfig();
+  const { baseUrl, jsonRpcUrl } = useTorqueConfig();
   
-  console.log('[TorqueAppPreview] Config:', config);
-  console.log('[TorqueAppPreview] Passing apiBaseUrl to TorqueAppEmbed:', config.baseUrl);
+  console.log('[TorqueAppPreview] baseUrl:', baseUrl);
+  console.log('[TorqueAppPreview] jsonRpcUrl:', jsonRpcUrl);
   
   // Don't render until config is loaded
-  if (!config.baseUrl) {
+  if (!baseUrl) {
     console.log('[TorqueAppPreview] Waiting for config to load...');
     return (
       <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px' }}>
@@ -112,7 +112,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
     
     try {
       // Test if the TorqueApp API is running by calling the ping endpoint
-      const response = await fetch('http://localhost:8080/rpc', {
+      const response = await fetch(jsonRpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,7 +132,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
       }
 
       // Test if the specific model exists
-      const modelResponse = await fetch('http://localhost:8080/rpc', {
+      const modelResponse = await fetch(jsonRpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -149,7 +149,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
       }
 
       setIsAppRunning(true);
-      setAppUrl(`http://localhost:3004/app/${modelId}`);
+      setAppUrl(`${baseUrl}/app/${modelId}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect to TorqueApp';
       setError(errorMessage);
@@ -165,7 +165,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
 
   const handleLaunchApp = async () => {
     // Instead of launching, open the TorqueApp in a new tab
-    const torqueAppUrl = `http://localhost:3004/app/${modelId}`;
+    const torqueAppUrl = `${baseUrl}/app/${modelId}`;
     window.open(torqueAppUrl, '_blank');
     
     // Also refresh the status to check if it's working
@@ -270,9 +270,9 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
         <TorqueAppEmbed 
           modelId={modelId}
           pageName={getStartPageInfo().pageName !== 'Default Dashboard' ? getStartPageInfo().pageName : undefined}
-          apiBaseUrl={config.baseUrl}
+          apiBaseUrl={baseUrl}
           style={{ height: '100%', minHeight: '400px' }}
-          onAction={(action) => {
+          onAction={(action: any) => {
             console.log('TorqueApp action in Model Editor:', action);
             // TODO: Handle actions from embedded TorqueApp
           }}
