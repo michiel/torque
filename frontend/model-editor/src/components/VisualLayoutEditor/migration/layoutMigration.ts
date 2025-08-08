@@ -37,7 +37,10 @@ export interface LegacyLayout {
 /**
  * Converts legacy layout format to Puck Data format
  */
-export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
+export const migrateLegacyLayout = (
+  legacyLayout: LegacyLayout, 
+  availableEntities?: Array<{ id: string; name: string; displayName: string }>
+): Data => {
   // If already has Puck data, return it
   if (legacyLayout.puckData) {
     return legacyLayout.puckData;
@@ -109,8 +112,17 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
 
     switch (comp.componentType) {
       case 'DataGrid':
+        // Try to get entity from properties, fallback to first available entity if it exists
+        let entityType = comp.properties?.entityType || comp.properties?.entity;
+        if (!entityType && availableEntities && availableEntities.length > 0) {
+          entityType = availableEntities[0].name;
+          console.warn(`DataGrid component using fallback entity: ${entityType}`);
+        } else if (!entityType) {
+          entityType = 'project'; // Final fallback
+        }
+        
         props = {
-          entityType: comp.properties?.entityType || comp.properties?.entity || 'project',
+          entityType,
           columns: comp.properties?.columns || [
             { field: 'id', header: 'ID', type: 'text', sortable: true, filterable: true },
             { field: 'name', header: 'Name', type: 'text', sortable: true, filterable: true }

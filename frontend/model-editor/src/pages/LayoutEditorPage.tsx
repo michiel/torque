@@ -85,7 +85,7 @@ export const LayoutEditorPage: React.FC = () => {
       }
       
       // Use migration utility to convert to Puck format
-      const puckData = migrateLegacyLayout(layout);
+      const puckData = migrateLegacyLayout(layout, entities);
       setInitialData(puckData);
     } else if (!layoutId) {
       // Set default empty data for new layout
