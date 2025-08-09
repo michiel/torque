@@ -140,21 +140,27 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
     
     const cmd = command.trim().toLowerCase();
     
-    // Handle local fallback commands
-    if (session.sessionId.startsWith('fallback-')) {
+    // Handle local commands (both fallback sessions and real sessions)
+    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status'].some(localCmd => cmd.startsWith(localCmd))) {
       let result = { success: true, output: '' };
       
       if (cmd === 'help') {
-        result.output = `Torque Interactive Console (Offline Mode)
+        const isOffline = session.sessionId.startsWith('fallback-');
+        result.output = `Torque Interactive Console ${isOffline ? '(Offline Mode)' : '(Online Mode)'}
 
-Available commands:
+Local Commands (always available):
   help                    - Show this help message
   echo <message>          - Echo back the message
   clear                   - Clear the console
   exit                    - Close console
   status                  - Show connection status
+
+Backend Commands (may timeout if not implemented):
+  project list            - List all projects
+  project new <name>      - Create new project
+  project use <id>        - Select project context
+  server status           - Show server status
   
-Note: Backend console methods not yet implemented.
 Press Ctrl+~ to toggle console visibility.`;
       } else if (cmd.startsWith('echo ')) {
         result.output = cmd.substring(5);
@@ -163,10 +169,13 @@ Press Ctrl+~ to toggle console visibility.`;
       } else if (cmd === 'exit') {
         result = { success: true, output: 'Goodbye!', action: 'exit' };
       } else if (cmd === 'status') {
-        result.output = `Console Status: Offline Mode
+        const isOffline = session.sessionId.startsWith('fallback-');
+        result.output = `Console Status: ${isOffline ? 'Offline Mode' : 'Online Mode'}
 Session ID: ${session.sessionId}
 Server URL: ${serverUrl}
-Backend Methods: Not available`;
+Backend Methods: ${isOffline ? 'Not available' : 'Available but commands may timeout if not implemented'}
+Local Commands: help, echo, clear, exit, status
+Backend Commands: project list, project new, server status (may timeout)`;
       } else if (cmd === '') {
         return { success: true, output: '' };
       } else {
