@@ -66,6 +66,9 @@ pub fn create_router(services: Arc<ServiceRegistry>) -> Router {
     // WebSocket route for real-time synchronization
     let websocket_routes = Router::new()
         .route("/ws", get(handlers::websocket::websocket_handler));
+    
+    // MCP routes for AI agent integration
+    let mcp_routes = mcp::create_mcp_router();
 
     // Static frontend routes - serve built React applications
     let frontend_routes = Router::new()
@@ -90,6 +93,7 @@ pub fn create_router(services: Arc<ServiceRegistry>) -> Router {
         .nest("/", graphql_routes)
         .nest("/", jsonrpc_routes)
         .nest("/", websocket_routes)
+        .nest("/api/v1", mcp_routes)
         .nest("/", frontend_routes)
         .layer(
             ServiceBuilder::new()

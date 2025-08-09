@@ -9,8 +9,45 @@ use axum::{
 use serde_json::{json, Value};
 use crate::model::types::LayoutType;
 use crate::common::{Uuid, UtcDateTime};
-use crate::services::entity::EntityQuery;
-use std::collections::HashMap;
+use dashmap::DashMap;
+use serde::{Serialize, Deserialize};
+
+/// Console session state for tracking project context and command history
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConsoleSession {
+    pub session_id: String,
+    pub project_id: Option<Uuid>,
+    pub project_name: Option<String>,
+    pub history: Vec<String>,
+    pub capabilities: Vec<String>,
+    pub created_at: UtcDateTime,
+    pub last_active: UtcDateTime,
+}
+
+impl ConsoleSession {
+    pub fn new() -> Self {
+        let session_id = Uuid::new_v4().to_string();
+        let now = UtcDateTime::now();
+        Self {
+            session_id,
+            project_id: None,
+            project_name: None,
+            history: Vec::new(),
+            capabilities: vec![
+                "listProjects".to_string(),
+                "createProject".to_string(),
+                "deleteProject".to_string(),
+                "getProjectInfo".to_string(),
+            ],
+            created_at: now,
+            last_active: UtcDateTime::now(),
+        }
+    }
+}
+
+/// Global console session storage
+static CONSOLE_SESSIONS: once_cell::sync::Lazy<DashMap<String, ConsoleSession>> = 
+    once_cell::sync::Lazy::new(|| DashMap::new());
 
 /// JSON-RPC endpoint handler for TorqueApp Runtime
 pub async fn jsonrpc_handler(
@@ -89,6 +126,21 @@ async fn dispatch_method(
         // Health and introspection
         "ping" => Ok(json!({"status": "ok", "timestamp": UtcDateTime::now()})),
         "getCapabilities" => get_capabilities().await,
+        
+        // Console/Project management methods (also exposed as MCP tools)
+        "listProjects" => list_projects(state, params).await,
+        "createProject" => create_project(state, params).await,
+        "deleteProject" => delete_project(state, params).await,
+        "getProjectInfo" => get_project_info(state, params).await,
+        
+        // Console session management
+        "createConsoleSession" => create_console_session(state, params).await,
+        "setProjectContext" => set_project_context(state, params).await,
+        "getConsoleState" => get_console_state(state, params).await,
+        
+        // Enhanced introspection
+        "getServerLogs" => get_server_logs(state, params).await,
+        "getCacheStats" => get_cache_stats(state, params).await,
         
         _ => Err((-32601, format!("Method '{}' not found", method)))
     }
@@ -194,7 +246,7 @@ async fn load_entity_data(state: &AppState, params: &Value) -> Result<Value, (i3
         .and_then(|v| v.as_u64())
         .unwrap_or(20);
     
-    let filters = params.get("filters").cloned();
+    let _filters = params.get("filters").cloned();
     
     // Parse model ID
     let model_uuid = Uuid::parse(model_id)
@@ -509,7 +561,9 @@ async fn get_capabilities() -> Result<Value, (i32, String)> {
             "validation",
             "relationships",
             "flows",
-            "layouts"
+            "layouts",
+            "console-session-management",
+            "project-management"
         ],
         "supportedComponents": [
             "DataGrid",
@@ -524,6 +578,249 @@ async fn get_capabilities() -> Result<Value, (i32, String)> {
             "flex",
             "absolute"
         ]
+    }))
+}
+
+// === Project Management Methods (MCP Tools: torque_list_projects, etc.) ===
+
+/// List all projects/models
+async fn list_projects(state: &AppState, _params: &Value) -> Result<Value, (i32, String)> {
+    let models = state.services.model_service.get_models().await
+        .map_err(|e| (-32603, format!("Failed to list projects: {}", e)))?;
+    
+    let projects: Vec<Value> = models.into_iter().map(|model| json!({
+        "id": model.id,
+        "name": model.name,
+        "description": model.description,
+        "version": model.version,
+        "createdAt": model.created_at,
+        "updatedAt": model.updated_at,
+        "entityCount": model.entities.len(),
+        "layoutCount": model.layouts.len(),
+        "flowCount": model.flows.len()
+    })).collect();
+    
+    Ok(json!({
+        "projects": projects,
+        "total": projects.len()
+    }))
+}
+
+/// Create a new project/model
+async fn create_project(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let name = params.get("name")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: name".to_string()))?;
+    
+    let description = params.get("description")
+        .and_then(|v| v.as_str());
+    
+    use crate::services::model::CreateModelInput;
+    let input = CreateModelInput {
+        name: name.to_string(),
+        description: description.map(|s| s.to_string()),
+        config: None,
+    };
+    
+    let model = state.services.model_service.create_model(input).await
+        .map_err(|e| (-32603, format!("Failed to create project: {}", e)))?;
+    
+    Ok(json!({
+        "id": model.id,
+        "name": model.name,
+        "description": model.description,
+        "version": model.version,
+        "createdAt": model.created_at,
+        "updatedAt": model.updated_at
+    }))
+}
+
+/// Delete a project/model
+async fn delete_project(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let id_str = params.get("id")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: id".to_string()))?;
+    
+    let project_id = Uuid::parse(id_str)
+        .map_err(|_| (-32602, "Invalid project ID format".to_string()))?;
+    
+    let deleted = state.services.model_service.delete_model(project_id).await
+        .map_err(|e| (-32603, format!("Failed to delete project: {}", e)))?;
+    
+    Ok(json!({
+        "success": deleted,
+        "id": id_str
+    }))
+}
+
+/// Get project/model information
+async fn get_project_info(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let id_str = params.get("id")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: id".to_string()))?;
+    
+    let project_id = Uuid::parse(id_str)
+        .map_err(|_| (-32602, "Invalid project ID format".to_string()))?;
+    
+    let model = state.services.model_service.get_model(project_id).await
+        .map_err(|e| (-32603, format!("Failed to get project info: {}", e)))?
+        .ok_or((-32604, "Project not found".to_string()))?;
+    
+    Ok(json!({
+        "id": model.id,
+        "name": model.name,
+        "description": model.description,
+        "version": model.version,
+        "createdAt": model.created_at,
+        "updatedAt": model.updated_at,
+        "entities": model.entities.iter().map(|e| json!({
+            "id": e.id,
+            "name": e.name,
+            "displayName": e.display_name,
+            "entityType": e.entity_type,
+            "fieldCount": e.fields.len()
+        })).collect::<Vec<_>>(),
+        "layouts": model.layouts.iter().map(|l| json!({
+            "id": l.id,
+            "name": l.name,
+            "layoutType": l.layout_type
+        })).collect::<Vec<_>>(),
+        "relationships": model.relationships.len(),
+        "flows": model.flows.len()
+    }))
+}
+
+// === Console Session Management Methods ===
+
+/// Create a new console session
+async fn create_console_session(_state: &AppState, _params: &Value) -> Result<Value, (i32, String)> {
+    let session = ConsoleSession::new();
+    let session_id = session.session_id.clone();
+    
+    CONSOLE_SESSIONS.insert(session_id.clone(), session.clone());
+    
+    Ok(json!({
+        "sessionId": session_id,
+        "capabilities": session.capabilities,
+        "createdAt": session.created_at,
+        "context": {
+            "projectId": session.project_id,
+            "projectName": session.project_name
+        }
+    }))
+}
+
+/// Set project context for a console session
+async fn set_project_context(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let session_id = params.get("sessionId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: sessionId".to_string()))?;
+    
+    let project_id_str = params.get("projectId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: projectId".to_string()))?;
+    
+    let project_id = Uuid::parse(project_id_str)
+        .map_err(|_| (-32602, "Invalid project ID format".to_string()))?;
+    
+    // Verify project exists
+    let model = state.services.model_service.get_model(project_id.clone()).await
+        .map_err(|e| (-32603, format!("Failed to verify project: {}", e)))?
+        .ok_or((-32604, "Project not found".to_string()))?;
+    
+    // Update session
+    if let Some(mut session_entry) = CONSOLE_SESSIONS.get_mut(session_id) {
+        session_entry.project_id = Some(project_id);
+        session_entry.project_name = Some(model.name.clone());
+        session_entry.last_active = UtcDateTime::now();
+        
+        // Add project-scoped capabilities
+        let capabilities = vec![
+            "listProjects".to_string(),
+            "createProject".to_string(),
+            "deleteProject".to_string(),
+            "getProjectInfo".to_string(),
+            "loadPage".to_string(),
+            "loadEntityData".to_string(),
+            "createEntity".to_string(),
+            "updateEntity".to_string(),
+            "deleteEntity".to_string(),
+            "getModelMetadata".to_string(),
+        ];
+        session_entry.capabilities = capabilities;
+        
+        Ok(json!({
+            "success": true,
+            "sessionId": session_id,
+            "context": {
+                "projectId": project_id_str,
+                "projectName": model.name
+            },
+            "capabilities": session_entry.capabilities
+        }))
+    } else {
+        Err((-32604, "Console session not found".to_string()))
+    }
+}
+
+/// Get console session state
+async fn get_console_state(_state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let session_id = params.get("sessionId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: sessionId".to_string()))?;
+    
+    if let Some(session) = CONSOLE_SESSIONS.get(session_id) {
+        Ok(json!({
+            "sessionId": session.session_id,
+            "context": {
+                "projectId": session.project_id,
+                "projectName": session.project_name
+            },
+            "capabilities": session.capabilities,
+            "historyCount": session.history.len(),
+            "createdAt": session.created_at,
+            "lastActive": session.last_active
+        }))
+    } else {
+        Err((-32604, "Console session not found".to_string()))
+    }
+}
+
+// === Enhanced Introspection Methods ===
+
+/// Get server logs (recent entries)
+async fn get_server_logs(_state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let tail = params.get("tail")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(100) as usize;
+    
+    // For now, return a placeholder response
+    // In a real implementation, you'd integrate with your logging system
+    Ok(json!({
+        "logs": [],
+        "message": "Server logs not yet implemented - requires tracing subscriber integration",
+        "requestedLines": tail,
+        "timestamp": UtcDateTime::now()
+    }))
+}
+
+/// Get cache performance statistics
+async fn get_cache_stats(_state: &AppState, _params: &Value) -> Result<Value, (i32, String)> {
+    // Get basic cache stats from the cache service
+    // This is a simplified implementation - you might want more detailed stats
+    Ok(json!({
+        "cacheService": {
+            "status": "active",
+            "type": "DashMap-based"
+        },
+        "modelCache": {
+            "entries": CONSOLE_SESSIONS.len(),
+            "message": "Console sessions currently tracked"
+        },
+        "performance": {
+            "message": "Detailed performance metrics not yet implemented"
+        },
+        "timestamp": UtcDateTime::now()
     }))
 }
 
