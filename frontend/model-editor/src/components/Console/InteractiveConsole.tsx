@@ -43,6 +43,8 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [textInput, setTextInput] = useState('');
   const [textHistory, setTextHistory] = useState<string[]>([]);
+  const [textCommandHistory, setTextCommandHistory] = useState<string[]>([]);
+  const [textHistoryIndex, setTextHistoryIndex] = useState(-1);
   
   const terminalRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -141,7 +143,7 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
     const cmd = command.trim().toLowerCase();
     
     // Handle local commands (both fallback sessions and real sessions)
-    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status'].some(localCmd => cmd.startsWith(localCmd))) {
+    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status', 'history'].some(localCmd => cmd.startsWith(localCmd))) {
       let result = { success: true, output: '' };
       
       if (cmd === 'help') {
@@ -154,6 +156,7 @@ Local Commands (always available):
   clear                   - Clear the console
   exit                    - Close console
   status                  - Show connection status
+  history                 - Show command history
 
 Backend Commands (may timeout if not implemented):
   project list            - List all projects
@@ -174,8 +177,18 @@ Press Ctrl+~ to toggle console visibility.`;
 Session ID: ${session.sessionId}
 Server URL: ${serverUrl}
 Backend Methods: ${isOffline ? 'Not available' : 'Available but commands may timeout if not implemented'}
-Local Commands: help, echo, clear, exit, status
+Local Commands: help, echo, clear, exit, status, history
 Backend Commands: project list, project new, server status (may timeout)`;
+      } else if (cmd === 'history') {
+        if (textCommandHistory.length === 0) {
+          result.output = 'No command history available.';
+        } else {
+          result.output = `Command History (last ${textCommandHistory.length} commands):
+
+${textCommandHistory.map((cmd, i) => `  ${i + 1}: ${cmd}`).join('\n')}
+
+Use arrow keys (↑↓) to navigate history.`;
+        }
       } else if (cmd === '') {
         return { success: true, output: '' };
       } else {
@@ -695,30 +708,12 @@ Backend commands (may not work yet):
             padding: '8px',
             overflow: 'hidden',
             backgroundColor: theme === 'dark' ? '#1e1e1e' : '#ffffff',
-            border: '1px solid red', // Debug: make container visible
             position: 'relative',
             boxSizing: 'border-box', // Include padding in size calculations
             display: 'flex',
             flexDirection: 'column'
           }}
         >
-          {/* Debug: Test both xterm and plain text rendering */}
-          <div style={{
-            color: theme === 'dark' ? '#ffffff' : '#000000',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-            position: 'absolute',
-            bottom: '5px',
-            right: '5px',
-            zIndex: 5,
-            pointerEvents: 'none',
-            opacity: 0.7,
-            backgroundColor: 'rgba(255, 0, 0, 0.2)',
-            padding: '4px'
-          }}>
-            {!session && 'Loading...'}
-            {session && `Ready (Session: ${session.sessionId.substring(0, 8)})`}
-          </div>
           
           {/* Working text-based terminal as fallback */}
           {session && (
@@ -742,9 +737,9 @@ Backend commands (may not work yet):
                 overflowY: 'auto',
                 paddingBottom: '10px'
               }}>
-                Torque Interactive Console (Text Fallback)
-                Type "help" for commands, Ctrl+~ to toggle
-                {'\n\n'}
+                🚀 Torque Interactive Console
+                Type "help" for commands • Ctrl+~ to toggle • Tab for completion
+                {'\n'}
                 {textHistory.join('\n')}
               </div>
               
@@ -763,6 +758,10 @@ Backend commands (may not work yet):
                     if (e.key === 'Enter') {
                       const command = textInput.trim();
                       if (command) {
+                        // Add to command history
+                        setTextCommandHistory(prev => [...prev.slice(-49), command]); // Keep last 50
+                        setTextHistoryIndex(-1);
+                        
                         setTextHistory(prev => [...prev, `${getPrompt()}${command}`]);
                         setTextInput('');
                         
@@ -777,6 +776,33 @@ Backend commands (may not work yet):
                         if (result?.output) {
                           setTextHistory(prev => [...prev, result.output]);
                         }
+                      }
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      if (textCommandHistory.length > 0) {
+                        const newIndex = textHistoryIndex < textCommandHistory.length - 1 ? textHistoryIndex + 1 : textCommandHistory.length - 1;
+                        setTextHistoryIndex(newIndex);
+                        setTextInput(textCommandHistory[textCommandHistory.length - 1 - newIndex]);
+                      }
+                    } else if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      if (textHistoryIndex > 0) {
+                        const newIndex = textHistoryIndex - 1;
+                        setTextHistoryIndex(newIndex);
+                        setTextInput(textCommandHistory[textCommandHistory.length - 1 - newIndex]);
+                      } else if (textHistoryIndex === 0) {
+                        setTextHistoryIndex(-1);
+                        setTextInput('');
+                      }
+                    } else if (e.key === 'Tab') {
+                      e.preventDefault();
+                      // Tab completion for commands
+                      const availableCommands = ['help', 'echo', 'clear', 'exit', 'status', 'history', 'project list', 'project new', 'server status'];
+                      const matches = availableCommands.filter(cmd => cmd.startsWith(textInput.trim()));
+                      if (matches.length === 1) {
+                        setTextInput(matches[0] + ' ');
+                      } else if (matches.length > 1) {
+                        setTextHistory(prev => [...prev, `Available completions: ${matches.join(', ')}`]);
                       }
                     }
                   }}
