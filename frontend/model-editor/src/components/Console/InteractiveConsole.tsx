@@ -140,31 +140,69 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   const executeCommand = useCallback(async (command: string) => {
     if (!session) return;
     
-    const cmd = command.trim().toLowerCase();
+    let cmd = command.trim().toLowerCase();
+    
+    // Command aliases
+    const aliases: Record<string, string> = {
+      'h': 'help',
+      '?': 'help', 
+      'cls': 'clear',
+      'c': 'clear',
+      'quit': 'exit',
+      'q': 'exit',
+      'stat': 'status',
+      'hist': 'history',
+      'ls': 'project list',
+      'pwd': 'status'
+    };
+    
+    cmd = aliases[cmd] || cmd;
     
     // Handle local commands (both fallback sessions and real sessions)
-    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status', 'history'].some(localCmd => cmd.startsWith(localCmd))) {
+    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases'].some(localCmd => cmd.startsWith(localCmd))) {
       let result = { success: true, output: '' };
       
       if (cmd === 'help') {
         const isOffline = session.sessionId.startsWith('fallback-');
-        result.output = `Torque Interactive Console ${isOffline ? '(Offline Mode)' : '(Online Mode)'}
+        result.output = `🚀 Torque Interactive Console ${isOffline ? '(Offline Mode)' : '(Online Mode)'}
 
-Local Commands (always available):
-  help                    - Show this help message
-  echo <message>          - Echo back the message
-  clear                   - Clear the console
-  exit                    - Close console
-  status                  - Show connection status
-  history                 - Show command history
+📋 Local Commands (always available):
+  help [command]          - Show help for specific command or general help
+  echo <message>          - Echo back the message  
+  clear                   - Clear the console output
+  exit                    - Close console overlay
+  status                  - Show connection and session status
+  history                 - Show command history (use arrow keys ↑↓)
+  aliases                 - Show all available command aliases
 
-Backend Commands (may timeout if not implemented):
-  project list            - List all projects
-  project new <name>      - Create new project
-  project use <id>        - Select project context
-  server status           - Show server status
+🔧 Backend Commands (may timeout if server not running):
+  project list            - List all available projects
+  project new <name>      - Create new project with given name
+  project use <id>        - Select project context for entity operations
+  server status           - Show server health and status
   
-Press Ctrl+~ to toggle console visibility.`;
+💡 Tips:
+  • Press Tab for command completion
+  • Use ↑↓ arrows for command history
+  • Press Ctrl+~ to toggle console visibility
+  • Press Escape to close console
+  • Commands are case-insensitive`;
+      } else if (cmd.startsWith('help ')) {
+        const helpCmd = cmd.substring(5).trim();
+        const helpTexts: Record<string, string> = {
+          'echo': 'echo <message> - Echoes the provided message back to the console',
+          'clear': 'clear - Clears all output from the console screen',
+          'exit': 'exit - Closes the console overlay',
+          'status': 'status - Shows current connection status, session info, and available commands',
+          'history': 'history - Displays the last 50 commands executed in this session',
+          'project': `project commands:
+  project list           - List all available projects in the system
+  project new <name>     - Create a new project with the specified name
+  project use <id>       - Switch to project context (enables entity commands)`,
+          'server': 'server status - Shows server health, uptime, and system information'
+        };
+        
+        result.output = helpTexts[helpCmd] || `No help available for '${helpCmd}'. Try 'help' for all commands.`;
       } else if (cmd.startsWith('echo ')) {
         result.output = cmd.substring(5);
       } else if (cmd === 'clear') {
@@ -173,12 +211,26 @@ Press Ctrl+~ to toggle console visibility.`;
         result = { success: true, output: 'Goodbye!', action: 'exit' };
       } else if (cmd === 'status') {
         const isOffline = session.sessionId.startsWith('fallback-');
-        result.output = `Console Status: ${isOffline ? 'Offline Mode' : 'Online Mode'}
-Session ID: ${session.sessionId}
+        const sessionTime = new Date().toLocaleTimeString();
+        const projectContext = session.projectName ? `${session.projectName} (${session.projectId})` : 'None';
+        
+        result.output = `📊 Console Status Report
+═══════════════════════════════════════
+Mode: ${isOffline ? '🔴 Offline Mode' : '🟢 Online Mode'}
+Session: ${session.sessionId.substring(0, 12)}...
+Project Context: ${projectContext}
 Server URL: ${serverUrl}
-Backend Methods: ${isOffline ? 'Not available' : 'Available but commands may timeout if not implemented'}
-Local Commands: help, echo, clear, exit, status, history
-Backend Commands: project list, project new, server status (may timeout)`;
+Current Time: ${sessionTime}
+Command History: ${textCommandHistory.length} commands
+═══════════════════════════════════════
+Available Features:
+  ✅ Local Commands (help, echo, clear, exit, status, history)
+  ${isOffline ? '❌' : '⚠️'} Backend Commands (project list, project new, server status)
+  ✅ Tab Completion (press Tab)
+  ✅ Command History (↑↓ arrows)
+  ✅ Keyboard Shortcuts (Ctrl+C, Ctrl+L, Escape)
+
+${isOffline ? '⚠️ Server connection not available - running in offline mode' : '💡 Backend commands may timeout if server is not responding'}`;
       } else if (cmd === 'history') {
         if (textCommandHistory.length === 0) {
           result.output = 'No command history available.';
@@ -189,6 +241,23 @@ ${textCommandHistory.map((cmd, i) => `  ${i + 1}: ${cmd}`).join('\n')}
 
 Use arrow keys (↑↓) to navigate history.`;
         }
+      } else if (cmd === 'aliases') {
+        result.output = `🔗 Command Aliases
+═════════════════
+Short     Full Command
+─────     ─────────────
+h         help
+?         help
+cls       clear
+c         clear
+quit      exit
+q         exit
+stat      status
+hist      history
+ls        project list
+pwd       status
+
+💡 Aliases allow you to use shorter commands for faster typing!`;
       } else if (cmd === '') {
         return { success: true, output: '' };
       } else {
@@ -202,6 +271,7 @@ Type 'help' for available commands.`
       // Handle special actions
       if (result.action === 'clear') {
         terminal.current?.clear();
+        setTextHistory([]); // Clear text history too
       } else if (result.action === 'exit') {
         onToggle(false);
       }
@@ -291,6 +361,26 @@ Backend commands (may not work yet):
     }
     return `${prefix}> `;
   }, [session]);
+
+  // Helper function for tab completion
+  const getCommonPrefix = useCallback((strings: string[]): string => {
+    if (strings.length === 0) return '';
+    if (strings.length === 1) return strings[0];
+    
+    let commonPrefix = '';
+    const firstString = strings[0];
+    
+    for (let i = 0; i < firstString.length; i++) {
+      const char = firstString[i];
+      if (strings.every(str => str[i] === char)) {
+        commonPrefix += char;
+      } else {
+        break;
+      }
+    }
+    
+    return commonPrefix;
+  }, []);
 
   // Initialize terminal
   useEffect(() => {
@@ -797,13 +887,36 @@ Backend commands (may not work yet):
                     } else if (e.key === 'Tab') {
                       e.preventDefault();
                       // Tab completion for commands
-                      const availableCommands = ['help', 'echo', 'clear', 'exit', 'status', 'history', 'project list', 'project new', 'server status'];
-                      const matches = availableCommands.filter(cmd => cmd.startsWith(textInput.trim()));
+                      const availableCommands = [
+                        'help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases',
+                        'project list', 'project new', 'server status',
+                        // Aliases
+                        'h', '?', 'cls', 'c', 'quit', 'q', 'stat', 'hist', 'ls', 'pwd'
+                      ];
+                      const input = textInput.trim();
+                      const matches = availableCommands.filter(cmd => cmd.startsWith(input));
+                      
                       if (matches.length === 1) {
                         setTextInput(matches[0] + ' ');
                       } else if (matches.length > 1) {
-                        setTextHistory(prev => [...prev, `Available completions: ${matches.join(', ')}`]);
+                        // Show common prefix if there is one
+                        const commonPrefix = getCommonPrefix(matches);
+                        if (commonPrefix.length > input.length) {
+                          setTextInput(commonPrefix);
+                        } else {
+                          setTextHistory(prev => [...prev, `\n${getPrompt()}${input}`, `Available completions: ${matches.join(', ')}`]);
+                        }
                       }
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      onToggle(false);
+                    } else if (e.ctrlKey && e.key === 'c') {
+                      e.preventDefault();
+                      setTextInput('');
+                      setTextHistory(prev => [...prev, `${getPrompt()}${textInput}^C`]);
+                    } else if (e.ctrlKey && e.key === 'l') {
+                      e.preventDefault();
+                      setTextHistory([]);
                     }
                   }}
                   style={{
