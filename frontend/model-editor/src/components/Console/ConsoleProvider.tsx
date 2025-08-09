@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { useTorqueConfig } from '../../providers/TorqueConfigProvider';
 import InteractiveConsole from './InteractiveConsole';
 
 export interface ConsoleContextType {
@@ -12,7 +13,6 @@ const ConsoleContext = createContext<ConsoleContextType | undefined>(undefined);
 
 export interface ConsoleProviderProps {
   children: ReactNode;
-  serverUrl?: string;
   height?: string;
   theme?: 'dark' | 'light';
   animationSpeed?: number;
@@ -21,13 +21,13 @@ export interface ConsoleProviderProps {
 
 export const ConsoleProvider: React.FC<ConsoleProviderProps> = ({
   children,
-  serverUrl = '/rpc',
   height = '40vh',
   theme = 'dark',
   animationSpeed = 300,
   enabled = true,
 }) => {
   const [visible, setVisible] = useState(false);
+  const { jsonRpcUrl, baseUrl } = useTorqueConfig();
 
   const toggle = useCallback(() => {
     setVisible(prev => !prev);
@@ -55,7 +55,7 @@ export const ConsoleProvider: React.FC<ConsoleProviderProps> = ({
         <InteractiveConsole
           visible={visible}
           onToggle={setVisible}
-          serverUrl={serverUrl}
+          serverUrl={`${baseUrl}${jsonRpcUrl}`}
           height={height}
           theme={theme}
           animationSpeed={animationSpeed}

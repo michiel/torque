@@ -21,7 +21,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ModalsProvider>
           <Notifications />
           <WebSocketProvider>
-            <ConsoleProvider serverUrl="/api/rpc" theme="dark" height="45vh" enabled={true}>
+            <ConsoleProvider theme="dark" height="45vh" enabled={true}>
               <App />
             </ConsoleProvider>
           </WebSocketProvider>
