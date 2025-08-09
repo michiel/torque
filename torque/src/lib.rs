@@ -2,6 +2,7 @@
 
 pub mod common;
 pub mod config;
+pub mod console;
 pub mod database;
 pub mod entity;
 pub mod error;

@@ -101,6 +101,54 @@ pub async fn jsonrpc_handler(
     }
 }
 
+/// Non-console JSON-RPC method dispatcher to avoid recursion
+async fn dispatch_non_console_method(
+    state: &AppState,
+    method: &str,
+    params: &Value,
+) -> Result<Value, (i32, String)> {
+    tracing::debug!("Dispatching non-console JSON-RPC method: {} with params: {}", method, params);
+    
+    match method {
+        // Core TorqueApp methods
+        "loadPage" => load_page(state, params).await,
+        "loadEntityData" => load_entity_data(state, params).await,
+        "getFormDefinition" => get_form_definition(state, params).await,
+        "createEntity" => create_entity(state, params).await,
+        "updateEntity" => update_entity(state, params).await,
+        "deleteEntity" => delete_entity(state, params).await,
+        
+        // Layout and UI methods
+        "getComponentConfig" => get_component_config(state, params).await,
+        "getLayoutConfig" => get_layout_config(state, params).await,
+        "getModelMetadata" => get_model_metadata(state, params).await,
+        
+        // Health and introspection
+        "ping" => Ok(json!({"status": "ok", "timestamp": UtcDateTime::now()})),
+        "getCapabilities" => get_capabilities().await,
+        
+        // Console/Project management methods (also exposed as MCP tools)
+        "listProjects" => list_projects(state, params).await,
+        "createProject" => create_project(state, params).await,
+        "deleteProject" => delete_project(state, params).await,
+        "getProjectInfo" => get_project_info(state, params).await,
+        
+        // Console session management
+        "createConsoleSession" => create_console_session(state, params).await,
+        "setProjectContext" => set_project_context(state, params).await,
+        "getConsoleState" => get_console_state(state, params).await,
+        
+        // Enhanced introspection
+        "getServerLogs" => get_server_logs(state, params).await,
+        "getCacheStats" => get_cache_stats(state, params).await,
+        
+        // Explicitly exclude executeConsoleCommand to prevent recursion
+        "executeConsoleCommand" => Err((-32603, "Recursive console command execution not allowed".to_string())),
+        
+        _ => Err((-32601, format!("Method '{}' not found", method)))
+    }
+}
+
 /// JSON-RPC method dispatcher for TorqueApp Runtime
 async fn dispatch_method(
     state: &AppState,
@@ -141,6 +189,9 @@ async fn dispatch_method(
         // Enhanced introspection
         "getServerLogs" => get_server_logs(state, params).await,
         "getCacheStats" => get_cache_stats(state, params).await,
+        
+        // Console command execution
+        "executeConsoleCommand" => execute_console_command(state, params).await,
         
         _ => Err((-32601, format!("Method '{}' not found", method)))
     }
@@ -822,6 +873,190 @@ async fn get_cache_stats(_state: &AppState, _params: &Value) -> Result<Value, (i
         },
         "timestamp": UtcDateTime::now()
     }))
+}
+
+/// Execute a console command and return formatted result
+async fn execute_console_command(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    use crate::console::{parser, commands, ConsoleContext};
+    
+    let session_id = params.get("sessionId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: sessionId".to_string()))?;
+    
+    let command_text = params.get("command")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: command".to_string()))?;
+    
+    // Get session context
+    let session = CONSOLE_SESSIONS.get(session_id)
+        .ok_or((-32604, "Console session not found".to_string()))?;
+    
+    // Create console context
+    let mut context = ConsoleContext::new(session_id.to_string());
+    if let Some(project_id) = &session.project_id {
+        if let Some(project_name) = &session.project_name {
+            context = context.with_project(project_id.clone(), project_name.clone());
+        }
+    }
+    
+    // Handle special commands that don't map to JSON-RPC
+    match command_text.trim() {
+        "clear" => {
+            return Ok(json!({
+                "success": true,
+                "output": "",
+                "action": "clear"
+            }));
+        },
+        "history" => {
+            return Ok(json!({
+                "success": true,
+                "output": format_command_history(&session.history),
+                "data": session.history.clone()
+            }));
+        },
+        "exit" => {
+            return Ok(json!({
+                "success": true,
+                "output": "Console session ended",
+                "action": "exit"
+            }));
+        },
+        cmd if cmd.starts_with("help") => {
+            let help_parts: Vec<&str> = cmd.split_whitespace().collect();
+            let help_command = help_parts.get(1).copied();
+            let help_subcommand = help_parts.get(2).copied();
+            
+            let help_text = crate::console::completion::get_command_help(
+                help_command.unwrap_or(""),
+                help_subcommand
+            );
+            
+            return Ok(json!({
+                "success": true,
+                "output": help_text
+            }));
+        },
+        _ => {}
+    }
+    
+    // Parse the command
+    let parsed_command = parser::parse_command(command_text)
+        .map_err(|e| (-32602, format!("Command parse error: {}", e)))?;
+    
+    // Validate command
+    parser::validate_command(&parsed_command, context.has_project())
+        .map_err(|e| (-32602, e))?;
+    
+    // Update command history
+    if let Some(mut session_entry) = CONSOLE_SESSIONS.get_mut(session_id) {
+        session_entry.history.push(command_text.to_string());
+        session_entry.last_active = UtcDateTime::now();
+        
+        // Keep only last 100 commands in history
+        if session_entry.history.len() > 100 {
+            session_entry.history.remove(0);
+        }
+    }
+    
+    // Handle "project use" command specially to update session
+    if parsed_command.command == "project" && 
+       parsed_command.subcommand.as_deref() == Some("use") &&
+       !parsed_command.args.is_empty() {
+        
+        let project_id_str = &parsed_command.args[0];
+        let project_id = Uuid::parse(project_id_str)
+            .map_err(|_| (-32602, "Invalid project ID format".to_string()))?;
+        
+        // Verify project exists and update session
+        let model = state.services.model_service.get_model(project_id.clone()).await
+            .map_err(|e| (-32603, format!("Failed to verify project: {}", e)))?
+            .ok_or((-32604, "Project not found".to_string()))?;
+        
+        // Update session with project context
+        if let Some(mut session_entry) = CONSOLE_SESSIONS.get_mut(session_id) {
+            session_entry.project_id = Some(project_id);
+            session_entry.project_name = Some(model.name.clone());
+            session_entry.last_active = UtcDateTime::now();
+        }
+        
+        return Ok(json!({
+            "success": true,
+            "output": format!("Project context set to: {} ({})", model.name, project_id_str),
+            "data": {
+                "projectId": project_id_str,
+                "projectName": model.name
+            }
+        }));
+    }
+    
+    // Map command to JSON-RPC and execute
+    let jsonrpc_request = commands::map_command_to_jsonrpc(&parsed_command, &context)
+        .map_err(|e| (-32602, format!("Command mapping error: {}", e)))?;
+    
+    // Execute the JSON-RPC request by calling non-recursive dispatch
+    let request_method = jsonrpc_request.get("method")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    let default_params = json!({});
+    let request_params = jsonrpc_request.get("params")
+        .unwrap_or(&default_params);
+    
+    match dispatch_non_console_method(state, request_method, request_params).await {
+        Ok(result) => {
+            let response = json!({
+                "jsonrpc": "2.0",
+                "id": jsonrpc_request.get("id"),
+                "result": result
+            });
+            
+            let console_result = commands::format_response_for_console(&response);
+            
+            Ok(json!({
+                "success": console_result.success,
+                "output": console_result.output,
+                "data": console_result.data,
+                "error": console_result.error
+            }))
+        },
+        Err((code, message)) => {
+            let response = json!({
+                "jsonrpc": "2.0",
+                "id": jsonrpc_request.get("id"),
+                "error": {
+                    "code": code,
+                    "message": message
+                }
+            });
+            
+            let console_result = commands::format_response_for_console(&response);
+            
+            Ok(json!({
+                "success": console_result.success,
+                "output": console_result.output,
+                "data": console_result.data,
+                "error": console_result.error
+            }))
+        }
+    }
+}
+
+/// Format command history for display
+fn format_command_history(history: &[String]) -> String {
+    if history.is_empty() {
+        return "No commands in history".to_string();
+    }
+    
+    let mut output = String::from("Command History:\n\n");
+    for (i, cmd) in history.iter().enumerate().rev().take(20) {
+        output.push_str(&format!("  {}: {}\n", i + 1, cmd));
+    }
+    
+    if history.len() > 20 {
+        output.push_str(&format!("\n... and {} more commands\n", history.len() - 20));
+    }
+    
+    output
 }
 
 /// Validate JSON-RPC request format
