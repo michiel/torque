@@ -41,8 +41,11 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   const [history, setHistory] = useState<ConsoleCommand[]>([]);
   const [currentCommand, setCurrentCommand] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [textInput, setTextInput] = useState('');
+  const [textHistory, setTextHistory] = useState<string[]>([]);
   
   const terminalRef = useRef<HTMLDivElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   
@@ -187,6 +190,11 @@ Type 'help' for available commands.`
     // Try backend execution for real sessions
     try {
       setIsLoading(true);
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch(serverUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -198,8 +206,11 @@ Type 'help' for available commands.`
             sessionId: session.sessionId,
             command: command.trim()
           }
-        })
+        }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       const data = await response.json();
       const result = data.result || data.error;
@@ -221,10 +232,25 @@ Type 'help' for available commands.`
       return result;
     } catch (error) {
       console.error('Failed to execute command:', error);
+      
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = `Command timed out after 10 seconds. This usually means the backend doesn't implement this command yet.`;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       return {
         success: false,
-        output: `Connection error: ${error instanceof Error ? error.message : 'Unknown error'}
-Console running in offline mode. Type 'help' for available commands.`
+        output: `Error: ${errorMessage}
+        
+Available commands while backend is being implemented:
+  help, echo, clear, exit, status
+  
+Backend commands (may not work yet):
+  project list, project new, server status`
       };
     } finally {
       setIsLoading(false);
@@ -249,6 +275,15 @@ Console running in offline mode. Type 'help' for available commands.`
     if (!terminalRef.current || terminal.current) return;
 
     console.log('[Console] Creating terminal instance');
+    
+    // Check if xterm CSS is loaded
+    const xtermStyles = Array.from(document.styleSheets).find(sheet => 
+      sheet.href?.includes('xterm') || 
+      Array.from(sheet.cssRules || []).some(rule => 
+        rule.cssText?.includes('.xterm')
+      )
+    );
+    console.log('[Console] Xterm CSS loaded:', !!xtermStyles);
 
     // Create terminal instance
     const term = new Terminal({
@@ -330,12 +365,22 @@ Console running in offline mode. Type 'help' for available commands.`
       term.writeln('\x1b[36mType "help" for commands, Ctrl+~ to toggle\x1b[0m');
       term.write('\r\n');
       
-      // Test if terminal is actually rendering
-      console.log('[Console] Terminal element info:', {
+      // Detailed terminal element inspection
+      console.log('[Console] Terminal element detailed info:', {
         hasElement: !!term.element,
         elementClasses: term.element?.className,
         elementChildren: term.element?.childElementCount,
-        containerChildren: terminalRef.current?.childElementCount
+        containerChildren: terminalRef.current?.childElementCount,
+        elementHTML: term.element?.innerHTML?.substring(0, 200) + '...',
+        elementComputedStyle: term.element ? {
+          display: window.getComputedStyle(term.element).display,
+          visibility: window.getComputedStyle(term.element).visibility,
+          opacity: window.getComputedStyle(term.element).opacity,
+          width: window.getComputedStyle(term.element).width,
+          height: window.getComputedStyle(term.element).height,
+          position: window.getComputedStyle(term.element).position,
+          zIndex: window.getComputedStyle(term.element).zIndex
+        } : null
       });
       
       term.write('\x1b[33mtorque> \x1b[37m'); // Yellow prompt, white text
@@ -648,7 +693,7 @@ Console running in offline mode. Type 'help' for available commands.`
             flexDirection: 'column'
           }}
         >
-          {/* Debug: Fallback text to test visibility - only show when terminal truly fails */}
+          {/* Debug: Test both xterm and plain text rendering */}
           <div style={{
             color: theme === 'dark' ? '#ffffff' : '#000000',
             fontFamily: 'monospace',
@@ -658,11 +703,89 @@ Console running in offline mode. Type 'help' for available commands.`
             right: '5px',
             zIndex: 5,
             pointerEvents: 'none',
-            opacity: 0.5
+            opacity: 0.7,
+            backgroundColor: 'rgba(255, 0, 0, 0.2)',
+            padding: '4px'
           }}>
             {!session && 'Loading...'}
-            {session && 'Ready'}
+            {session && `Ready (Session: ${session.sessionId.substring(0, 8)})`}
           </div>
+          
+          {/* Working text-based terminal as fallback */}
+          {session && (
+            <div style={{
+              position: 'absolute',
+              top: '10px',
+              left: '10px',
+              right: '10px',
+              bottom: '40px',
+              zIndex: 15,
+              display: 'flex',
+              flexDirection: 'column',
+              fontFamily: 'JetBrains Mono, Consolas, monospace',
+              fontSize: '14px'
+            }}>
+              {/* Terminal output area */}
+              <div style={{
+                flex: 1,
+                color: theme === 'dark' ? '#00ff00' : '#008000',
+                whiteSpace: 'pre-wrap',
+                overflowY: 'auto',
+                paddingBottom: '10px'
+              }}>
+                Torque Interactive Console (Text Fallback)
+                Type "help" for commands, Ctrl+~ to toggle
+                {'\n\n'}
+                {textHistory.join('\n')}
+              </div>
+              
+              {/* Input line */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                color: theme === 'dark' ? '#ffff00' : '#ff8800'
+              }}>
+                <span>{getPrompt()}</span>
+                <input
+                  ref={textInputRef}
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter') {
+                      const command = textInput.trim();
+                      if (command) {
+                        setTextHistory(prev => [...prev, `${getPrompt()}${command}`]);
+                        setTextInput('');
+                        
+                        // Show loading indicator
+                        setTextHistory(prev => [...prev, 'Executing command...']);
+                        
+                        const result = await executeCommand(command);
+                        
+                        // Remove loading indicator and add result
+                        setTextHistory(prev => prev.slice(0, -1));
+                        
+                        if (result?.output) {
+                          setTextHistory(prev => [...prev, result.output]);
+                        }
+                      }
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    marginLeft: '5px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: theme === 'dark' ? '#ffffff' : '#000000',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    outline: 'none'
+                  }}
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
         </Box>
 
         {/* Resize handle */}
