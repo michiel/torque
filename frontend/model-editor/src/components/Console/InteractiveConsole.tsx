@@ -267,13 +267,8 @@ Console running in offline mode. Type 'help' for available commands.`
     const fit = new FitAddon();
     term.loadAddon(fit);
     
-    // Add WebGL addon for better performance
-    try {
-      const webgl = new WebglAddon();
-      term.loadAddon(webgl);
-    } catch (e) {
-      console.warn('WebGL addon failed to load, falling back to canvas renderer');
-    }
+    // Skip WebGL addon - use canvas renderer for better compatibility
+    console.log('[Console] Using canvas renderer for compatibility');
 
     // Store references first
     terminal.current = term;
@@ -287,12 +282,36 @@ Console running in offline mode. Type 'help' for available commands.`
       visible: containerRect.width > 0 && containerRect.height > 0
     });
 
+    // Ensure container has proper styling for xterm
+    if (terminalRef.current) {
+      terminalRef.current.style.position = 'relative';
+      terminalRef.current.style.width = '100%';
+      terminalRef.current.style.height = '100%';
+    }
+
     // Open terminal
     term.open(terminalRef.current);
     console.log('[Console] Terminal opened in container');
     
+    // Force xterm element to be visible and properly sized
+    if (term.element) {
+      term.element.style.position = 'absolute';
+      term.element.style.top = '0';
+      term.element.style.left = '0';
+      term.element.style.width = '100%';
+      term.element.style.height = '100%';
+      term.element.style.zIndex = '10';
+      term.element.style.boxSizing = 'border-box';
+      term.element.style.overflow = 'hidden';
+      console.log('[Console] Applied explicit styling to terminal element');
+    }
+    
     // Fit and focus
     setTimeout(() => {
+      // Force specific dimensions first
+      term.resize(80, 20);
+      console.log('[Console] Terminal resized to 80x20');
+      
       fit.fit();
       term.focus();
       console.log('[Console] Terminal fitted and focused');
@@ -300,16 +319,27 @@ Console running in offline mode. Type 'help' for available commands.`
       // Check terminal dimensions after fit
       console.log('[Console] Terminal dimensions after fit:', {
         rows: term.rows,
-        cols: term.cols
+        cols: term.cols,
+        actualElement: !!term.element,
+        elementStyle: term.element?.style.cssText
       });
       
       // Welcome message and immediate prompt
       term.clear();
       term.writeln('\x1b[32mTorque Interactive Console\x1b[0m');
-      term.writeln('Type "help" for commands, Ctrl+~ to toggle');
+      term.writeln('\x1b[36mType "help" for commands, Ctrl+~ to toggle\x1b[0m');
       term.write('\r\n');
-      term.write('torque> ');
-      console.log('[Console] Immediate prompt displayed');
+      
+      // Test if terminal is actually rendering
+      console.log('[Console] Terminal element info:', {
+        hasElement: !!term.element,
+        elementClasses: term.element?.className,
+        elementChildren: term.element?.childElementCount,
+        containerChildren: terminalRef.current?.childElementCount
+      });
+      
+      term.write('\x1b[33mtorque> \x1b[37m'); // Yellow prompt, white text
+      console.log('[Console] Immediate prompt displayed with colors');
       
       // Force cursor to be visible
       term.focus();
@@ -463,20 +493,49 @@ Console running in offline mode. Type 'help' for available commands.`
     
     const prompt = getPrompt();
     console.log('[Console] Writing prompt:', prompt);
-    terminal.current.write(prompt);
+    terminal.current.write('\x1b[33m' + prompt + '\x1b[37m'); // Yellow prompt, white text
   }, [session, getPrompt]);
 
-  // Handle window resize
+  // Handle window resize and console visibility changes
   useEffect(() => {
-    if (!fitAddon.current) return;
+    if (!fitAddon.current || !terminal.current) return;
 
+    let resizeTimeout: number;
+    
     const handleResize = () => {
-      fitAddon.current?.fit();
+      // Debounce resize calls
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (fitAddon.current && terminal.current) {
+          console.log('[Console] Resizing terminal due to container/window change');
+          fitAddon.current.fit();
+          terminal.current.focus();
+        }
+      }, 100);
     };
 
+    // Listen for window resize
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    
+    // Listen for console visibility changes
+    if (visible) {
+      // When console becomes visible, resize after animation completes
+      setTimeout(handleResize, animationSpeed + 50);
+    }
+
+    // Use ResizeObserver to detect container size changes
+    let resizeObserver: ResizeObserver | undefined;
+    if (terminalRef.current && window.ResizeObserver) {
+      resizeObserver = new ResizeObserver(handleResize);
+      resizeObserver.observe(terminalRef.current);
+    }
+
+    return () => {
+      clearTimeout(resizeTimeout);
+      window.removeEventListener('resize', handleResize);
+      resizeObserver?.disconnect();
+    };
+  }, [visible, animationSpeed]);
 
   // Keyboard shortcut handler
   useEffect(() => {
@@ -500,6 +559,15 @@ Console running in offline mode. Type 'help' for available commands.`
       onToggle(false);
     }
   }, [onToggle]);
+
+  // Manual resize function for external use
+  const resizeTerminal = useCallback(() => {
+    if (fitAddon.current && terminal.current && visible) {
+      console.log('[Console] Manual terminal resize triggered');
+      fitAddon.current.fit();
+      terminal.current.focus();
+    }
+  }, [visible]);
 
   return (
     <Box
@@ -568,11 +636,34 @@ Console running in offline mode. Type 'help' for available commands.`
           style={{
             height: `calc(${height} - 48px)`,
             minHeight: '200px', // Ensure minimum height
+            maxHeight: `calc(${height} - 48px)`,
+            width: '100%',
             padding: '8px',
             overflow: 'hidden',
-            backgroundColor: theme === 'dark' ? '#1e1e1e' : '#ffffff', // Ensure background is visible
+            backgroundColor: theme === 'dark' ? '#1e1e1e' : '#ffffff',
+            border: '1px solid red', // Debug: make container visible
+            position: 'relative',
+            boxSizing: 'border-box', // Include padding in size calculations
+            display: 'flex',
+            flexDirection: 'column'
           }}
-        />
+        >
+          {/* Debug: Fallback text to test visibility - only show when terminal truly fails */}
+          <div style={{
+            color: theme === 'dark' ? '#ffffff' : '#000000',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            position: 'absolute',
+            bottom: '5px',
+            right: '5px',
+            zIndex: 5,
+            pointerEvents: 'none',
+            opacity: 0.5
+          }}>
+            {!session && 'Loading...'}
+            {session && 'Ready'}
+          </div>
+        </Box>
 
         {/* Resize handle */}
         <Box
