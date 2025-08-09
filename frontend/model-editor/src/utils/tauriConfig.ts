@@ -27,11 +27,19 @@ export const isTauriAsync = async (): Promise<boolean> => {
   
   // Fallback: try to access the port file endpoint (indicates Tauri dev mode)
   try {
-    const response = await fetch('http://localhost:3000/api/tauri-port');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout for port file check
+    
+    const response = await fetch('http://localhost:3000/api/tauri-port', {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
     const hasPortFile = response.ok;
     console.log('[TauriConfig] Port file check:', hasPortFile);
     return hasPortFile;
-  } catch {
+  } catch (error) {
+    console.log('[TauriConfig] Port file check failed:', error instanceof Error ? error.message : 'Unknown error');
     return false;
   }
 };
@@ -82,14 +90,13 @@ const getServerPort = async (): Promise<number> => {
     return serverPortPromise;
   }
 
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri environment');
-  }
+  // Don't check synchronous isTauri() here since we already checked isTauriAsync()
+  // The async check is more reliable for detecting Tauri dev mode
 
   serverPortPromise = (async () => {
     try {
-      // In development mode, we need a different approach
-      const isDev = process.env.NODE_ENV === 'development';
+      // Always try development mode approach first, as it's more reliable
+      const isDev = process.env.NODE_ENV === 'development' || !window.__TAURI__;
       
       if (isDev) {
         // In development, try to read the port from the port file
@@ -265,7 +272,12 @@ export const getTorqueConfig = async (): Promise<TorqueConfig> => {
   console.log('[TauriConfig] getTorqueConfig called, isTauriAsync():', isTauriEnv);
   if (isTauriEnv) {
     console.log('[TauriConfig] Using Tauri config');
-    return await getTauriConfig();
+    try {
+      return await getTauriConfig();
+    } catch (error) {
+      console.warn('[TauriConfig] Failed to get Tauri config, falling back to web config:', error);
+      return webConfig;
+    }
   }
   console.log('[TauriConfig] Using web config:', webConfig);
   return webConfig;

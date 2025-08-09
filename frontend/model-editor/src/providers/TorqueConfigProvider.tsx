@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ApolloProvider } from '@apollo/client';
 import { LoadingOverlay, Text, Stack } from '@mantine/core';
-import { getTorqueConfig, isTauri, testServerHealth, clearPortCache } from '../utils/tauriConfig';
+import { getTorqueConfig, isTauri, isTauriAsync, testServerHealth, clearPortCache } from '../utils/tauriConfig';
 import { getDynamicApolloClient } from '../graphql/dynamicClient';
 import type { ApolloClient } from '@apollo/client';
 
@@ -35,16 +35,19 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('Initializing...');
-
-  const isTauriEnvironment = isTauri();
+  const [isTauriEnvironment, setIsTauriEnvironment] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
     
     const initializeConfig = async () => {
       try {
-        console.log('[TorqueConfigProvider] Initializing config, isTauriEnvironment:', isTauriEnvironment);
-        setStatus(isTauriEnvironment ? 'Connecting to embedded server...' : 'Configuring web endpoints...');
+        // First, detect the actual Tauri environment status
+        const tauriEnv = await isTauriAsync();
+        setIsTauriEnvironment(tauriEnv);
+        
+        console.log('[TorqueConfigProvider] Initializing config, isTauriEnvironment:', tauriEnv);
+        setStatus(tauriEnv ? 'Connecting to embedded server...' : 'Configuring web endpoints...');
         
         // Get configuration
         console.log('[TorqueConfigProvider] Getting Torque config...');
@@ -53,7 +56,7 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
         
         if (!isMounted) return;
         
-        if (isTauriEnvironment) {
+        if (tauriEnv) {
           setStatus('Testing server connection...');
           
           // Test server health with retries - longer timeout for initialization
@@ -110,7 +113,7 @@ export const TorqueConfigProvider: React.FC<TorqueConfigProviderProps> = ({ chil
     return () => {
       isMounted = false;
     };
-  }, [isTauriEnvironment]);
+  }, []); // Remove dependency to prevent re-initialization loops
 
   const refreshConfig = async () => {
     console.log('[TorqueConfigProvider] Refreshing configuration...');
