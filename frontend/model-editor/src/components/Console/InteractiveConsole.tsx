@@ -103,9 +103,20 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
           projectName: data.result.context?.projectName,
           capabilities: data.result.capabilities || []
         });
+      } else {
+        // Fallback session for when backend doesn't support console methods yet
+        setSession({
+          sessionId: 'fallback-' + Date.now(),
+          capabilities: ['help', 'echo']
+        });
       }
     } catch (error) {
       console.error('Failed to initialize console session:', error);
+      // Create fallback session so console still works
+      setSession({
+        sessionId: 'fallback-' + Date.now(),
+        capabilities: ['help', 'echo']
+      });
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +126,56 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   const executeCommand = useCallback(async (command: string) => {
     if (!session) return;
     
+    const cmd = command.trim().toLowerCase();
+    
+    // Handle local fallback commands
+    if (session.sessionId.startsWith('fallback-')) {
+      let result = { success: true, output: '' };
+      
+      if (cmd === 'help') {
+        result.output = `Torque Interactive Console (Offline Mode)
+
+Available commands:
+  help                    - Show this help message
+  echo <message>          - Echo back the message
+  clear                   - Clear the console
+  exit                    - Close console
+  status                  - Show connection status
+  
+Note: Backend console methods not yet implemented.
+Press Ctrl+~ to toggle console visibility.`;
+      } else if (cmd.startsWith('echo ')) {
+        result.output = cmd.substring(5);
+      } else if (cmd === 'clear') {
+        result = { success: true, output: '', action: 'clear' };
+      } else if (cmd === 'exit') {
+        result = { success: true, output: 'Goodbye!', action: 'exit' };
+      } else if (cmd === 'status') {
+        result.output = `Console Status: Offline Mode
+Session ID: ${session.sessionId}
+Server URL: ${serverUrl}
+Backend Methods: Not available`;
+      } else if (cmd === '') {
+        return { success: true, output: '' };
+      } else {
+        result = {
+          success: false,
+          output: `Unknown command: ${command.trim()}
+Type 'help' for available commands.`
+        };
+      }
+      
+      // Handle special actions
+      if (result.action === 'clear') {
+        terminal.current?.clear();
+      } else if (result.action === 'exit') {
+        onToggle(false);
+      }
+      
+      return result;
+    }
+    
+    // Try backend execution for real sessions
     try {
       setIsLoading(true);
       const response = await fetch(serverUrl, {
@@ -134,16 +195,6 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
       const data = await response.json();
       const result = data.result || data.error;
       
-      // Add to command history
-      const commandRecord: ConsoleCommand = {
-        command: command.trim(),
-        timestamp: new Date(),
-        success: result?.success ?? false,
-        output: result?.output || result?.message || 'No response'
-      };
-      
-      setHistory(prev => [...prev, commandRecord]);
-      
       // Handle special actions
       if (result?.action === 'clear') {
         terminal.current?.clear();
@@ -161,25 +212,27 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
       return result;
     } catch (error) {
       console.error('Failed to execute command:', error);
-      const errorRecord: ConsoleCommand = {
-        command: command.trim(),
-        timestamp: new Date(),
+      return {
         success: false,
-        output: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        output: `Connection error: ${error instanceof Error ? error.message : 'Unknown error'}
+Console running in offline mode. Type 'help' for available commands.`
       };
-      setHistory(prev => [...prev, errorRecord]);
-      return null;
     } finally {
       setIsLoading(false);
     }
-  }, [session, serverUrl, onToggle]);
+  }, [session, serverUrl, onToggle, terminal]);
 
   // Get current prompt
   const getPrompt = useCallback(() => {
+    if (!session) return 'torque> ';
+    
+    const isOffline = session.sessionId.startsWith('fallback-');
+    const prefix = isOffline ? 'torque[offline]' : 'torque';
+    
     if (session?.projectName) {
-      return `torque:${session.projectName}> `;
+      return `${prefix}:${session.projectName}> `;
     }
-    return 'torque> ';
+    return `${prefix}> `;
   }, [session]);
 
   // Initialize terminal
@@ -219,7 +272,7 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
 
     // Welcome message
     term.writeln('\x1b[32mTorque Interactive Console\x1b[0m');
-    term.writeln('Type "help" for available commands, Ctrl+~ to toggle visibility');
+    term.writeln('Initializing console session...');
     term.write('\r\n');
 
     // Initialize session
@@ -343,6 +396,15 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
 
     // Show initial prompt when session is ready
     if (session) {
+      const isOffline = session.sessionId.startsWith('fallback-');
+      if (isOffline) {
+        terminal.current.writeln('\x1b[33mRunning in offline mode - backend console methods not available\x1b[0m');
+        terminal.current.writeln('Type "help" for available commands, Ctrl+~ to toggle visibility');
+      } else {
+        terminal.current.writeln('\x1b[32mConsole session established\x1b[0m');
+        terminal.current.writeln('Type "help" for available commands, Ctrl+~ to toggle visibility');
+      }
+      terminal.current.write('\r\n');
       terminal.current.write(getPrompt());
     }
 
