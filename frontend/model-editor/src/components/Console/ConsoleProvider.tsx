@@ -27,7 +27,7 @@ export const ConsoleProvider: React.FC<ConsoleProviderProps> = ({
   enabled = true,
 }) => {
   const [visible, setVisible] = useState(false);
-  const { jsonRpcUrl, baseUrl } = useTorqueConfig();
+  const { jsonRpcUrl } = useTorqueConfig();
 
   const toggle = useCallback(() => {
     setVisible(prev => !prev);
@@ -55,7 +55,7 @@ export const ConsoleProvider: React.FC<ConsoleProviderProps> = ({
         <InteractiveConsole
           visible={visible}
           onToggle={setVisible}
-          serverUrl={`${baseUrl}${jsonRpcUrl}`}
+          serverUrl={jsonRpcUrl}
           height={height}
           theme={theme}
           animationSpeed={animationSpeed}
