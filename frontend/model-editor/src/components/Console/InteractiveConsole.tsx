@@ -82,6 +82,7 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
 
   // Initialize console session
   const initializeSession = useCallback(async () => {
+    console.log('[Console] Initializing session with serverUrl:', serverUrl);
     try {
       setIsLoading(true);
       const response = await fetch(serverUrl, {
@@ -96,27 +97,35 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
       });
       
       const data = await response.json();
+      console.log('[Console] Server response:', data);
+      
       if (data.result) {
-        setSession({
+        const newSession = {
           sessionId: data.result.sessionId,
           projectId: data.result.context?.projectId,
           projectName: data.result.context?.projectName,
           capabilities: data.result.capabilities || []
-        });
+        };
+        console.log('[Console] Creating real session:', newSession);
+        setSession(newSession);
       } else {
         // Fallback session for when backend doesn't support console methods yet
-        setSession({
+        const fallbackSession = {
           sessionId: 'fallback-' + Date.now(),
           capabilities: ['help', 'echo']
-        });
+        };
+        console.log('[Console] Creating fallback session:', fallbackSession);
+        setSession(fallbackSession);
       }
     } catch (error) {
       console.error('Failed to initialize console session:', error);
       // Create fallback session so console still works
-      setSession({
+      const fallbackSession = {
         sessionId: 'fallback-' + Date.now(),
         capabilities: ['help', 'echo']
-      });
+      };
+      console.log('[Console] Creating fallback session after error:', fallbackSession);
+      setSession(fallbackSession);
     } finally {
       setIsLoading(false);
     }
@@ -394,24 +403,34 @@ Console running in offline mode. Type 'help' for available commands.`
 
     terminal.current.onData(handleData);
 
-    // Show initial prompt when session is ready
-    if (session) {
-      const isOffline = session.sessionId.startsWith('fallback-');
-      if (isOffline) {
-        terminal.current.writeln('\x1b[33mRunning in offline mode - backend console methods not available\x1b[0m');
-        terminal.current.writeln('Type "help" for available commands, Ctrl+~ to toggle visibility');
-      } else {
-        terminal.current.writeln('\x1b[32mConsole session established\x1b[0m');
-        terminal.current.writeln('Type "help" for available commands, Ctrl+~ to toggle visibility');
-      }
-      terminal.current.write('\r\n');
-      terminal.current.write(getPrompt());
-    }
-
     return () => {
       terminal.current?.dispose();
     };
   }, [session, history, historyIndex, executeCommand, getPrompt]);
+
+  // Display initial prompt when session is ready
+  useEffect(() => {
+    if (!terminal.current || !session) {
+      console.log('[Console] Not showing prompt:', { hasTerminal: !!terminal.current, hasSession: !!session });
+      return;
+    }
+
+    console.log('[Console] Displaying initial prompt for session:', session.sessionId);
+
+    const isOffline = session.sessionId.startsWith('fallback-');
+    if (isOffline) {
+      terminal.current.writeln('\x1b[33mRunning in offline mode - backend console methods not available\x1b[0m');
+      terminal.current.writeln('Type "help" for available commands, Ctrl+~ to toggle visibility');
+    } else {
+      terminal.current.writeln('\x1b[32mConsole session established\x1b[0m');
+      terminal.current.writeln('Type "help" for available commands, Ctrl+~ to toggle visibility');
+    }
+    terminal.current.write('\r\n');
+    
+    const prompt = getPrompt();
+    console.log('[Console] Writing prompt:', prompt);
+    terminal.current.write(prompt);
+  }, [session, getPrompt]);
 
   // Handle window resize
   useEffect(() => {
