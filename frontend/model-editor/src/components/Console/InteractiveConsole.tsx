@@ -248,6 +248,8 @@ Console running in offline mode. Type 'help' for available commands.`
   useEffect(() => {
     if (!terminalRef.current || terminal.current) return;
 
+    console.log('[Console] Creating terminal instance');
+
     // Create terminal instance
     const term = new Terminal({
       theme: terminalTheme[theme],
@@ -257,6 +259,8 @@ Console running in offline mode. Type 'help' for available commands.`
       cursorBlink: true,
       allowTransparency: true,
       scrollback: 1000,
+      rows: 20, // Ensure minimum size
+      cols: 80,
     });
 
     // Add fit addon for responsive sizing
@@ -271,21 +275,48 @@ Console running in offline mode. Type 'help' for available commands.`
       console.warn('WebGL addon failed to load, falling back to canvas renderer');
     }
 
-    // Open terminal
-    term.open(terminalRef.current);
-    fit.fit();
-
-    // Store references
+    // Store references first
     terminal.current = term;
     fitAddon.current = fit;
 
-    // Welcome message
-    term.writeln('\x1b[32mTorque Interactive Console\x1b[0m');
-    term.writeln('Initializing console session...');
-    term.write('\r\n');
+    // Check container dimensions
+    const containerRect = terminalRef.current.getBoundingClientRect();
+    console.log('[Console] Container dimensions:', {
+      width: containerRect.width,
+      height: containerRect.height,
+      visible: containerRect.width > 0 && containerRect.height > 0
+    });
 
-    // Initialize session
-    initializeSession();
+    // Open terminal
+    term.open(terminalRef.current);
+    console.log('[Console] Terminal opened in container');
+    
+    // Fit and focus
+    setTimeout(() => {
+      fit.fit();
+      term.focus();
+      console.log('[Console] Terminal fitted and focused');
+      
+      // Check terminal dimensions after fit
+      console.log('[Console] Terminal dimensions after fit:', {
+        rows: term.rows,
+        cols: term.cols
+      });
+      
+      // Welcome message and immediate prompt
+      term.clear();
+      term.writeln('\x1b[32mTorque Interactive Console\x1b[0m');
+      term.writeln('Type "help" for commands, Ctrl+~ to toggle');
+      term.write('\r\n');
+      term.write('torque> ');
+      console.log('[Console] Immediate prompt displayed');
+      
+      // Force cursor to be visible
+      term.focus();
+      
+      // Initialize session in background
+      initializeSession();
+    }, 100); // Small delay to ensure container is ready
 
     return () => {
       term.dispose();
@@ -417,6 +448,9 @@ Console running in offline mode. Type 'help' for available commands.`
 
     console.log('[Console] Displaying initial prompt for session:', session.sessionId);
 
+    // Clear the connecting prompt and show session status
+    terminal.current.write('\r\n');
+    
     const isOffline = session.sessionId.startsWith('fallback-');
     if (isOffline) {
       terminal.current.writeln('\x1b[33mRunning in offline mode - backend console methods not available\x1b[0m');
@@ -533,8 +567,10 @@ Console running in offline mode. Type 'help' for available commands.`
           ref={terminalRef}
           style={{
             height: `calc(${height} - 48px)`,
+            minHeight: '200px', // Ensure minimum height
             padding: '8px',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            backgroundColor: theme === 'dark' ? '#1e1e1e' : '#ffffff', // Ensure background is visible
           }}
         />
 
