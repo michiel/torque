@@ -196,12 +196,12 @@ monitor server-events                # Watch server-side events
 
 ## Implementation Plan
 
-### Phase 1: Enhanced JSON-RPC and MCP Methods (Week 1-2)
-- [ ] Add new JSON-RPC methods for project management (listProjects, createProject, etc.)
-- [ ] Implement console session management methods (createConsoleSession, setProjectContext)
-- [ ] Add server introspection methods (getServerLogs, getCacheStats)
-- [ ] Ensure all new methods are automatically exposed as MCP tools via axum-mcp
-- [ ] Create ConsoleSession struct to maintain project context and state
+### Phase 1: Enhanced JSON-RPC and MCP Methods (Week 1-2) ✅ COMPLETED
+- [x] Add new JSON-RPC methods for project management (listProjects, createProject, etc.)
+- [x] Implement console session management methods (createConsoleSession, setProjectContext)
+- [x] Add server introspection methods (getServerLogs, getCacheStats)
+- [x] Ensure all new methods are automatically exposed as MCP tools via axum-mcp
+- [x] Create ConsoleSession struct to maintain project context and state
 - [ ] Update MCP tool documentation with new capabilities
 
 ### Phase 2: Console Command Parser (Week 2-3)
