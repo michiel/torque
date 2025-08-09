@@ -45,6 +45,7 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   const [textHistory, setTextHistory] = useState<string[]>([]);
   const [textCommandHistory, setTextCommandHistory] = useState<string[]>([]);
   const [textHistoryIndex, setTextHistoryIndex] = useState(-1);
+  const [commandStats, setCommandStats] = useState<Record<string, {count: number, avgTime: number, lastUsed: Date}>>({});
   
   const terminalRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -140,6 +141,7 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   const executeCommand = useCallback(async (command: string) => {
     if (!session) return;
     
+    const startTime = performance.now();
     let cmd = command.trim().toLowerCase();
     
     // Command aliases
@@ -159,7 +161,7 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
     cmd = aliases[cmd] || cmd;
     
     // Handle local commands (both fallback sessions and real sessions)
-    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases'].some(localCmd => cmd.startsWith(localCmd))) {
+    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases', 'stats', 'reset'].some(localCmd => cmd.startsWith(localCmd))) {
       let result = { success: true, output: '' };
       
       if (cmd === 'help') {
@@ -174,6 +176,8 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   status                  - Show connection and session status
   history                 - Show command history (use arrow keys ↑↓)
   aliases                 - Show all available command aliases
+  stats                   - Show command usage statistics and performance
+  reset                   - Clear all statistics, history, and console output
 
 🔧 Backend Commands (may timeout if server not running):
   project list            - List all available projects
@@ -199,7 +203,10 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   project list           - List all available projects in the system
   project new <name>     - Create a new project with the specified name
   project use <id>       - Switch to project context (enables entity commands)`,
-          'server': 'server status - Shows server health, uptime, and system information'
+          'server': 'server status - Shows server health, uptime, and system information',
+          'stats': 'stats - Shows command usage analytics including execution counts, average response times, and usage patterns. Helps identify most frequently used commands and performance bottlenecks.',
+          'aliases': 'aliases - Displays all available command shortcuts and their full command equivalents. Use aliases to type commands faster!',
+          'reset': 'reset - Clears all accumulated statistics, command history, and console output. Provides a fresh start for the console session while maintaining connection.'
         };
         
         result.output = helpTexts[helpCmd] || `No help available for '${helpCmd}'. Try 'help' for all commands.`;
@@ -213,6 +220,8 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
         const isOffline = session.sessionId.startsWith('fallback-');
         const sessionTime = new Date().toLocaleTimeString();
         const projectContext = session.projectName ? `${session.projectName} (${session.projectId})` : 'None';
+        const totalCommands = Object.values(commandStats).reduce((sum, stats) => sum + stats.count, 0);
+        const mostUsedCommand = Object.entries(commandStats).sort((a, b) => b[1].count - a[1].count)[0];
         
         result.output = `📊 Console Status Report
 ═══════════════════════════════════════
@@ -222,6 +231,8 @@ Project Context: ${projectContext}
 Server URL: ${serverUrl}
 Current Time: ${sessionTime}
 Command History: ${textCommandHistory.length} commands
+Commands Executed: ${totalCommands}
+${mostUsedCommand ? `Most Used Command: ${mostUsedCommand[0]} (${mostUsedCommand[1].count}x)` : 'No commands executed yet'}
 ═══════════════════════════════════════
 Available Features:
   ✅ Local Commands (help, echo, clear, exit, status, history)
@@ -258,6 +269,47 @@ ls        project list
 pwd       status
 
 💡 Aliases allow you to use shorter commands for faster typing!`;
+      } else if (cmd === 'stats') {
+        const statsEntries = Object.entries(commandStats).sort((a, b) => b[1].count - a[1].count);
+        
+        if (statsEntries.length === 0) {
+          result.output = `📊 Command Usage Statistics
+══════════════════════════════
+No commands executed yet. Start using commands to see statistics!`;
+        } else {
+          const totalCommands = statsEntries.reduce((sum, [, stats]) => sum + stats.count, 0);
+          const avgExecutionTime = statsEntries.reduce((sum, [, stats]) => sum + stats.avgTime, 0) / statsEntries.length;
+          
+          result.output = `📊 Command Usage Statistics
+══════════════════════════════
+Total Commands Executed: ${totalCommands}
+Average Execution Time: ${Math.round(avgExecutionTime * 100) / 100}ms
+Session Started: ${new Date().toLocaleString()}
+
+Command Breakdown:
+─────────────────
+Command       Count    Avg Time    Last Used
+──────────    ─────    ────────    ─────────
+${statsEntries.slice(0, 10).map(([cmd, stats]) => 
+  `${cmd.padEnd(12)} ${stats.count.toString().padEnd(8)} ${stats.avgTime.toString().padEnd(8)}ms  ${stats.lastUsed.toLocaleTimeString()}`
+).join('\n')}
+
+${statsEntries.length > 10 ? `... and ${statsEntries.length - 10} more commands` : ''}
+
+💡 Command statistics help identify usage patterns and performance insights!`;
+        }
+      } else if (cmd === 'reset') {
+        setCommandStats({});
+        setTextCommandHistory([]);
+        setTextHistory([]);
+        result.output = `🔄 Console Reset Complete
+═══════════════════════════
+✅ Command statistics cleared
+✅ Command history cleared  
+✅ Console output cleared
+✅ Session state reset
+
+Console is ready for fresh usage tracking!`;
       } else if (cmd === '') {
         return { success: true, output: '' };
       } else {
@@ -275,6 +327,10 @@ Type 'help' for available commands.`
       } else if (result.action === 'exit') {
         onToggle(false);
       }
+      
+      // Update command statistics
+      const executionTime = performance.now() - startTime;
+      updateCommandStats(command, executionTime);
       
       return result;
     }
@@ -320,6 +376,10 @@ Type 'help' for available commands.`
           projectName: result.data.projectName
         } : null);
       }
+      
+      // Update command statistics for successful backend commands
+      const executionTime = performance.now() - startTime;
+      updateCommandStats(command, executionTime);
       
       return result;
     } catch (error) {
@@ -380,6 +440,36 @@ Backend commands (may not work yet):
     }
     
     return commonPrefix;
+  }, []);
+
+  // Update command statistics
+  const updateCommandStats = useCallback((command: string, executionTime: number) => {
+    const baseCommand = command.trim().toLowerCase().split(' ')[0]; // Get base command without arguments
+    
+    setCommandStats(prev => {
+      const existing = prev[baseCommand];
+      if (existing) {
+        const newCount = existing.count + 1;
+        const newAvgTime = (existing.avgTime * existing.count + executionTime) / newCount;
+        return {
+          ...prev,
+          [baseCommand]: {
+            count: newCount,
+            avgTime: Math.round(newAvgTime * 100) / 100, // Round to 2 decimals
+            lastUsed: new Date()
+          }
+        };
+      } else {
+        return {
+          ...prev,
+          [baseCommand]: {
+            count: 1,
+            avgTime: Math.round(executionTime * 100) / 100,
+            lastUsed: new Date()
+          }
+        };
+      }
+    });
   }, []);
 
   // Initialize terminal
@@ -888,7 +978,7 @@ Backend commands (may not work yet):
                       e.preventDefault();
                       // Tab completion for commands
                       const availableCommands = [
-                        'help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases',
+                        'help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases', 'stats', 'reset',
                         'project list', 'project new', 'server status',
                         // Aliases
                         'h', '?', 'cls', 'c', 'quit', 'q', 'stat', 'hist', 'ls', 'pwd'
