@@ -46,11 +46,15 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   const [textCommandHistory, setTextCommandHistory] = useState<string[]>([]);
   const [textHistoryIndex, setTextHistoryIndex] = useState(-1);
   const [commandStats, setCommandStats] = useState<Record<string, {count: number, avgTime: number, lastUsed: Date}>>({});
+  const [macros, setMacros] = useState<Record<string, {commands: string[], description: string, created: Date}>>({});
+  const [isRecording, setIsRecording] = useState<string | null>(null);
+  const [recordedCommands, setRecordedCommands] = useState<string[]>([]);
   
   const terminalRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
+  const consoleRef = useRef<HTMLDivElement>(null);
   
   // Terminal theme configuration
   const terminalTheme = useMemo(() => ({
@@ -161,7 +165,7 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
     cmd = aliases[cmd] || cmd;
     
     // Handle local commands (both fallback sessions and real sessions)
-    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases', 'stats', 'reset'].some(localCmd => cmd.startsWith(localCmd))) {
+    if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases', 'stats', 'reset', 'export', 'import', 'macro'].some(localCmd => cmd.startsWith(localCmd))) {
       let result = { success: true, output: '' };
       
       if (cmd === 'help') {
@@ -178,6 +182,9 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
   aliases                 - Show all available command aliases
   stats                   - Show command usage statistics and performance
   reset                   - Clear all statistics, history, and console output
+  export                  - Export session data, history, and statistics to JSON file
+  import                  - Import session data from exported JSON file
+  macro <cmd>             - Record and replay command sequences (see 'help macro')
 
 🔧 Backend Commands (may timeout if server not running):
   project list            - List all available projects
@@ -206,7 +213,20 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
           'server': 'server status - Shows server health, uptime, and system information',
           'stats': 'stats - Shows command usage analytics including execution counts, average response times, and usage patterns. Helps identify most frequently used commands and performance bottlenecks.',
           'aliases': 'aliases - Displays all available command shortcuts and their full command equivalents. Use aliases to type commands faster!',
-          'reset': 'reset - Clears all accumulated statistics, command history, and console output. Provides a fresh start for the console session while maintaining connection.'
+          'reset': 'reset - Clears all accumulated statistics, command history, and console output. Provides a fresh start for the console session while maintaining connection.',
+          'export': 'export - Creates a downloadable JSON file containing complete session data including command history, usage statistics, project context, and performance metrics. Perfect for sharing sessions or creating backups.',
+          'import': 'import - Imports session data from a previously exported JSON file. Merges command history, statistics, and session context with current session. Supports drag-and-drop or file selection.',
+          'macro': `macro - Command automation system for recording and replaying command sequences.
+
+Available macro commands:
+• macro record <name>  - Start recording commands into a named macro
+• macro stop           - Stop recording and save the current macro
+• macro run <name>     - Execute a saved macro by name
+• macro list           - Show all available macros with details
+• macro show <name>    - Display detailed information about a specific macro
+• macro delete <name>  - Delete a saved macro permanently
+
+Perfect for automating repetitive tasks and creating complex workflows.`
         };
         
         result.output = helpTexts[helpCmd] || `No help available for '${helpCmd}'. Try 'help' for all commands.`;
@@ -233,6 +253,8 @@ Current Time: ${sessionTime}
 Command History: ${textCommandHistory.length} commands
 Commands Executed: ${totalCommands}
 ${mostUsedCommand ? `Most Used Command: ${mostUsedCommand[0]} (${mostUsedCommand[1].count}x)` : 'No commands executed yet'}
+${isRecording ? `🔴 Recording Macro: ${isRecording} (${recordedCommands.length} commands)` : ''}
+Saved Macros: ${Object.keys(macros).length}
 ═══════════════════════════════════════
 Available Features:
   ✅ Local Commands (help, echo, clear, exit, status, history)
@@ -310,13 +332,222 @@ ${statsEntries.length > 10 ? `... and ${statsEntries.length - 10} more commands`
 ✅ Session state reset
 
 Console is ready for fresh usage tracking!`;
+      } else if (cmd === 'export') {
+        const sessionData = {
+          session: {
+            sessionId: session.sessionId,
+            projectId: session.projectId,
+            projectName: session.projectName
+          },
+          statistics: commandStats,
+          history: textCommandHistory,
+          exportedAt: new Date().toISOString(),
+          version: '1.0.0'
+        };
+        
+        // Create downloadable JSON file
+        const blob = new Blob([JSON.stringify(sessionData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `torque-console-session-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        result.output = `📥 Session Export Complete
+═══════════════════════════
+✅ Session data exported to JSON file
+✅ Command history: ${textCommandHistory.length} commands
+✅ Statistics: ${Object.keys(commandStats).length} tracked commands
+✅ Export timestamp: ${new Date().toLocaleString()}
+
+Download should start automatically. The file contains:
+• Session information and project context
+• Complete command history
+• Usage statistics and performance data
+• Export metadata for reimporting`;
+      } else if (cmd.startsWith('import ') || cmd === 'import') {
+        result.output = `📤 Session Import
+═══════════════════
+To import a console session:
+
+🖱️  DRAG & DROP METHOD:
+   • Drag exported JSON file onto the console area
+   • File will be automatically imported and merged
+   • Visual feedback shows drop zone activation
+
+📁 MANUAL METHOD:
+   • Use browser file picker (coming soon)
+   • Select previously exported JSON file
+   • Data will be merged with current session
+
+✨ IMPORT FEATURES:
+   • Command history merging (no duplicates)
+   • Statistics aggregation with proper averaging
+   • Session metadata preservation
+   • Error handling for invalid files
+
+💡 Use 'export' to create importable session files.
+    Current session will merge with imported data.`;
+      } else if (cmd.startsWith('macro ')) {
+        const macroArgs = cmd.substring(6).trim().split(' ');
+        const subCommand = macroArgs[0];
+        
+        if (subCommand === 'record') {
+          const macroName = macroArgs[1];
+          if (!macroName) {
+            result.output = `❌ Macro name required. Usage: macro record <name>`;
+          } else if (isRecording) {
+            result.output = `❌ Already recording macro '${isRecording}'. Use 'macro stop' first.`;
+          } else {
+            setIsRecording(macroName);
+            setRecordedCommands([]);
+            result.output = `🔴 Recording macro '${macroName}'
+═══════════════════════════════════════
+Commands will be recorded until you run 'macro stop'.
+Recorded commands will be saved and can be replayed with 'macro run ${macroName}'.
+
+💡 Recording started - type commands normally to add them to the macro.`;
+          }
+        } else if (subCommand === 'stop') {
+          if (!isRecording) {
+            result.output = `❌ No macro recording in progress. Use 'macro record <name>' to start.`;
+          } else {
+            const macroName = isRecording;
+            setMacros(prev => ({
+              ...prev,
+              [macroName]: {
+                commands: [...recordedCommands],
+                description: `Recorded on ${new Date().toLocaleDateString()}`,
+                created: new Date()
+              }
+            }));
+            result.output = `⏹️  Macro '${macroName}' saved successfully
+═══════════════════════════════════════
+Commands recorded: ${recordedCommands.length}
+Commands: ${recordedCommands.join(', ')}
+
+Use 'macro run ${macroName}' to execute this macro.
+Use 'macro list' to see all available macros.`;
+            setIsRecording(null);
+            setRecordedCommands([]);
+          }
+        } else if (subCommand === 'run') {
+          const macroName = macroArgs[1];
+          if (!macroName) {
+            result.output = `❌ Macro name required. Usage: macro run <name>`;
+          } else if (!macros[macroName]) {
+            result.output = `❌ Macro '${macroName}' not found. Use 'macro list' to see available macros.`;
+          } else {
+            const macro = macros[macroName];
+            result.output = `▶️  Executing macro '${macroName}'
+═══════════════════════════════════════
+Commands to execute: ${macro.commands.length}
+Created: ${macro.created.toLocaleDateString()}
+
+Executing commands in sequence...`;
+            
+            // Execute macro commands sequentially (simplified - in reality would need proper async handling)
+            setTimeout(async () => {
+              for (const macroCmd of macro.commands) {
+                setTextHistory(prev => [...prev, `${getPrompt()}${macroCmd} (macro)`]);
+                const macroResult = await executeCommand(macroCmd);
+                if (macroResult?.output) {
+                  setTextHistory(prev => [...prev, macroResult.output]);
+                }
+                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between commands
+              }
+              setTextHistory(prev => [...prev, `✅ Macro '${macroName}' execution completed.`]);
+            }, 100);
+          }
+        } else if (subCommand === 'list') {
+          const macroList = Object.entries(macros);
+          if (macroList.length === 0) {
+            result.output = `📋 No Macros Available
+═══════════════════════════════════════
+No command macros have been created yet.
+
+Create your first macro:
+1. Run 'macro record <name>'  
+2. Execute commands normally
+3. Run 'macro stop' to finish
+4. Use 'macro run <name>' to replay`;
+          } else {
+            result.output = `📋 Available Command Macros
+═══════════════════════════════════════
+Name          Commands    Created
+──────────    ────────    ─────────
+${macroList.map(([name, macro]) => 
+  `${name.padEnd(12)} ${macro.commands.length.toString().padEnd(10)} ${macro.created.toLocaleDateString()}`
+).join('\n')}
+
+${isRecording ? `\n🔴 Currently recording: ${isRecording}` : ''}
+
+Usage:
+• macro run <name>     - Execute macro
+• macro delete <name>  - Delete macro  
+• macro show <name>    - Show macro details`;
+          }
+        } else if (subCommand === 'delete') {
+          const macroName = macroArgs[1];
+          if (!macroName) {
+            result.output = `❌ Macro name required. Usage: macro delete <name>`;
+          } else if (!macros[macroName]) {
+            result.output = `❌ Macro '${macroName}' not found.`;
+          } else {
+            setMacros(prev => {
+              const updated = { ...prev };
+              delete updated[macroName];
+              return updated;
+            });
+            result.output = `🗑️  Macro '${macroName}' deleted successfully.`;
+          }
+        } else if (subCommand === 'show') {
+          const macroName = macroArgs[1];
+          if (!macroName) {
+            result.output = `❌ Macro name required. Usage: macro show <name>`;
+          } else if (!macros[macroName]) {
+            result.output = `❌ Macro '${macroName}' not found.`;
+          } else {
+            const macro = macros[macroName];
+            result.output = `📄 Macro Details: '${macroName}'
+═══════════════════════════════════════
+Description: ${macro.description}
+Created: ${macro.created.toLocaleString()}  
+Commands: ${macro.commands.length}
+
+Command Sequence:
+${macro.commands.map((cmd, i) => `  ${i + 1}. ${cmd}`).join('\n')}
+
+Use 'macro run ${macroName}' to execute this sequence.`;
+          }
+        } else {
+          result.output = `❌ Unknown macro command: ${subCommand}
+
+Available macro commands:
+• macro record <name>  - Start recording commands
+• macro stop           - Stop recording  
+• macro run <name>     - Execute macro
+• macro list           - List all macros
+• macro show <name>    - Show macro details
+• macro delete <name>  - Delete macro
+
+💡 Macros let you record and replay command sequences for automation.`;
+        }
       } else if (cmd === '') {
         return { success: true, output: '' };
       } else {
+        // Use suggestion system for unknown commands
+        const suggestions = suggestCommand(command.trim());
+        const suggestionText = suggestions.length > 0 
+          ? `\n\n💡 Did you mean: ${suggestions.map(s => `'${s}'`).join(', ')}?` 
+          : '\n\n💡 Type \'help\' to see all available commands.';
+          
         result = {
           success: false,
-          output: `Unknown command: ${command.trim()}
-Type 'help' for available commands.`
+          output: `❌ Unknown command: '${command.trim()}'${suggestionText}\n\nQuick commands: help, status, history, aliases`
         };
       }
       
@@ -331,6 +562,11 @@ Type 'help' for available commands.`
       // Update command statistics
       const executionTime = performance.now() - startTime;
       updateCommandStats(command, executionTime);
+      
+      // Record command if macro recording is active (but don't record macro commands themselves)
+      if (isRecording && !command.trim().toLowerCase().startsWith('macro')) {
+        setRecordedCommands(prev => [...prev, command.trim()]);
+      }
       
       return result;
     }
@@ -414,13 +650,18 @@ Backend commands (may not work yet):
     if (!session) return 'torque> ';
     
     const isOffline = session.sessionId.startsWith('fallback-');
-    const prefix = isOffline ? 'torque[offline]' : 'torque';
+    let prefix = isOffline ? 'torque[offline]' : 'torque';
+    
+    // Add recording indicator to prompt
+    if (isRecording) {
+      prefix += `[🔴${isRecording}]`;
+    }
     
     if (session?.projectName) {
       return `${prefix}:${session.projectName}> `;
     }
     return `${prefix}> `;
-  }, [session]);
+  }, [session, isRecording]);
 
   // Helper function for tab completion
   const getCommonPrefix = useCallback((strings: string[]): string => {
@@ -440,6 +681,81 @@ Backend commands (may not work yet):
     }
     
     return commonPrefix;
+  }, []);
+
+  // Command validation and suggestion system
+  const suggestCommand = useCallback((input: string): string[] => {
+    const allCommands = [
+      'help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases', 'stats', 'reset', 'export', 'import',
+      'macro record', 'macro stop', 'macro run', 'macro list', 'macro show', 'macro delete',
+      'project list', 'project new', 'server status',
+      // Include aliases
+      'h', '?', 'cls', 'c', 'quit', 'q', 'stat', 'hist', 'ls', 'pwd'
+    ];
+    
+    const inputLower = input.toLowerCase().trim();
+    
+    // Exact matches
+    const exactMatches = allCommands.filter(cmd => cmd === inputLower);
+    if (exactMatches.length > 0) return [];
+    
+    // Prefix matches
+    const prefixMatches = allCommands.filter(cmd => cmd.startsWith(inputLower));
+    if (prefixMatches.length > 0) return prefixMatches.slice(0, 3);
+    
+    // Fuzzy matching using Levenshtein-like approach
+    const fuzzyMatches = allCommands
+      .map(cmd => ({
+        command: cmd,
+        distance: getEditDistance(inputLower, cmd)
+      }))
+      .filter(match => match.distance <= 3 && match.distance < match.command.length * 0.6)
+      .sort((a, b) => a.distance - b.distance)
+      .map(match => match.command)
+      .slice(0, 3);
+    
+    return fuzzyMatches;
+  }, []);
+
+  // Simple edit distance calculation for fuzzy matching
+  const getEditDistance = useCallback((str1: string, str2: string): number => {
+    const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+    
+    for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+    for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+    
+    for (let j = 1; j <= str2.length; j++) {
+      for (let i = 1; i <= str1.length; i++) {
+        const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        matrix[j][i] = Math.min(
+          matrix[j][i - 1] + 1,     // deletion
+          matrix[j - 1][i] + 1,     // insertion  
+          matrix[j - 1][i - 1] + indicator // substitution
+        );
+      }
+    }
+    
+    return matrix[str2.length][str1.length];
+  }, []);
+
+  // Enhanced output formatting system
+  const formatOutput = useCallback((text: string, type: 'success' | 'error' | 'info' | 'warning' = 'info'): string => {
+    const icons = {
+      success: '✅',
+      error: '❌',
+      info: 'ℹ️',
+      warning: '⚠️'
+    };
+    
+    // Add consistent spacing and formatting
+    const lines = text.split('\n');
+    const formattedLines = lines.map(line => {
+      if (line.trim() === '') return line;
+      if (line.startsWith('═') || line.startsWith('─')) return line; // Keep separator lines as-is
+      return line;
+    });
+    
+    return formattedLines.join('\n');
   }, []);
 
   // Update command statistics
@@ -471,6 +787,123 @@ Backend commands (may not work yet):
       }
     });
   }, []);
+
+  // Import session data from JSON
+  const importSessionData = useCallback(async (jsonData: any) => {
+    try {
+      if (!jsonData.version || !jsonData.session || !jsonData.history || !jsonData.statistics) {
+        throw new Error('Invalid session file format');
+      }
+      
+      // Merge command history (avoid duplicates)
+      const newHistory = [...textCommandHistory];
+      jsonData.history.forEach((cmd: string) => {
+        if (!newHistory.includes(cmd)) {
+          newHistory.push(cmd);
+        }
+      });
+      setTextCommandHistory(newHistory.slice(-100)); // Keep last 100
+      
+      // Merge statistics
+      setCommandStats(prev => {
+        const merged = { ...prev };
+        Object.entries(jsonData.statistics).forEach(([cmd, stats]: [string, any]) => {
+          if (merged[cmd]) {
+            // Merge existing stats
+            const totalCount = merged[cmd].count + stats.count;
+            const avgTime = (merged[cmd].avgTime * merged[cmd].count + stats.avgTime * stats.count) / totalCount;
+            merged[cmd] = {
+              count: totalCount,
+              avgTime: Math.round(avgTime * 100) / 100,
+              lastUsed: new Date(Math.max(merged[cmd].lastUsed.getTime(), new Date(stats.lastUsed).getTime()))
+            };
+          } else {
+            merged[cmd] = {
+              ...stats,
+              lastUsed: new Date(stats.lastUsed)
+            };
+          }
+        });
+        return merged;
+      });
+      
+      // Show import success message
+      setTextHistory(prev => [...prev, `📤 Session Import Successful
+═══════════════════════════════
+✅ Imported ${jsonData.history.length} commands to history
+✅ Merged statistics for ${Object.keys(jsonData.statistics).length} commands  
+✅ Import from: ${new Date(jsonData.exportedAt).toLocaleString()}
+✅ Session version: ${jsonData.version}
+
+Import completed successfully! Use 'stats' to see merged data.`]);
+      
+      return true;
+    } catch (error) {
+      setTextHistory(prev => [...prev, `❌ Session Import Failed
+═════════════════════════════
+Error: ${error instanceof Error ? error.message : 'Unknown error'}
+
+Please ensure you're importing a valid Torque console session file.
+Use 'export' to create valid session files.`]);
+      return false;
+    }
+  }, [textCommandHistory]);
+
+  // Handle drag and drop
+  useEffect(() => {
+    if (!consoleRef.current) return;
+    
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (consoleRef.current) {
+        consoleRef.current.style.backgroundColor = 'rgba(0, 100, 200, 0.1)';
+      }
+    };
+    
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (consoleRef.current) {
+        consoleRef.current.style.backgroundColor = '';
+      }
+    };
+    
+    const handleDrop = async (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (consoleRef.current) {
+        consoleRef.current.style.backgroundColor = '';
+      }
+      
+      const files = Array.from(e.dataTransfer?.files || []);
+      const jsonFile = files.find(file => file.type === 'application/json' || file.name.endsWith('.json'));
+      
+      if (jsonFile) {
+        try {
+          const text = await jsonFile.text();
+          const jsonData = JSON.parse(text);
+          await importSessionData(jsonData);
+        } catch (error) {
+          setTextHistory(prev => [...prev, `❌ File Import Error: ${error instanceof Error ? error.message : 'Invalid JSON file'}`]);
+        }
+      } else {
+        setTextHistory(prev => [...prev, '❌ Please drop a JSON session file. Use the "export" command to create valid session files.']);
+      }
+    };
+    
+    const consoleElement = consoleRef.current;
+    consoleElement.addEventListener('dragover', handleDragOver);
+    consoleElement.addEventListener('dragleave', handleDragLeave);
+    consoleElement.addEventListener('drop', handleDrop);
+    
+    return () => {
+      consoleElement.removeEventListener('dragover', handleDragOver);
+      consoleElement.removeEventListener('dragleave', handleDragLeave);  
+      consoleElement.removeEventListener('drop', handleDrop);
+    };
+  }, [importSessionData]);
 
   // Initialize terminal
   useEffect(() => {
@@ -833,6 +1266,7 @@ Backend commands (may not work yet):
       onClick={handleClickOutside}
     >
       <Paper
+        ref={consoleRef}
         shadow="xl"
         style={{
           position: 'absolute',
@@ -978,7 +1412,8 @@ Backend commands (may not work yet):
                       e.preventDefault();
                       // Tab completion for commands
                       const availableCommands = [
-                        'help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases', 'stats', 'reset',
+                        'help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases', 'stats', 'reset', 'export', 'import',
+                        'macro record', 'macro stop', 'macro run', 'macro list', 'macro show', 'macro delete',
                         'project list', 'project new', 'server status',
                         // Aliases
                         'h', '?', 'cls', 'c', 'quit', 'q', 'stat', 'hist', 'ls', 'pwd'
