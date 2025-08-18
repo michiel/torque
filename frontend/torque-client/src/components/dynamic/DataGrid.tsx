@@ -32,10 +32,12 @@ import {
   IconX,
   IconDownload,
   IconTrash,
-  IconDots
+  IconDots,
+  IconFileImport
 } from '@tabler/icons-react'
-import { useLoadEntityData, useJsonRpcMutation } from '../../hooks/useJsonRpc'
+import { useLoadEntityData, useJsonRpcMutation, useFormDefinition } from '../../hooks/useJsonRpc'
 import type { DataGridColumn, DataGridFilter, DataGridSort } from '../../types/jsonrpc'
+import { ImportWizard } from './ImportWizard'
 
 interface DataGridProps {
   id: string
@@ -66,8 +68,10 @@ export const DataGrid = memo(function DataGrid({
   const [editValue, setEditValue] = useState<any>(null)
   const [bulkDeleteModalOpened, setBulkDeleteModalOpened] = useState(false)
   const [filterModalOpened, setFilterModalOpened] = useState(false)
+  const [importWizardOpened, setImportWizardOpened] = useState(false)
   
   const { mutate } = useJsonRpcMutation()
+  const { data: formDef } = useFormDefinition(modelId, entityName)
   
   // Use fallback values to prevent API errors
   const safeModelId = modelId || 'unknown'
@@ -276,12 +280,22 @@ export const DataGrid = memo(function DataGrid({
           />
         )}
         
-        <Button
-          leftSection={<IconPlus size={16} />}
-          onClick={handleCreate}
-        >
-          Create {entityName}
-        </Button>
+        <Group gap="xs">
+          <Button
+            leftSection={<IconPlus size={16} />}
+            onClick={handleCreate}
+          >
+            Create {entityName}
+          </Button>
+          
+          <Button
+            variant="light"
+            leftSection={<IconFileImport size={16} />}
+            onClick={() => setImportWizardOpened(true)}
+          >
+            Import
+          </Button>
+        </Group>
       </Group>
 
       {/* Data table */}
@@ -348,6 +362,21 @@ export const DataGrid = memo(function DataGrid({
             total={Math.ceil(pagination.total / pageSize)}
           />
         </Group>
+      )}
+
+      {/* Import Wizard */}
+      {formDef && (
+        <ImportWizard
+          opened={importWizardOpened}
+          onClose={() => setImportWizardOpened(false)}
+          modelId={modelId}
+          entityName={entityName}
+          entityFields={formDef.form.fields}
+          onImportComplete={(result) => {
+            setImportWizardOpened(false)
+            refetch() // Refresh the data grid
+          }}
+        />
       )}
     </div>
   )

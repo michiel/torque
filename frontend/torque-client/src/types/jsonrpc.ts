@@ -186,6 +186,51 @@ export interface DataGridSort {
   direction: 'asc' | 'desc'
 }
 
+// Import System types
+export interface ImportFieldMapping {
+  sourceColumn: string
+  targetField: string
+  transform?: 'none' | 'trim' | 'lowercase' | 'uppercase' | 'date' | 'number'
+  required: boolean
+  defaultValue?: any
+}
+
+export interface ImportPreviewData {
+  headers: string[]
+  rows: any[][]
+  totalRows: number
+  sampleRows: any[][]
+}
+
+export interface ImportValidationError {
+  row: number
+  column: string
+  error: string
+  value: any
+}
+
+export interface ImportResult {
+  success: boolean
+  totalRows: number
+  successCount: number
+  errorCount: number
+  duplicateCount: number
+  errors: ImportValidationError[]
+  createdIds: string[]
+}
+
+export interface BulkImportParams {
+  modelId: string
+  entityName: string
+  data: any[]
+  fieldMapping: ImportFieldMapping[]
+  options: {
+    skipDuplicates: boolean
+    updateExisting: boolean
+    validateOnly: boolean
+  }
+}
+
 // TorqueApp capabilities
 export interface CapabilitiesResponse {
   version: string
