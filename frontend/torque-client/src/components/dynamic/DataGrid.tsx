@@ -1,8 +1,41 @@
 import { useState, useMemo, memo, useCallback } from 'react'
-import { Table, Pagination, TextInput, Button, Group, LoadingOverlay } from '@mantine/core'
-import { IconSearch, IconPlus } from '@tabler/icons-react'
-import { useLoadEntityData } from '../../hooks/useJsonRpc'
-import type { DataGridColumn } from '../../types/jsonrpc'
+import { 
+  Table, 
+  Pagination, 
+  TextInput, 
+  Button, 
+  Group, 
+  LoadingOverlay,
+  Select,
+  MultiSelect,
+  ActionIcon,
+  Menu,
+  Checkbox,
+  Stack,
+  Modal,
+  NumberInput,
+  DateInput,
+  Popover,
+  Badge,
+  Tooltip,
+  Alert
+} from '@mantine/core'
+import { DatePickerInput } from '@mantine/dates'
+import { 
+  IconSearch, 
+  IconPlus, 
+  IconFilter, 
+  IconSortAscending, 
+  IconSortDescending,
+  IconEdit,
+  IconCheck,
+  IconX,
+  IconDownload,
+  IconTrash,
+  IconDots
+} from '@tabler/icons-react'
+import { useLoadEntityData, useJsonRpcMutation } from '../../hooks/useJsonRpc'
+import type { DataGridColumn, DataGridFilter, DataGridSort } from '../../types/jsonrpc'
 
 interface DataGridProps {
   id: string
@@ -26,12 +59,34 @@ export const DataGrid = memo(function DataGrid({
 }: DataGridProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState<DataGridFilter[]>([])
+  const [sort, setSort] = useState<DataGridSort | null>(null)
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
+  const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null)
+  const [editValue, setEditValue] = useState<any>(null)
+  const [bulkDeleteModalOpened, setBulkDeleteModalOpened] = useState(false)
+  const [filterModalOpened, setFilterModalOpened] = useState(false)
+  
+  const { mutate } = useJsonRpcMutation()
   
   // Use fallback values to prevent API errors
   const safeModelId = modelId || 'unknown'
   const safeEntityName = entityName || 'unknown'
   
-  const { data, loading, error } = useLoadEntityData(
+  // Convert filters to API format
+  const filtersObject = useMemo(() => {
+    const result: Record<string, any> = {}
+    filters.forEach(filter => {
+      result[filter.field] = {
+        operator: filter.operator,
+        value: filter.value,
+        value2: filter.value2
+      }
+    })
+    return result
+  }, [filters])
+  
+  const { data, loading, error, refetch } = useLoadEntityData(
     safeModelId,
     safeEntityName,
     currentPage,
@@ -59,6 +114,115 @@ export const DataGrid = memo(function DataGrid({
       })
     }
   }, [onAction, entityName])
+
+  // Advanced filtering
+  const handleAddFilter = useCallback((filter: DataGridFilter) => {
+    setFilters(prev => [...prev.filter(f => f.field !== filter.field), filter])
+    setCurrentPage(1)
+  }, [])
+
+  const handleRemoveFilter = useCallback((field: string) => {
+    setFilters(prev => prev.filter(f => f.field !== field))
+  }, [])
+
+  const handleClearFilters = useCallback(() => {
+    setFilters([])
+    setCurrentPage(1)
+  }, [])
+
+  // Sorting
+  const handleSort = useCallback((field: string) => {
+    setSort(prev => {
+      if (prev?.field === field) {
+        return prev.direction === 'asc' 
+          ? { field, direction: 'desc' }
+          : null
+      }
+      return { field, direction: 'asc' }
+    })
+    setCurrentPage(1)
+  }, [])
+
+  // Row selection
+  const handleRowSelection = useCallback((rowId: string, selected: boolean) => {
+    setSelectedRows(prev => {
+      const newSet = new Set(prev)
+      if (selected) {
+        newSet.add(rowId)
+      } else {
+        newSet.delete(rowId)
+      }
+      return newSet
+    })
+  }, [])
+
+  const handleSelectAll = useCallback((selected: boolean) => {
+    if (selected) {
+      setSelectedRows(new Set(entityData.map((row: any) => row.id)))
+    } else {
+      setSelectedRows(new Set())
+    }
+  }, [entityData])
+
+  // Inline editing
+  const handleStartEdit = useCallback((rowId: string, field: string, currentValue: any) => {
+    setEditingCell({ rowId, field })
+    setEditValue(currentValue)
+  }, [])
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingCell) return
+    
+    try {
+      await mutate('updateEntity', {
+        entityId: editingCell.rowId,
+        data: { [editingCell.field]: editValue }
+      })
+      setEditingCell(null)
+      refetch()
+    } catch (error) {
+      console.error('Error saving edit:', error)
+    }
+  }, [editingCell, editValue, mutate, refetch])
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingCell(null)
+    setEditValue(null)
+  }, [])
+
+  // Bulk operations
+  const handleBulkDelete = useCallback(async () => {
+    const selectedIds = Array.from(selectedRows)
+    try {
+      await Promise.all(
+        selectedIds.map(id => mutate('deleteEntity', { entityId: id }))
+      )
+      setSelectedRows(new Set())
+      setBulkDeleteModalOpened(false)
+      refetch()
+    } catch (error) {
+      console.error('Error deleting entities:', error)
+    }
+  }, [selectedRows, mutate, refetch])
+
+  // Data export
+  const handleExport = useCallback((format: 'csv' | 'excel') => {
+    const headers = displayColumns.map(col => col.title).join(',')
+    const rows = entityData.map((row: any) => 
+      displayColumns.map(col => row[col.key] || '').join(',')
+    )
+    const csvContent = [headers, ...rows].join('\n')
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${entityName}_export.${format === 'excel' ? 'xlsx' : 'csv'}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [displayColumns, entityData, entityName])
 
   // Handle missing props or entity errors gracefully
   const hasValidProps = modelId && entityName

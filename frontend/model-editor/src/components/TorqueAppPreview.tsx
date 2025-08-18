@@ -149,7 +149,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
       }
 
       setIsAppRunning(true);
-      setAppUrl(`${baseUrl}/app/${modelId}`);
+      setAppUrl(`http://localhost:3002/app/${modelId}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect to TorqueApp';
       setError(errorMessage);
@@ -165,7 +165,7 @@ const TorqueAppPreview: React.FC<TorqueAppPreviewProps> = ({
 
   const handleLaunchApp = async () => {
     // Instead of launching, open the TorqueApp in a new tab
-    const torqueAppUrl = `${baseUrl}/app/${modelId}`;
+    const torqueAppUrl = `http://localhost:3002/app/${modelId}`;
     window.open(torqueAppUrl, '_blank');
     
     // Also refresh the status to check if it's working

@@ -43,6 +43,11 @@ export interface LoadEntityDataParams {
   page?: number
   limit?: number
   filters?: Record<string, any>
+  sort?: {
+    field: string
+    direction: 'asc' | 'desc'
+  }
+  search?: string
 }
 
 export interface LoadEntityDataResponse {
@@ -138,10 +143,24 @@ export interface FormField {
   name: string
   label: string
   type: 'text' | 'number' | 'checkbox' | 'date' | 'datetime-local' | 'time' | 'textarea' | 'file' | 'select' | 'multiselect'
-  required: boolean
+  required: boolean | ConditionalRule
   defaultValue?: any
   validation?: Record<string, any>
-  uiConfig?: Record<string, any>
+  uiConfig?: {
+    showIf?: ConditionalRule
+    requiredIf?: ConditionalRule
+    section?: string
+    helpText?: string
+    placeholder?: string
+    acceptedFileTypes?: string[]
+    maxFileSize?: number
+  }
+}
+
+export interface ConditionalRule {
+  field: string
+  operator: 'equals' | 'notEquals' | 'contains' | 'isEmpty' | 'isNotEmpty' | 'greaterThan' | 'lessThan'
+  value?: any
 }
 
 export interface DataGridColumn {
@@ -151,6 +170,20 @@ export interface DataGridColumn {
   sortable: boolean
   filterable: boolean
   width: number
+  editable?: boolean
+  filterOptions?: string[]
+}
+
+export interface DataGridFilter {
+  field: string
+  operator: 'equals' | 'notEquals' | 'contains' | 'startsWith' | 'endsWith' | 'greaterThan' | 'lessThan' | 'between' | 'in' | 'isNull' | 'isNotNull'
+  value: any
+  value2?: any // for 'between' operator
+}
+
+export interface DataGridSort {
+  field: string
+  direction: 'asc' | 'desc'
 }
 
 // TorqueApp capabilities

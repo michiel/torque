@@ -63,10 +63,10 @@ interface TorqueConfig {
 
 // Default web configuration
 const webConfig: TorqueConfig = {
-  baseUrl: 'http://localhost:8080',
-  graphqlUrl: '/graphql',
-  jsonRpcUrl: '/rpc',  
-  websocketUrl: 'ws://localhost:8080/ws'
+  baseUrl: 'http://localhost:8081',
+  graphqlUrl: 'http://localhost:8081/graphql',
+  jsonRpcUrl: 'http://localhost:8081/rpc',
+  websocketUrl: 'ws://localhost:8081/ws'
 };
 
 // Cache for server port to avoid repeated API calls
