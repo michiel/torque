@@ -54,7 +54,7 @@ fi
 print_info "Checking Tauri configuration..."
 
 TAURI_CONFIG="$PROJECT_ROOT/src-tauri/tauri.conf.json"
-if grep -q "cd \.\./frontend/model-editor" "$TAURI_CONFIG"; then
+if grep -q "cd frontend/model-editor" "$TAURI_CONFIG"; then
     print_status 0 "Tauri configuration uses relative paths"
 else
     print_status 1 "Tauri configuration still has absolute paths"

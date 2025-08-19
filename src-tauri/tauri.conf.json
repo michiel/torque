@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.torque.desktop",
   "build": {
-    "frontendDist": "../frontend/model-editor/dist",
+    "frontendDist": "frontend/model-editor/dist",
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "cd ../frontend/model-editor && VITE_TAURI_DEV=true npm run dev",
-    "beforeBuildCommand": "cd ../frontend/model-editor && npm run build"
+    "beforeDevCommand": "cd frontend/model-editor && VITE_TAURI_DEV=true npm run dev",
+    "beforeBuildCommand": "cd frontend/model-editor && npm run build"
   },
   "app": {
     "windows": [

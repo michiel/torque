@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 TAURI_DIR="src-tauri"
-FRONTEND_DIR="frontend/tauri"
+FRONTEND_DIR="frontend/model-editor"
 
 # Function to print colored output
 log() {
