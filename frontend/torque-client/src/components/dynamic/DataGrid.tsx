@@ -98,6 +98,17 @@ export const DataGrid = memo(function DataGrid({
     apiBaseUrl
   )
 
+  const entityData = useMemo(() => data?.data || [], [data?.data])
+  const pagination = data?.pagination
+  
+  // Use columns from API if not provided in props
+  const displayColumns = useMemo(() => {
+    if (columns && columns.length > 0) {
+      return columns
+    }
+    return data?.columns || []
+  }, [columns, data?.columns])
+
   const handleCreate = useCallback(() => {
     if (onAction) {
       onAction({
@@ -252,17 +263,6 @@ export const DataGrid = memo(function DataGrid({
       </div>
     )
   }
-
-  const entityData = useMemo(() => data?.data || [], [data?.data])
-  const pagination = data?.pagination
-  
-  // Use columns from API if not provided in props
-  const displayColumns = useMemo(() => {
-    if (columns && columns.length > 0) {
-      return columns
-    }
-    return data?.columns || []
-  }, [columns, data?.columns])
 
   return (
     <div style={{ position: 'relative' }}>

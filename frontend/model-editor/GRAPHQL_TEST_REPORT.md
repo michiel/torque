@@ -20,7 +20,7 @@
   - Page loads successfully with correct title "Torque Model Editor"
   - React application mounts properly
   - No critical error messages displayed on page load
-  - Screenshot: `/home/michiel/dev/torque/frontend/model-editor/test-results/1-main-page-load.png`
+  - Screenshot: `./test-results/1-main-page-load.png`
 
 ### 2. ✅ Models Page GraphQL Integration
 - **Test**: Check if models page loads without GraphQL errors
@@ -30,7 +30,7 @@
   - No GraphQL console errors detected
   - Page contains no "NOT_IMPLEMENTED" references
   - Network requests properly handled (1 network error related to proxy setup, not GraphQL)
-  - Screenshot: `/home/michiel/dev/torque/frontend/model-editor/test-results/2-models-page.png`
+  - Screenshot: `./test-results/2-models-page.png`
 
 ### 3. ✅ Model Creation Functionality  
 - **Test**: Try to create a new model
@@ -44,8 +44,8 @@
     - Submit button clicked successfully
   - Generated 5 GraphQL requests including proper mutations
   - Screenshots: 
-    - `/home/michiel/dev/torque/frontend/model-editor/test-results/3-create-model-page.png`
-    - `/home/michiel/dev/torque/frontend/model-editor/test-results/3-create-model-form.png`
+    - `./test-results/3-create-model-page.png`
+    - `./test-results/3-create-model-form.png`
 
 ### 4. ✅ Connection Status Display
 - **Test**: Check connection status display
@@ -53,7 +53,7 @@
 - **Results**:
   - Page contains connection-related keywords: "offline", "connection"
   - Connection status functionality present in UI
-  - Screenshot: `/home/michiel/dev/torque/frontend/model-editor/test-results/4-connection-status.png`
+  - Screenshot: `./test-results/4-connection-status.png`
 
 ### 5. ✅ Direct GraphQL Endpoint Testing
 - **Test**: Test GraphQL endpoint directly at http://localhost:8080/graphql
@@ -63,7 +63,7 @@
   - Schema introspection working (returns proper type information)
   - Query execution successful: `{"data":{"models":[]}}`
   - Mutation execution successful: Model creation returns proper data structure
-  - Screenshot: `/home/michiel/dev/torque/frontend/model-editor/test-results/5-graphql-endpoint-test.png`
+  - Screenshot: `./test-results/5-graphql-endpoint-test.png`
 
 ### 6. ✅ NOT_IMPLEMENTED Error Resolution
 - **Test**: Comprehensive check for NOT_IMPLEMENTED errors
@@ -75,10 +75,10 @@
   - **NOT_IMPLEMENTED GraphQL responses**: 0 ✅
   - **🎉 SUCCESS**: No NOT_IMPLEMENTED errors found! GraphQL is working properly.
   - Screenshots: 
-    - `/home/michiel/dev/torque/frontend/model-editor/test-results/6-comprehensive-check.png`
-    - `/home/michiel/dev/torque/frontend/model-editor/test-results/6-home-page.png`
-    - `/home/michiel/dev/torque/frontend/model-editor/test-results/6-models-page.png`
-    - `/home/michiel/dev/torque/frontend/model-editor/test-results/6-create-model-page.png`
+    - `./test-results/6-comprehensive-check.png`
+    - `./test-results/6-home-page.png`
+    - `./test-results/6-models-page.png`
+    - `./test-results/6-create-model-page.png`
 
 ## GraphQL Functionality Verification
 

@@ -68,13 +68,13 @@ Product         |   50    | 2024-01-15   | [👁️ View]
 ### Prerequisites
 1. **Backend Server Running**
    ```bash
-   cd /home/michiel/dev/torque/torque
+   cd ./torque
    cargo run -- server --bind 127.0.0.1:8080
    ```
 
 2. **Frontend Server Running**
    ```bash
-   cd /home/michiel/dev/torque/frontend/model-editor  
+   cd ./frontend/model-editor  
    npm run dev
    ```
 
