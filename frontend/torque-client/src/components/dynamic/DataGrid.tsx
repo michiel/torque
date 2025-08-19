@@ -14,13 +14,12 @@ import {
   Stack,
   Modal,
   NumberInput,
-  DateInput,
   Popover,
   Badge,
   Tooltip,
   Alert
 } from '@mantine/core'
-import { DatePickerInput } from '@mantine/dates'
+import { DatePickerInput, DateInput } from '@mantine/dates'
 import { 
   IconSearch, 
   IconPlus, 
