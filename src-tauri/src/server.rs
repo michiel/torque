@@ -14,23 +14,28 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     
     info!("Found available port: {}", port);
     
+    // Ensure data directory exists with proper permissions
+    if let Err(e) = std::fs::create_dir_all(&data_dir) {
+        error!("Failed to create data directory {}: {}", data_dir.display(), e);
+        return Err(format!("Failed to create data directory: {}", e).into());
+    }
+    info!("Ensured data directory exists: {}", data_dir.display());
+    
     // Write port to a file for development mode communication
     let port_file = data_dir.join("server_port.txt");
     if let Err(e) = std::fs::write(&port_file, port.to_string()) {
-        log::warn!("Failed to write port file: {}", e);
+        error!("Failed to write port file {}: {}", port_file.display(), e);
+        return Err(format!("Failed to write port file: {}", e).into());
     } else {
         info!("Port written to {}", port_file.display());
     }
-    
-    // Ensure data directory exists
-    std::fs::create_dir_all(&data_dir)?;
-    info!("Ensured data directory exists: {}", data_dir.display());
     
     // Configure database URL for SQLite in data directory
     let db_path = data_dir.join("torque.db");
     let database_url = format!("sqlite:{}", db_path.display());
     
     info!("Using database: {}", database_url);
+    info!("Database file will be created at: {}", db_path.display());
     
     // Start Torque server using the main torque crate with panic handling
     let server_port = port;

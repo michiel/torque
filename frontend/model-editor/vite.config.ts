@@ -28,8 +28,8 @@ const tauriPortPlugin = () => ({
       
       try {
         if (platform === 'darwin') {
-          // macOS: ~/Library/Application Support/torque-desktop/
-          portFilePath = join(homedir(), 'Library', 'Application Support', 'torque-desktop', 'server_port.txt');
+          // macOS: ~/Library/Application Support/com.torque.torque-desktop/ (matches Rust ProjectDirs)
+          portFilePath = join(homedir(), 'Library', 'Application Support', 'com.torque.torque-desktop', 'server_port.txt');
         } else if (platform === 'win32') {
           // Windows: %APPDATA%\torque\torque-desktop\data\
           const appData = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming');
