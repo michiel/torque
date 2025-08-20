@@ -28,8 +28,22 @@ const tauriPortPlugin = () => ({
       
       try {
         if (platform === 'darwin') {
-          // macOS: ~/Library/Application Support/com.torque.torque-desktop/ (matches Rust ProjectDirs)
-          portFilePath = join(homedir(), 'Library', 'Application Support', 'com.torque.torque-desktop', 'server_port.txt');
+          // macOS: Try both ProjectDirs path and fallback path
+          const projectDirsPath = join(homedir(), 'Library', 'Application Support', 'com.torque.torque-desktop', 'server_port.txt');
+          const fallbackPath = join(homedir(), 'Library', 'Application Support', 'torque-desktop', 'server_port.txt');
+          
+          // Check which path exists
+          if (existsSync(projectDirsPath)) {
+            portFilePath = projectDirsPath;
+            console.log(`[TauriPortPlugin] Using ProjectDirs path: ${portFilePath}`);
+          } else if (existsSync(fallbackPath)) {
+            portFilePath = fallbackPath;
+            console.log(`[TauriPortPlugin] Using fallback path: ${portFilePath}`);
+          } else {
+            // Default to fallback path for creation
+            portFilePath = fallbackPath;
+            console.log(`[TauriPortPlugin] Neither path exists, defaulting to fallback: ${portFilePath}`);
+          }
         } else if (platform === 'win32') {
           // Windows: %APPDATA%\torque\torque-desktop\data\
           const appData = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming');
