@@ -48,21 +48,109 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     
     // Ensure the database file can be created if it doesn't exist
     if !db_path.exists() {
-        if let Err(e) = std::fs::File::create(&db_path) {
-            error!("Failed to create database file {}: {}", db_path.display(), e);
-            return Err(format!("Failed to create database file {}: {}", db_path.display(), e).into());
-        }
-        info!("Created database file: {}", db_path.display());
-    } else {
-        // Verify existing database file is accessible
-        match std::fs::OpenOptions::new().write(true).open(&db_path) {
+        info!("Creating new database file: {}", db_path.display());
+        
+        // Create the database file with proper permissions
+        match std::fs::File::create(&db_path) {
             Ok(_) => {
-                info!("Verified database file is accessible: {}", db_path.display());
+                info!("Successfully created database file: {}", db_path.display());
+                
+                // Set proper file permissions on Unix systems
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    if let Ok(mut perms) = std::fs::metadata(&db_path).map(|m| m.permissions()) {
+                        perms.set_mode(0o644); // rw-r--r--
+                        if let Err(e) = std::fs::set_permissions(&db_path, perms) {
+                            error!("Failed to set database file permissions {}: {}", db_path.display(), e);
+                        } else {
+                            info!("Set database file permissions to 644: {}", db_path.display());
+                        }
+                    }
+                }
             }
             Err(e) => {
-                error!("Database file {} is not accessible: {}", db_path.display(), e);
-                return Err(format!("Database file {} is not accessible: {}", db_path.display(), e).into());
+                error!("Failed to create database file {}: {}", db_path.display(), e);
+                return Err(format!("Failed to create database file {}: {}", db_path.display(), e).into());
             }
+        }
+    } else {
+        info!("Database file already exists: {}", db_path.display());
+        
+        // Verify existing database file is accessible and set proper permissions
+        match std::fs::OpenOptions::new().write(true).append(true).open(&db_path) {
+            Ok(_) => {
+                info!("Verified database file is writable: {}", db_path.display());
+                
+                // Ensure proper permissions on existing file
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    if let Ok(metadata) = std::fs::metadata(&db_path) {
+                        let perms = metadata.permissions();
+                        let mode = perms.mode();
+                        info!("Current database file permissions: {:o}", mode & 0o777);
+                        
+                        // If permissions are too restrictive, fix them
+                        if (mode & 0o600) != 0o600 {
+                            let mut new_perms = perms;
+                            new_perms.set_mode(0o644); // rw-r--r--
+                            if let Err(e) = std::fs::set_permissions(&db_path, new_perms) {
+                                error!("Failed to fix database file permissions {}: {}", db_path.display(), e);
+                            } else {
+                                info!("Fixed database file permissions to 644: {}", db_path.display());
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                error!("Database file {} is not accessible for writing: {}", db_path.display(), e);
+                
+                // Try to fix permissions if it's a permission issue
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    if let Ok(mut perms) = std::fs::metadata(&db_path).map(|m| m.permissions()) {
+                        info!("Attempting to fix database file permissions...");
+                        perms.set_mode(0o644); // rw-r--r--
+                        if let Err(perm_err) = std::fs::set_permissions(&db_path, perms) {
+                            error!("Failed to fix database file permissions: {}", perm_err);
+                        } else {
+                            info!("Fixed database file permissions, retrying access...");
+                            // Retry the access test
+                            match std::fs::OpenOptions::new().write(true).append(true).open(&db_path) {
+                                Ok(_) => {
+                                    info!("Database file is now accessible after permission fix");
+                                }
+                                Err(retry_err) => {
+                                    error!("Database file still not accessible after permission fix: {}", retry_err);
+                                    return Err(format!("Database file {} is not accessible: {}", db_path.display(), retry_err).into());
+                                }
+                            }
+                        }
+                    } else {
+                        return Err(format!("Database file {} is not accessible: {}", db_path.display(), e).into());
+                    }
+                }
+                
+                #[cfg(not(unix))]
+                {
+                    return Err(format!("Database file {} is not accessible: {}", db_path.display(), e).into());
+                }
+            }
+        }
+    }
+    
+    // Final verification that the database file is ready
+    match std::fs::metadata(&db_path) {
+        Ok(metadata) => {
+            info!("Database file size: {} bytes", metadata.len());
+            info!("Database file is ready: {}", db_path.display());
+        }
+        Err(e) => {
+            error!("Failed to get database file metadata: {}", e);
+            return Err(format!("Database file verification failed: {}", e).into());
         }
     }
     
