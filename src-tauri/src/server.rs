@@ -17,9 +17,18 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     // Ensure data directory exists with proper permissions
     if let Err(e) = std::fs::create_dir_all(&data_dir) {
         error!("Failed to create data directory {}: {}", data_dir.display(), e);
-        return Err(format!("Failed to create data directory: {}", e).into());
+        return Err(format!("Failed to create data directory {}: {}", data_dir.display(), e).into());
     }
-    info!("Ensured data directory exists: {}", data_dir.display());
+    
+    // Verify directory is writable
+    let test_file = data_dir.join("test_write.tmp");
+    if let Err(e) = std::fs::write(&test_file, "test") {
+        error!("Data directory {} is not writable: {}", data_dir.display(), e);
+        return Err(format!("Data directory {} is not writable: {}", data_dir.display(), e).into());
+    }
+    let _ = std::fs::remove_file(&test_file);
+    
+    info!("Ensured data directory exists and is writable: {}", data_dir.display());
     
     // Write port to a file for development mode communication
     let port_file = data_dir.join("server_port.txt");
@@ -36,6 +45,26 @@ pub async fn start_embedded_server(data_dir: PathBuf) -> Result<u16, Box<dyn std
     
     info!("Using database: {}", database_url);
     info!("Database file will be created at: {}", db_path.display());
+    
+    // Ensure the database file can be created if it doesn't exist
+    if !db_path.exists() {
+        if let Err(e) = std::fs::File::create(&db_path) {
+            error!("Failed to create database file {}: {}", db_path.display(), e);
+            return Err(format!("Failed to create database file {}: {}", db_path.display(), e).into());
+        }
+        info!("Created database file: {}", db_path.display());
+    } else {
+        // Verify existing database file is accessible
+        match std::fs::OpenOptions::new().write(true).open(&db_path) {
+            Ok(_) => {
+                info!("Verified database file is accessible: {}", db_path.display());
+            }
+            Err(e) => {
+                error!("Database file {} is not accessible: {}", db_path.display(), e);
+                return Err(format!("Database file {} is not accessible: {}", db_path.display(), e).into());
+            }
+        }
+    }
     
     // Start Torque server using the main torque crate with panic handling
     let server_port = port;
