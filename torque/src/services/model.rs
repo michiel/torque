@@ -1889,6 +1889,26 @@ impl ModelService {
         tracing::info!("Persisted model '{}' to database", model.name);
         Ok(())
     }
+    
+    /// Verify a model for configuration mismatches
+    pub async fn verify_model(&self, model: &TorqueModel) -> Result<crate::model::validation::ConfigurationErrorReport, Error> {
+        use crate::model::validation::ModelVerificationScanner;
+        
+        tracing::info!("Verifying model '{}' for configuration issues", model.name);
+        let scanner = ModelVerificationScanner::new();
+        let report = scanner.scan_model(model);
+        
+        tracing::info!(
+            "Model verification complete: {} errors found ({} critical, {} high, {} medium, {} low)",
+            report.total_errors,
+            report.errors_by_severity.critical,
+            report.errors_by_severity.high,
+            report.errors_by_severity.medium,
+            report.errors_by_severity.low
+        );
+        
+        Ok(report)
+    }
 }
 
 // Input types for the service layer

@@ -113,6 +113,14 @@ pub fn get_command_mappings() -> Vec<CommandMapping> {
             param_mapping: HashMap::new(),
         },
         
+        // Model verification operations (require project context)
+        CommandMapping {
+            pattern: "project verify",
+            method: "verifyModel",
+            requires_project: true,
+            param_mapping: HashMap::new(),
+        },
+        
         // Server operations
         CommandMapping {
             pattern: "server status",
@@ -347,6 +355,8 @@ fn format_result_for_display(result: &Value) -> String {
                 format_session_info(result)
             } else if obj.contains_key("status") && obj.get("status").unwrap_or(&json!("")).as_str() == Some("ok") {
                 "Server is running".to_string()
+            } else if obj.contains_key("total_errors") && obj.contains_key("errors_by_severity") {
+                format_verification_report(result)
             } else {
                 serde_json::to_string_pretty(result).unwrap_or_else(|_| result.to_string())
             }
@@ -419,6 +429,93 @@ fn format_session_info(result: &Value) -> String {
     } else {
         format!("Session {}", session_id)
     }
+}
+
+/// Format verification report for console display
+fn format_verification_report(result: &Value) -> String {
+    let model_name = result.get("model_name").and_then(|v| v.as_str()).unwrap_or("Unknown Model");
+    let total_errors = result.get("total_errors").and_then(|v| v.as_u64()).unwrap_or(0);
+    
+    if total_errors == 0 {
+        return format!("✅ Model '{}' verification complete: No issues found!", model_name);
+    }
+    
+    let mut output = format!("🔍 Model '{}' Verification Report\n", model_name);
+    output.push_str(&format!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"));
+    
+    // Summary
+    if let Some(severity_counts) = result.get("errors_by_severity") {
+        let critical = severity_counts.get("critical").and_then(|v| v.as_u64()).unwrap_or(0);
+        let high = severity_counts.get("high").and_then(|v| v.as_u64()).unwrap_or(0);
+        let medium = severity_counts.get("medium").and_then(|v| v.as_u64()).unwrap_or(0);
+        let low = severity_counts.get("low").and_then(|v| v.as_u64()).unwrap_or(0);
+        
+        output.push_str("SUMMARY:\n");
+        output.push_str(&format!("  Total Issues: {}\n", total_errors));
+        if critical > 0 { output.push_str(&format!("  🚨 Critical: {}\n", critical)); }
+        if high > 0 { output.push_str(&format!("  ⚠️  High: {}\n", high)); }
+        if medium > 0 { output.push_str(&format!("  ⚡ Medium: {}\n", medium)); }
+        if low > 0 { output.push_str(&format!("  💡 Low: {}\n", low)); }
+        output.push_str("\n");
+    }
+    
+    // Error details
+    if let Some(errors) = result.get("errors").and_then(|v| v.as_array()) {
+        output.push_str("ISSUES FOUND:\n\n");
+        
+        for (i, error) in errors.iter().enumerate() {
+            let severity = error.get("severity").and_then(|v| v.as_str()).unwrap_or("unknown");
+            let title = error.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown Issue");
+            let description = error.get("description").and_then(|v| v.as_str()).unwrap_or("");
+            let category = error.get("category").and_then(|v| v.as_str()).unwrap_or("Unknown");
+            
+            let severity_icon = match severity {
+                "Critical" => "🚨",
+                "High" => "⚠️",
+                "Medium" => "⚡",
+                "Low" => "💡",
+                _ => "❓",
+            };
+            
+            output.push_str(&format!("{}. {} {} [{}]\n", i + 1, severity_icon, title, category));
+            if !description.is_empty() {
+                output.push_str(&format!("   {}\n", description));
+            }
+            
+            // Show suggested fixes
+            if let Some(fixes) = error.get("suggested_fixes").and_then(|v| v.as_array()) {
+                if !fixes.is_empty() {
+                    output.push_str("   💡 Suggestions:\n");
+                    for fix in fixes {
+                        if let Some(fix_str) = fix.as_str() {
+                            output.push_str(&format!("     • {}\n", fix_str));
+                        }
+                    }
+                }
+            }
+            
+            output.push_str("\n");
+        }
+    }
+    
+    // Suggestions summary
+    if let Some(suggestions) = result.get("suggestions").and_then(|v| v.as_array()) {
+        if !suggestions.is_empty() {
+            output.push_str("RECOMMENDED ACTIONS:\n");
+            for (i, suggestion) in suggestions.iter().enumerate() {
+                let title = suggestion.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown");
+                let desc = suggestion.get("description").and_then(|v| v.as_str()).unwrap_or("");
+                let effort = suggestion.get("estimated_effort").and_then(|v| v.as_str()).unwrap_or("Unknown");
+                
+                output.push_str(&format!("{}. {} ({})\n", i + 1, title, effort));
+                if !desc.is_empty() {
+                    output.push_str(&format!("   {}\n", desc));
+                }
+            }
+        }
+    }
+    
+    output
 }
 
 #[cfg(test)]

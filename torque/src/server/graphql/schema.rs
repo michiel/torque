@@ -122,6 +122,25 @@ impl Query {
             .map_err(|e| async_graphql::Error::new(format!("Failed to search models: {}", e)))?;
         Ok(models.into_iter().map(Model::from).collect())
     }
+    
+    /// Verify a model for configuration mismatches
+    async fn verify_model(&self, ctx: &Context<'_>, model_id: String) -> Result<ConfigurationReport> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = model_id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        
+        // Get the model first
+        let model = state.services.model_service.get_model(uuid).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to get model: {}", e)))?;
+            
+        if let Some(model) = model {
+            let report = state.services.model_service.verify_model(&model).await
+                .map_err(|e| async_graphql::Error::new(format!("Failed to verify model: {}", e)))?;
+            Ok(ConfigurationReport::from(report))
+        } else {
+            Err(async_graphql::Error::new("Model not found"))
+        }
+    }
 }
 
 /// Root Mutation type for GraphQL API
@@ -658,6 +677,76 @@ pub struct ValidationMessage {
     pub code: String,
 }
 
+/// Configuration error report for GraphQL
+#[derive(SimpleObject)]
+pub struct ConfigurationReport {
+    #[graphql(name = "modelId")]
+    pub model_id: UuidString,
+    #[graphql(name = "modelName")]
+    pub model_name: String,
+    #[graphql(name = "generatedAt")]
+    pub generated_at: DateTimeString,
+    #[graphql(name = "totalErrors")]
+    pub total_errors: i32,
+    #[graphql(name = "errorsBySeverity")]
+    pub errors_by_severity: ErrorSeverityCount,
+    pub errors: Vec<ConfigurationErrorDetail>,
+    pub suggestions: Vec<ErrorSuggestion>,
+}
+
+/// Error severity count for GraphQL
+#[derive(SimpleObject)]
+pub struct ErrorSeverityCount {
+    pub critical: i32,
+    pub high: i32,
+    pub medium: i32,
+    pub low: i32,
+}
+
+/// Configuration error detail for GraphQL
+#[derive(SimpleObject)]
+pub struct ConfigurationErrorDetail {
+    pub id: UuidString,
+    pub error: JSON,
+    pub severity: ConfigErrorSeverityEnum,
+    pub category: ConfigErrorCategoryEnum,
+    pub title: String,
+    pub description: String,
+    pub impact: JSON,
+    pub location: ErrorLocation,
+    #[graphql(name = "suggestedFixes")]
+    pub suggested_fixes: Vec<String>,
+    #[graphql(name = "autoFixable")]
+    pub auto_fixable: bool,
+}
+
+/// Error location for GraphQL
+#[derive(SimpleObject)]
+pub struct ErrorLocation {
+    #[graphql(name = "componentType")]
+    pub component_type: String,
+    #[graphql(name = "componentId")]
+    pub component_id: UuidString,
+    #[graphql(name = "componentName")]
+    pub component_name: String,
+    pub path: Vec<String>,
+    #[graphql(name = "fileReference")]
+    pub file_reference: Option<String>,
+}
+
+/// Error suggestion for GraphQL
+#[derive(SimpleObject)]
+pub struct ErrorSuggestion {
+    pub title: String,
+    pub description: String,
+    #[graphql(name = "actionType")]
+    pub action_type: SuggestionActionTypeEnum,
+    #[graphql(name = "affectedErrors")]
+    pub affected_errors: Vec<UuidString>,
+    #[graphql(name = "estimatedEffort")]
+    pub estimated_effort: EstimatedEffortEnum,
+}
+
 // GraphQL Enums
 
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]
@@ -759,6 +848,42 @@ pub enum IndexTypeEnum {
     Hash,
     Gin,
     Gist,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum ConfigErrorSeverityEnum {
+    Critical,
+    High,
+    Medium,
+    Low,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum ConfigErrorCategoryEnum {
+    DataModel,
+    UserInterface,
+    BusinessLogic,
+    Integration,
+    Performance,
+    Security,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum SuggestionActionTypeEnum {
+    CreateMissingEntity,
+    UpdateEntitySchema,
+    FixLayoutConfiguration,
+    RemoveInvalidReferences,
+    UpdateValidationRules,
+    RefactorRelationships,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum EstimatedEffortEnum {
+    Low,
+    Medium,
+    High,
+    Complex,
 }
 
 // Input types for mutations
@@ -1279,6 +1404,122 @@ impl From<crate::services::model::ValidationResult> for ValidationResult {
                 field: w.field,
                 code: w.code,
             }).collect(),
+        }
+    }
+}
+
+// Convert ConfigurationErrorReport to GraphQL ConfigurationReport
+impl From<crate::model::validation::ConfigurationErrorReport> for ConfigurationReport {
+    fn from(report: crate::model::validation::ConfigurationErrorReport) -> Self {
+        Self {
+            model_id: report.model_id.to_string(),
+            model_name: report.model_name,
+            generated_at: report.generated_at.to_iso8601(),
+            total_errors: report.total_errors as i32,
+            errors_by_severity: ErrorSeverityCount::from(report.errors_by_severity),
+            errors: report.errors.into_iter().map(ConfigurationErrorDetail::from).collect(),
+            suggestions: report.suggestions.into_iter().map(ErrorSuggestion::from).collect(),
+        }
+    }
+}
+
+impl From<crate::model::validation::ErrorSeverityCount> for ErrorSeverityCount {
+    fn from(count: crate::model::validation::ErrorSeverityCount) -> Self {
+        Self {
+            critical: count.critical as i32,
+            high: count.high as i32,
+            medium: count.medium as i32,
+            low: count.low as i32,
+        }
+    }
+}
+
+impl From<crate::model::validation::ConfigurationErrorDetails> for ConfigurationErrorDetail {
+    fn from(details: crate::model::validation::ConfigurationErrorDetails) -> Self {
+        Self {
+            id: details.id.to_string(),
+            error: serde_json::to_value(details.error).unwrap_or_default(),
+            severity: details.severity.into(),
+            category: details.category.into(),
+            title: details.title,
+            description: details.description,
+            impact: serde_json::to_value(details.impact).unwrap_or_default(),
+            location: ErrorLocation::from(details.location),
+            suggested_fixes: details.suggested_fixes,
+            auto_fixable: details.auto_fixable,
+        }
+    }
+}
+
+impl From<crate::model::validation::ErrorLocation> for ErrorLocation {
+    fn from(location: crate::model::validation::ErrorLocation) -> Self {
+        Self {
+            component_type: location.component_type,
+            component_id: location.component_id.to_string(),
+            component_name: location.component_name,
+            path: location.path,
+            file_reference: location.file_reference,
+        }
+    }
+}
+
+impl From<crate::model::validation::ErrorSuggestion> for ErrorSuggestion {
+    fn from(suggestion: crate::model::validation::ErrorSuggestion) -> Self {
+        Self {
+            title: suggestion.title,
+            description: suggestion.description,
+            action_type: suggestion.action_type.into(),
+            affected_errors: suggestion.affected_errors.into_iter().map(|id| id.to_string()).collect(),
+            estimated_effort: suggestion.estimated_effort.into(),
+        }
+    }
+}
+
+// Enum conversions for configuration error types
+impl From<crate::model::validation::ErrorSeverity> for ConfigErrorSeverityEnum {
+    fn from(severity: crate::model::validation::ErrorSeverity) -> Self {
+        match severity {
+            crate::model::validation::ErrorSeverity::Critical => ConfigErrorSeverityEnum::Critical,
+            crate::model::validation::ErrorSeverity::High => ConfigErrorSeverityEnum::High,
+            crate::model::validation::ErrorSeverity::Medium => ConfigErrorSeverityEnum::Medium,
+            crate::model::validation::ErrorSeverity::Low => ConfigErrorSeverityEnum::Low,
+        }
+    }
+}
+
+impl From<crate::model::validation::ErrorCategory> for ConfigErrorCategoryEnum {
+    fn from(category: crate::model::validation::ErrorCategory) -> Self {
+        match category {
+            crate::model::validation::ErrorCategory::DataModel => ConfigErrorCategoryEnum::DataModel,
+            crate::model::validation::ErrorCategory::UserInterface => ConfigErrorCategoryEnum::UserInterface,
+            crate::model::validation::ErrorCategory::BusinessLogic => ConfigErrorCategoryEnum::BusinessLogic,
+            crate::model::validation::ErrorCategory::Integration => ConfigErrorCategoryEnum::Integration,
+            crate::model::validation::ErrorCategory::Performance => ConfigErrorCategoryEnum::Performance,
+            crate::model::validation::ErrorCategory::Security => ConfigErrorCategoryEnum::Security,
+        }
+    }
+}
+
+impl From<crate::model::validation::SuggestionActionType> for SuggestionActionTypeEnum {
+    fn from(action_type: crate::model::validation::SuggestionActionType) -> Self {
+        match action_type {
+            crate::model::validation::SuggestionActionType::CreateMissingEntity => SuggestionActionTypeEnum::CreateMissingEntity,
+            crate::model::validation::SuggestionActionType::UpdateEntitySchema => SuggestionActionTypeEnum::UpdateEntitySchema,
+            crate::model::validation::SuggestionActionType::FixLayoutConfiguration => SuggestionActionTypeEnum::FixLayoutConfiguration,
+            crate::model::validation::SuggestionActionType::RemoveInvalidReferences => SuggestionActionTypeEnum::RemoveInvalidReferences,
+            crate::model::validation::SuggestionActionType::UpdateValidationRules => SuggestionActionTypeEnum::UpdateValidationRules,
+            crate::model::validation::SuggestionActionType::RefactorRelationships => SuggestionActionTypeEnum::RefactorRelationships,
+        }
+    }
+}
+
+impl From<crate::model::validation::EstimatedEffort> for EstimatedEffortEnum {
+    fn from(effort: crate::model::validation::EstimatedEffort) -> Self {
+        match effort {
+            crate::model::validation::EstimatedEffort::Low => EstimatedEffortEnum::Low,
+            crate::model::validation::EstimatedEffort::Medium => EstimatedEffortEnum::Medium,
+            crate::model::validation::EstimatedEffort::High => EstimatedEffortEnum::High,
+            crate::model::validation::EstimatedEffort::Complex => EstimatedEffortEnum::Complex,
         }
     }
 }

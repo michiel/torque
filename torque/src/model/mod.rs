@@ -4,7 +4,9 @@
 pub mod service;
 pub mod types;
 pub mod events;
+pub mod validation;
 
 pub use service::ModelService;
 pub use types::*;
 pub use events::*;
+pub use validation::*;
