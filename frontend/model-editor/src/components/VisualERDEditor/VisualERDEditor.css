@@ -91,12 +91,23 @@
   margin: 10px;
 }
 
+/* Override panel styles for actions menu specifically */
+.react-flow__panel.erd-actions-menu {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 /* Actions menu positioning - positioned above ReactFlow controls */
 .erd-actions-menu {
   position: absolute !important;
   left: 20px !important; /* Align with ReactFlow controls left position */
-  bottom: 140px !important; /* Position above ReactFlow controls (approx. 90px height + 30px gap + 20px base) */
+  bottom: 120px !important; /* Position above ReactFlow controls with smaller gap */
   z-index: 1000 !important;
+  margin: 0 !important; /* Remove Panel default margins */
+  padding: 0 !important; /* Remove Panel default padding */
 }
 
 .erd-actions-menu .mantine-Paper-root {
@@ -109,6 +120,7 @@
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
+  margin: 0 !important; /* Remove any default margins */
 }
 
 /* Make action buttons look exactly like ReactFlow control buttons */
