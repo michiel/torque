@@ -689,13 +689,9 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
           {/* Actions Menu - Always visible */}
           <Panel position="bottom-left" className="erd-actions-menu">
               <Paper 
-                shadow="md" 
-                radius="md" 
                 p="sm"
                 style={{ 
                   minWidth: 200,
-                  background: 'white',
-                  border: '1px solid #e9ecef'
                 }}
               >
                 <Stack gap="sm">

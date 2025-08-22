@@ -94,11 +94,16 @@
 /* Actions menu positioning - positioned adjacent to ReactFlow controls */
 .erd-actions-menu {
   position: absolute !important;
-  left: 200px !important; /* Temporary: very obvious positioning for testing */
-  bottom: 100px !important; /* Temporary: very obvious positioning for testing */
+  left: 80px !important; /* Position to the right of ReactFlow controls (20px + ~40px width + 20px gap) */
+  bottom: 20px !important; /* Align with ReactFlow controls bottom position */
   z-index: 1000 !important;
-  background: lime !important; /* Temporary: very obvious color for testing */
-  border: 3px solid red !important; /* Temporary: very obvious border for testing */
+}
+
+.erd-actions-menu .mantine-Paper-root {
+  background: white !important;
+  border: 1px solid var(--mantine-color-gray-3) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Ensure modals are properly layered above header */
