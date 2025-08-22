@@ -2,6 +2,7 @@ use async_graphql::{Context, Object, Result, SimpleObject, InputObject};
 use crate::common::Uuid;
 use crate::model::types as model;
 use crate::server::AppState;
+use crate::server::graphql::schema::{ConfigurationReport, ConfigurationErrorDetail, ErrorSeverityCount, ErrorLocation, ErrorSuggestion};
 
 /// Validation message for GraphQL
 #[derive(SimpleObject)]
@@ -557,6 +558,25 @@ impl OptimizedQuery {
             layout_count: model.layouts.len() as i32,
             validation_count: model.validations.len() as i32,
         })
+    }
+
+    /// Verify a model for configuration mismatches
+    async fn verify_model(&self, ctx: &Context<'_>, model_id: String) -> Result<ConfigurationReport> {
+        let state = ctx.data::<AppState>()?;
+        let uuid = model_id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
+        
+        // Get the model first
+        let model = state.services.model_service.get_model(uuid).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to get model: {}", e)))?;
+            
+        if let Some(model) = model {
+            let report = state.services.model_service.verify_model(&model).await
+                .map_err(|e| async_graphql::Error::new(format!("Failed to verify model: {}", e)))?;
+            Ok(ConfigurationReport::from(report))
+        } else {
+            Err(async_graphql::Error::new("Model not found"))
+        }
     }
 }
 

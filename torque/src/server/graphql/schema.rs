@@ -30,6 +30,11 @@ impl Query {
         Ok(models.into_iter().map(Model::from).collect())
     }
 
+    /// Test method to debug GraphQL registration
+    async fn test_method(&self, _ctx: &Context<'_>) -> Result<String> {
+        Ok("Test method works".to_string())
+    }
+
     /// Get a specific model by ID
     async fn model(&self, ctx: &Context<'_>, id: String) -> Result<Option<Model>> {
         let state = ctx.data::<AppState>()?;
@@ -121,25 +126,6 @@ impl Query {
         let models = state.services.model_service.search_models(query).await
             .map_err(|e| async_graphql::Error::new(format!("Failed to search models: {}", e)))?;
         Ok(models.into_iter().map(Model::from).collect())
-    }
-    
-    /// Verify a model for configuration mismatches
-    async fn verify_model(&self, ctx: &Context<'_>, model_id: String) -> Result<ConfigurationReport> {
-        let state = ctx.data::<AppState>()?;
-        let uuid = model_id.parse::<Uuid>()
-            .map_err(|_| async_graphql::Error::new("Invalid UUID format"))?;
-        
-        // Get the model first
-        let model = state.services.model_service.get_model(uuid).await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get model: {}", e)))?;
-            
-        if let Some(model) = model {
-            let report = state.services.model_service.verify_model(&model).await
-                .map_err(|e| async_graphql::Error::new(format!("Failed to verify model: {}", e)))?;
-            Ok(ConfigurationReport::from(report))
-        } else {
-            Err(async_graphql::Error::new("Model not found"))
-        }
     }
 }
 
