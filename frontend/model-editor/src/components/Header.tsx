@@ -19,7 +19,10 @@ import {
   IconDatabase,
   IconChevronRight,
 } from '@tabler/icons-react'
+import { useQuery } from '@apollo/client'
 import { ConnectionStatus } from './ConnectionStatus'
+import { ModelVerificationStatus } from './ModelVerificationStatus'
+import { GET_MODEL } from '../graphql/queries'
 
 interface BreadcrumbItem {
   title: string
@@ -86,6 +89,8 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
             }
           }
         }
+      } else if (segments[2] === 'verification') {
+        breadcrumbs.push({ title: 'Model Verification' })
       } else if (segments[2] === 'previewer') {
         breadcrumbs.push({ title: 'App Previewer' })
       }
@@ -98,6 +103,20 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
 export function Header() {
   const location = useLocation()
   const breadcrumbs = getBreadcrumbs(location.pathname, location.search)
+  
+  // Extract model ID from URL if we're on a model page
+  const pathSegments = location.pathname.split('/').filter(Boolean)
+  const isModelPage = pathSegments[0] === 'models' && pathSegments[1] && pathSegments[1] !== 'new'
+  const modelId = isModelPage ? pathSegments[1] : null
+  
+  // Fetch model data when on a model page
+  const { data: modelData } = useQuery(GET_MODEL, {
+    variables: { id: modelId },
+    skip: !modelId,
+    errorPolicy: 'all',
+  })
+  
+  const model = modelData?.model
 
   return (
     <Box>
@@ -122,6 +141,14 @@ export function Header() {
               <Text size="lg" fw={600}>Torque</Text>
             </Group>
           </Link>
+          
+          {/* Model verification status when on a model page */}
+          {model && modelId && (
+            <ModelVerificationStatus 
+              modelId={modelId} 
+              modelName={model.name}
+            />
+          )}
         </Group>
 
         {/* Right side - User menu and settings */}

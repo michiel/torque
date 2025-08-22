@@ -1,0 +1,15 @@
+
+## Auto-remediate errors
+
+- In rust code,
+  - For a given model configuration mismatch error, have a set of standard options to remediate the error (parameterised) (if possible)
+  - You can pass an error with parameters to a remediation option for auto-remediation
+  - Expose this auto-remediation functionality via graphql mutation
+- In the model-editor,
+  - On the verification errors page, when showing error detail also show error remediation options and make them clickable if they are auto-remediatable, which triggers the selected auto-remediation via graphql mutation
+- Add an MCP tool for verification and one for auto-remediation using the same backend
+
+## Add settings
+
+- Enable / disable MCP interface dynamically
+

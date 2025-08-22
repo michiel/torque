@@ -1909,6 +1909,90 @@ impl ModelService {
         
         Ok(report)
     }
+
+    /// Get remediation strategies for a specific error
+    pub async fn get_remediation_strategies(&self, error_id: Uuid, model_id: Uuid) -> Result<Vec<crate::model::remediation::RemediationStrategy>, Error> {
+        use crate::model::remediation::RemediationStrategyGenerator;
+        
+        // Get the model
+        let model = self.get_model(model_id.clone()).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+        
+        // Verify the model to get current errors
+        let report = self.verify_model(&model).await?;
+        
+        // Find the specific error
+        let error_details = report.errors.iter()
+            .find(|e| e.id == error_id)
+            .ok_or_else(|| Error::NotFound(format!("Error with id {} not found", error_id)))?;
+        
+        // Generate remediation strategies
+        let generator = RemediationStrategyGenerator::new();
+        let strategies = generator.generate_strategies(error_details);
+        
+        tracing::info!("Generated {} remediation strategies for error {}", strategies.len(), error_id);
+        Ok(strategies)
+    }
+
+    /// Execute auto-remediation for a specific error
+    pub async fn execute_auto_remediation(
+        &self,
+        model_id: Uuid,
+        strategy_id: Uuid,
+        parameters: std::collections::HashMap<String, serde_json::Value>
+    ) -> Result<crate::model::remediation::RemediationResult, Error> {
+        use crate::model::remediation::RemediationStrategyGenerator;
+        use crate::model::RemediationExecutor;
+        
+        // Get the model
+        let mut model = self.get_model(model_id.clone()).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+        
+        // Verify the model to get current errors
+        let report = self.verify_model(&model).await?;
+        
+        // Find all strategies for all errors and locate the requested strategy
+        let generator = RemediationStrategyGenerator::new();
+        let mut target_strategy = None;
+        
+        for error_details in &report.errors {
+            let strategies = generator.generate_strategies(error_details);
+            if let Some(strategy) = strategies.iter().find(|s| s.id == strategy_id) {
+                target_strategy = Some(strategy.clone());
+                break;
+            }
+        }
+        
+        let strategy = target_strategy
+            .ok_or_else(|| Error::NotFound(format!("Remediation strategy with id {} not found", strategy_id)))?;
+        
+        // Execute the remediation
+        let executor = RemediationExecutor::new();
+        let result = executor.execute_remediation(&mut model, &strategy, &parameters).await?;
+        
+        // If successful, update the model in the database and cache
+        if result.success {
+            model.updated_at = UtcDateTime::now();
+            
+            // Update cache
+            self.model_cache.insert(
+                model_id.clone(),
+                CacheEntry::new(model.clone(), 3600),
+            );
+            
+            // Persist to database
+            self.persist_model_to_database(&model).await?;
+            
+            // Emit model updated event
+            self.emit_event(ModelChangeEvent::model_updated(model));
+            
+            tracing::info!("Successfully executed auto-remediation for model {} with strategy {}", model_id, strategy_id);
+        } else {
+            tracing::warn!("Auto-remediation failed for model {} with strategy {}: {:?}", model_id, strategy_id, result.errors);
+        }
+        
+        Ok(result)
+    }
 }
 
 // Input types for the service layer
