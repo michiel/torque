@@ -217,3 +217,46 @@ export const SEARCH_MODELS = gql`
     }
   }
 `
+
+// Query to verify a model for configuration mismatches
+export const VERIFY_MODEL = gql`
+  query VerifyModel($modelId: String!) {
+    verifyModel(modelId: $modelId) {
+      modelId
+      modelName
+      generatedAt
+      totalErrors
+      errorsBySeverity {
+        critical
+        high
+        medium
+        low
+      }
+      errors {
+        id
+        error
+        severity
+        category
+        title
+        description
+        impact
+        location {
+          componentType
+          componentId
+          componentName
+          path
+          fileReference
+        }
+        suggestedFixes
+        autoFixable
+      }
+      suggestions {
+        title
+        description
+        actionType
+        affectedErrors
+        estimatedEffort
+      }
+    }
+  }
+`

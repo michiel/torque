@@ -35,6 +35,7 @@ import {
   IconFileExport,
   IconExternalLink,
   IconTrash,
+  IconBug,
 } from '@tabler/icons-react'
 
 import { GET_MODEL } from '../graphql/queries'
@@ -297,6 +298,13 @@ export function ModelEditorPage() {
             onClick={() => navigate(`/models/${id}/editor/details`)}
           >
             Edit Details
+          </Button>
+          <Button 
+            leftSection={<IconBug size={16} />} 
+            variant="light"
+            onClick={() => navigate(`/models/${id}/verification`)}
+          >
+            Verify model
           </Button>
           <Button leftSection={<IconUpload size={16} />} variant="light" onClick={openImportModal}>
             Import
