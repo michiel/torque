@@ -15,7 +15,7 @@ import {
   Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Group, Button, Text, Badge, ActionIcon } from '@mantine/core';
+import { Group, Button, Text, ActionIcon } from '@mantine/core';
 import { IconArrowLeft, IconDeviceFloppy, IconPlus, IconTrash, IconRefresh } from '@tabler/icons-react';
 import { EntityNode } from './EntityNode';
 import { RelationshipEdge } from './RelationshipEdge';
@@ -345,7 +345,7 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Use app-wide WebSocket connection for real-time updates
-  const { isConnected, lastEvent } = useWebSocketContext();
+  const { lastEvent } = useWebSocketContext();
 
   // Handle real-time model changes
   useEffect(() => {
@@ -629,15 +629,6 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
         
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           {getSaveStatusBadge()}
-          
-          <Badge 
-            color={isConnected ? 'green' : 'red'} 
-            size="sm"
-            variant="dot"
-          >
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </Badge>
-          
           
           <Button
             variant="subtle"
