@@ -15,8 +15,8 @@ import {
   Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Group, Button, Text, ActionIcon, Badge, Paper, Stack, Collapse } from '@mantine/core';
-import { IconArrowLeft, IconDeviceFloppy, IconPlus, IconTrash, IconChevronDown, IconChevronUp, IconRefresh } from '@tabler/icons-react';
+import { Group, Button, Text, ActionIcon, Badge, Paper, Stack } from '@mantine/core';
+import { IconArrowLeft, IconDeviceFloppy, IconPlus, IconTrash, IconRefresh } from '@tabler/icons-react';
 import { EntityNode } from './EntityNode';
 import { RelationshipEdge } from './RelationshipEdge';
 import { EntityEditModal } from './EntityEditModal';
@@ -341,7 +341,6 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
-  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(true);
   const [isAutoLayouting, setIsAutoLayouting] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -501,7 +500,6 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
     // Clear selection state
     setSelectedNodes([]);
     setSelectedEdges([]);
-    setIsActionsMenuOpen(false);
     
     // TODO: In a real implementation, you would call delete mutations here
     // await deleteEntities(selectedNodes);
@@ -686,82 +684,56 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
             </Group>
           </Panel>
           
-          {/* Actions Menu - Always visible */}
+          {/* Actions Menu - Compact icon-only menu above zoom controls */}
           <Panel position="bottom-left" className="erd-actions-menu">
-              <Paper 
-                p="sm"
-                style={{ 
-                  minWidth: 200,
-                }}
-              >
-                <Stack gap="sm">
-                  {/* Header */}
-                  <Group justify="space-between" align="center">
-                    <Text size="sm" fw={600}>
-                      Actions Menu
-                    </Text>
-                    <ActionIcon 
-                      size="xs" 
-                      variant="subtle"
-                      onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
-                    >
-                      {isActionsMenuOpen ? <IconChevronDown size={12} /> : <IconChevronUp size={12} />}
-                    </ActionIcon>
-                  </Group>
+              <Paper>
+                <Stack gap={2} align="center">
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    onClick={handleCreateEntity}
+                    title="Add Entity"
+                    style={{
+                      background: 'white',
+                      border: '1px solid var(--mantine-color-gray-3)',
+                      color: 'var(--mantine-color-gray-7)',
+                    }}
+                  >
+                    <IconPlus size={16} />
+                  </ActionIcon>
                   
-                  <Collapse in={isActionsMenuOpen}>
-                    <Stack gap="sm">
-                      {/* General Actions Section */}
-                      <Stack gap="xs">
-                        <Text size="xs" fw={600} c="dimmed">
-                          ACTIONS
-                        </Text>
-                        <Button
-                          size="xs"
-                          variant="light"
-                          leftSection={<IconPlus size={12} />}
-                          onClick={handleCreateEntity}
-                          fullWidth
-                        >
-                          Add Entity
-                        </Button>
-                        <Button
-                          size="xs"
-                          variant="light"
-                          leftSection={<IconRefresh size={12} />}
-                          onClick={handleAutoLayout}
-                          fullWidth
-                          disabled={nodes.length === 0 || isAutoLayouting}
-                          loading={isAutoLayouting}
-                          title="Automatically arrange nodes to minimize overlaps and edge crossings"
-                        >
-                          {isAutoLayouting ? 'Arranging...' : 'Auto Layout'}
-                        </Button>
-                      </Stack>
-                      
-                      {/* Selection Actions Section - only show if items are selected */}
-                      {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
-                        <Stack gap="xs">
-                          <Text size="xs" fw={600} c="dimmed">
-                            SELECTION
-                          </Text>
-                          <Text size="xs" c="dimmed">
-                            {selectedNodes.length} entities, {selectedEdges.length} relationships selected
-                          </Text>
-                          <Button
-                            size="xs"
-                            color="red"
-                            variant="light"
-                            leftSection={<IconTrash size={12} />}
-                            onClick={handleDeleteSelection}
-                            fullWidth
-                          >
-                            Delete Selection
-                          </Button>
-                        </Stack>
-                      )}
-                    </Stack>
-                  </Collapse>
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    onClick={handleAutoLayout}
+                    disabled={nodes.length === 0 || isAutoLayouting}
+                    loading={isAutoLayouting}
+                    title="Auto Layout - Automatically arrange nodes to minimize overlaps and edge crossings"
+                    style={{
+                      background: 'white',
+                      border: '1px solid var(--mantine-color-gray-3)',
+                      color: 'var(--mantine-color-gray-7)',
+                    }}
+                  >
+                    <IconRefresh size={16} />
+                  </ActionIcon>
+                  
+                  {/* Selection delete button - only show if items are selected */}
+                  {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
+                    <ActionIcon
+                      size="sm"
+                      variant="subtle"
+                      onClick={handleDeleteSelection}
+                      title={`Delete Selection (${selectedNodes.length} entities, ${selectedEdges.length} relationships)`}
+                      style={{
+                        background: 'white',
+                        border: '1px solid var(--mantine-color-red-3)',
+                        color: 'var(--mantine-color-red-6)',
+                      }}
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  )}
                 </Stack>
               </Paper>
             </Panel>

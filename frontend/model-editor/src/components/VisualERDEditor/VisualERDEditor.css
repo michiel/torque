@@ -91,19 +91,37 @@
   margin: 10px;
 }
 
-/* Actions menu positioning - positioned adjacent to ReactFlow controls */
+/* Actions menu positioning - positioned above ReactFlow controls */
 .erd-actions-menu {
   position: absolute !important;
-  left: 80px !important; /* Position to the right of ReactFlow controls (20px + ~40px width + 20px gap) */
-  bottom: 20px !important; /* Align with ReactFlow controls bottom position */
+  left: 20px !important; /* Align with ReactFlow controls left position */
+  bottom: 140px !important; /* Position above ReactFlow controls (approx. 90px height + 30px gap + 20px base) */
   z-index: 1000 !important;
 }
 
 .erd-actions-menu .mantine-Paper-root {
   background: white !important;
   border: 1px solid var(--mantine-color-gray-3) !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  width: 34px !important; /* Match ReactFlow controls width */
+  padding: 4px !important; /* Reduce padding to match controls */
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+/* Make action buttons look exactly like ReactFlow control buttons */
+.erd-actions-menu .mantine-ActionIcon-root {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  border-radius: 4px !important;
+}
+
+.erd-actions-menu .mantine-ActionIcon-root:hover {
+  background: var(--mantine-color-gray-1) !important;
 }
 
 /* Ensure modals are properly layered above header */
