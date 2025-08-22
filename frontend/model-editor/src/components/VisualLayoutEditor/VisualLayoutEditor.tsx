@@ -96,29 +96,6 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
     });
   }, [currentData]);
 
-  const handlePublish = async (data: Data) => {
-    // Update data with current layout name
-    const updatedData = {
-      ...data,
-      root: {
-        ...data.root,
-        props: {
-          ...data.root?.props,
-          title: layoutName
-        }
-      }
-    };
-    setCurrentData(updatedData);
-    setSaveStatus('saving');
-    try {
-      await onSave(updatedData, true); // Manual save
-      setSaveStatus('saved');
-      setLastSaved(new Date());
-    } catch (error) {
-      setSaveStatus('error');
-      console.error('Save error:', error);
-    }
-  };
 
   const handleNameEdit = () => {
     setIsEditingName(true);
@@ -403,7 +380,6 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
             key={`puck-${layoutId}-${currentData?.content?.length || 0}-${Date.now()}`}
             config={config}
             data={currentData}
-            onPublish={handlePublish}
             onChange={handleDataChange}
             viewports={[
               { width: 360, height: 'auto', label: 'Mobile' },

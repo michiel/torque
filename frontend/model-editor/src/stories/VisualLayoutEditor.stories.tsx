@@ -140,7 +140,7 @@ const meta: Meta<typeof VisualLayoutEditor> = {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'The Visual Layout Editor component powered by Puck for drag-and-drop interface design with visual components.'
+        component: 'The Visual Layout Editor component powered by Puck for drag-and-drop interface design with visual components. Features auto-save and manual save functionality via the header Save button.'
       }
     }
   },
@@ -204,7 +204,7 @@ export const EmptyEditor: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'An empty Visual Layout Editor ready for component placement. Shows the Puck interface with component palette and empty canvas.'
+        story: 'An empty Visual Layout Editor ready for component placement. Shows the Puck interface with component palette and empty canvas. Use the Save button in the header to save changes.'
       }
     }
   }
@@ -231,7 +231,7 @@ export const WithSampleLayout: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Visual Layout Editor with a pre-configured dashboard layout including a heading and data grid. Demonstrates the editing interface with components already placed.'
+        story: 'Visual Layout Editor with a pre-configured dashboard layout including a heading and data grid. Demonstrates the editing interface with components already placed. Changes are auto-saved and can be manually saved using the header Save button.'
       }
     }
   }
