@@ -22,6 +22,7 @@ interface VisualLayoutEditorProps {
     }>;
   }>;
   initialData?: Data;
+  isLoading?: boolean;
   onSave: (data: Data, isManualSave?: boolean) => Promise<void>;
   onPreview?: (data: Data) => void;
   onBack?: () => void;
@@ -32,6 +33,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
   layoutId,
   entities,
   initialData,
+  isLoading = false,
   onSave,
   onPreview,
   onBack
@@ -61,13 +63,38 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
 
   // Update current data and layout name when initial data changes
   useEffect(() => {
+    console.log('VisualLayoutEditor: initialData changed', { 
+      hasInitialData: !!initialData, 
+      layoutId, 
+      isLoading,
+      dataContent: initialData?.content?.length || 0 
+    });
+    
     if (initialData) {
+      // Console.log: Dump data being set for rendering
+      console.log('=== VISUAL LAYOUT EDITOR: Data being set for rendering ===');
+      console.log('Initial data received:', JSON.stringify(initialData, null, 2));
+      console.log('Current data before update:', JSON.stringify(currentData, null, 2));
+      console.log('=== END: Data being set for rendering ===');
+      
       setCurrentData(initialData);
       if (initialData.root?.props?.title) {
         setLayoutName(initialData.root.props.title);
       }
+      
+      // Force a re-render by logging the state change
+      console.log('VisualLayoutEditor: currentData state updated');
     }
-  }, [initialData]);
+  }, [initialData, layoutId, isLoading]);
+
+  // Add effect to monitor currentData changes
+  useEffect(() => {
+    console.log('VisualLayoutEditor: currentData state changed', {
+      contentLength: currentData?.content?.length || 0,
+      rootTitle: currentData?.root?.props?.title,
+      timestamp: new Date().toISOString()
+    });
+  }, [currentData]);
 
   const handlePublish = async (data: Data) => {
     // Update data with current layout name
@@ -360,19 +387,7 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
 
       {/* Puck Editor */}
       <div className="visual-layout-editor-canvas" ref={editorRef}>
-        {initialData || !layoutId ? (
-          <Puck
-            config={config}
-            data={currentData}
-            onPublish={handlePublish}
-            onChange={handleDataChange}
-            viewports={[
-              { width: 360, height: 'auto', label: 'Mobile' },
-              { width: 768, height: 'auto', label: 'Tablet' },
-              { width: 1024, height: 'auto', label: 'Desktop' }
-            ]}
-          />
-        ) : (
+        {isLoading ? (
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -383,6 +398,19 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
           }}>
             Loading layout data...
           </div>
+        ) : (
+          <Puck
+            key={`puck-${layoutId}-${currentData?.content?.length || 0}-${Date.now()}`}
+            config={config}
+            data={currentData}
+            onPublish={handlePublish}
+            onChange={handleDataChange}
+            viewports={[
+              { width: 360, height: 'auto', label: 'Mobile' },
+              { width: 768, height: 'auto', label: 'Tablet' },
+              { width: 1024, height: 'auto', label: 'Desktop' }
+            ]}
+          />
         )}
       </div>
     </div>

@@ -70,6 +70,12 @@ export const LayoutEditorPage: React.FC = () => {
   // Transform loaded layout data to Puck format
   useEffect(() => {
     if (layout && layout.components) {
+      // Console.log: Dump loaded object before rendering
+      console.log('=== LAYOUT EDITOR: Loaded object before rendering ===');
+      console.log('Raw layout data:', JSON.stringify(layout, null, 2));
+      console.log('Entities:', JSON.stringify(entities, null, 2));
+      console.log('=== END: Loaded object before rendering ===');
+      
       // Check if this layout needs migration
       if (needsMigration(layout)) {
         const warnings = getMigrationWarnings(layout);
@@ -86,17 +92,30 @@ export const LayoutEditorPage: React.FC = () => {
       
       // Use migration utility to convert to Puck format
       const puckData = migrateLegacyLayout(layout, entities);
+      
+      // Console.log: Dump object after transformation
+      console.log('=== LAYOUT EDITOR: Object after transformation ===');
+      console.log('Transformed Puck data:', JSON.stringify(puckData, null, 2));
+      console.log('=== END: Object after transformation ===');
+      
       setInitialData(puckData);
     } else if (!layoutId) {
       // Set default empty data for new layout
-      setInitialData({
+      const defaultData = {
         content: [],
         root: {
           props: {
             title: 'New Layout'
           }
         }
-      });
+      };
+      
+      // Console.log: Dump default object before rendering
+      console.log('=== LAYOUT EDITOR: Default object before rendering (new layout) ===');
+      console.log('Default layout data:', JSON.stringify(defaultData, null, 2));
+      console.log('=== END: Default object before rendering ===');
+      
+      setInitialData(defaultData);
     }
   }, [layout, layoutId]);
 
@@ -137,6 +156,11 @@ export const LayoutEditorPage: React.FC = () => {
     const sanitizedData = sanitizeLayoutData(data);
 
     // Convert Puck data to legacy GraphQL format using migration utility
+    console.log('Data before conversion:', JSON.stringify(sanitizedData, null, 2));
+    console.log('Puck root data:', sanitizedData.root);
+    console.log('Puck root props:', sanitizedData.root?.props);
+    console.log('Puck root title:', sanitizedData.root?.props?.title);
+    
     const layoutData = convertPuckToLegacyLayout(sanitizedData, layoutId, modelId, layout, entities);
 
     console.log('Converted layout data for save:', JSON.stringify(layoutData, null, 2));
@@ -292,6 +316,7 @@ export const LayoutEditorPage: React.FC = () => {
         layoutId={layoutId}
         entities={entities}
         initialData={initialData}
+        isLoading={layoutLoading}
         onSave={handleSave}
         onPreview={handlePreview}
         onBack={handleBack}
