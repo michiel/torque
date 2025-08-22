@@ -91,12 +91,14 @@
   margin: 10px;
 }
 
-/* Actions menu positioning */
+/* Actions menu positioning - positioned adjacent to ReactFlow controls */
 .erd-actions-menu {
   position: absolute !important;
-  left: 80px !important;
-  bottom: 20px !important;
+  left: 200px !important; /* Temporary: very obvious positioning for testing */
+  bottom: 100px !important; /* Temporary: very obvious positioning for testing */
   z-index: 1000 !important;
+  background: lime !important; /* Temporary: very obvious color for testing */
+  border: 3px solid red !important; /* Temporary: very obvious border for testing */
 }
 
 /* Ensure modals are properly layered above header */
