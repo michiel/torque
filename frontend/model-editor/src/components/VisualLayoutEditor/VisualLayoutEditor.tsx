@@ -287,56 +287,9 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
             <IconArrowLeft size={20} />
           </ActionIcon>
         )}
-        <div>
-          <Text size="xl" fw={700}>
-            Visual Layout Editor
-          </Text>
-          <Group gap="xs" align="center">
-            {isEditingName ? (
-              <Group gap="xs">
-                <TextInput
-                  value={layoutName}
-                  onChange={(e) => setLayoutName(e.target.value)}
-                  onKeyDown={handleNameKeyPress}
-                  size="sm"
-                  placeholder="Layout name"
-                  style={{ minWidth: 200 }}
-                  autoFocus
-                />
-                <ActionIcon
-                  variant="subtle"
-                  color="green"
-                  size="sm"
-                  onClick={handleNameSave}
-                >
-                  <IconCheck size={16} />
-                </ActionIcon>
-                <ActionIcon
-                  variant="subtle"
-                  color="red"
-                  size="sm"
-                  onClick={handleNameCancel}
-                >
-                  <IconX size={16} />
-                </ActionIcon>
-              </Group>
-            ) : (
-              <Group gap="xs">
-                <Text size="sm" c="dimmed">
-                  {layoutName}
-                </Text>
-                <ActionIcon
-                  variant="subtle"
-                  size="sm"
-                  onClick={handleNameEdit}
-                  title="Edit layout name"
-                >
-                  <IconEdit size={14} />
-                </ActionIcon>
-              </Group>
-            )}
-          </Group>
-        </div>
+        <Text size="xl" fw={700}>
+          Visual Layout Editor
+        </Text>
         
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           {getSaveStatusBadge()}
@@ -360,6 +313,53 @@ export const VisualLayoutEditor: React.FC<VisualLayoutEditorProps> = ({
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Layout Title */}
+      <div className="visual-layout-editor-title">
+        {isEditingName ? (
+          <Group gap="xs" align="center">
+            <TextInput
+              value={layoutName}
+              onChange={(e) => setLayoutName(e.target.value)}
+              onKeyDown={handleNameKeyPress}
+              size="md"
+              placeholder="Layout name"
+              style={{ minWidth: 300, fontSize: '18px', fontWeight: 600 }}
+              autoFocus
+            />
+            <ActionIcon
+              variant="subtle"
+              color="green"
+              size="md"
+              onClick={handleNameSave}
+            >
+              <IconCheck size={18} />
+            </ActionIcon>
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              size="md"
+              onClick={handleNameCancel}
+            >
+              <IconX size={18} />
+            </ActionIcon>
+          </Group>
+        ) : (
+          <Group gap="xs" align="center">
+            <Text size="lg" fw={600}>
+              {layoutName}
+            </Text>
+            <ActionIcon
+              variant="subtle"
+              size="md"
+              onClick={handleNameEdit}
+              title="Edit layout name"
+            >
+              <IconEdit size={16} />
+            </ActionIcon>
+          </Group>
+        )}
       </div>
 
       {/* Puck Editor */}
