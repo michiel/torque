@@ -15,7 +15,7 @@ import {
   Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Group, Button, Text, ActionIcon, Badge, Paper, Stack } from '@mantine/core';
+import { Group, Button, Text, Badge } from '@mantine/core';
 import { IconArrowLeft, IconDeviceFloppy, IconPlus, IconTrash, IconRefresh } from '@tabler/icons-react';
 import { EntityNode } from './EntityNode';
 import { RelationshipEdge } from './RelationshipEdge';
@@ -667,7 +667,76 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
           fitViewOptions={{ padding: 0.1 }}
         >
           <Background />
-          <Controls />
+          <Controls>
+            {/* Custom action buttons integrated into zoom controls */}
+            <button
+              onClick={handleCreateEntity}
+              title="Add Entity"
+              className="react-flow__controls-button"
+              style={{
+                background: 'white',
+                border: '1px solid var(--mantine-color-gray-3)',
+                color: 'var(--mantine-color-gray-7)',
+                width: '26px',
+                height: '26px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                margin: '2px 0',
+              }}
+            >
+              <IconPlus size={16} />
+            </button>
+            
+            <button
+              onClick={handleAutoLayout}
+              disabled={nodes.length === 0 || isAutoLayouting}
+              title="Auto Layout - Automatically arrange nodes to minimize overlaps and edge crossings"
+              className="react-flow__controls-button"
+              style={{
+                background: 'white',
+                border: '1px solid var(--mantine-color-gray-3)',
+                color: 'var(--mantine-color-gray-7)',
+                width: '26px',
+                height: '26px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                cursor: nodes.length === 0 || isAutoLayouting ? 'not-allowed' : 'pointer',
+                opacity: nodes.length === 0 || isAutoLayouting ? 0.5 : 1,
+                margin: '2px 0',
+              }}
+            >
+              <IconRefresh size={16} />
+            </button>
+            
+            {/* Selection delete button - only show if items are selected */}
+            {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
+              <button
+                onClick={handleDeleteSelection}
+                title={`Delete Selection (${selectedNodes.length} entities, ${selectedEdges.length} relationships)`}
+                className="react-flow__controls-button"
+                style={{
+                  background: 'white',
+                  border: '1px solid var(--mantine-color-red-3)',
+                  color: 'var(--mantine-color-red-6)',
+                  width: '26px',
+                  height: '26px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  margin: '2px 0',
+                }}
+              >
+                <IconTrash size={16} />
+              </button>
+            )}
+          </Controls>
           <MiniMap />
           <Panel position="top-right">
             <Group gap="xs">
@@ -683,60 +752,6 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
               </Text>
             </Group>
           </Panel>
-          
-          {/* Actions Menu - Compact icon-only menu above zoom controls */}
-          <Panel position="bottom-left" className="erd-actions-menu">
-              <Paper>
-                <Stack gap={2} align="center">
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    onClick={handleCreateEntity}
-                    title="Add Entity"
-                    style={{
-                      background: 'white',
-                      border: '1px solid var(--mantine-color-gray-3)',
-                      color: 'var(--mantine-color-gray-7)',
-                    }}
-                  >
-                    <IconPlus size={16} />
-                  </ActionIcon>
-                  
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    onClick={handleAutoLayout}
-                    disabled={nodes.length === 0 || isAutoLayouting}
-                    loading={isAutoLayouting}
-                    title="Auto Layout - Automatically arrange nodes to minimize overlaps and edge crossings"
-                    style={{
-                      background: 'white',
-                      border: '1px solid var(--mantine-color-gray-3)',
-                      color: 'var(--mantine-color-gray-7)',
-                    }}
-                  >
-                    <IconRefresh size={16} />
-                  </ActionIcon>
-                  
-                  {/* Selection delete button - only show if items are selected */}
-                  {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
-                    <ActionIcon
-                      size="sm"
-                      variant="subtle"
-                      onClick={handleDeleteSelection}
-                      title={`Delete Selection (${selectedNodes.length} entities, ${selectedEdges.length} relationships)`}
-                      style={{
-                        background: 'white',
-                        border: '1px solid var(--mantine-color-red-3)',
-                        color: 'var(--mantine-color-red-6)',
-                      }}
-                    >
-                      <IconTrash size={16} />
-                    </ActionIcon>
-                  )}
-                </Stack>
-              </Paper>
-            </Panel>
         </ReactFlow>
       </div>
 
