@@ -10,15 +10,12 @@ import {
   Stack,
   Button,
   Box,
-  Paper,
   Badge,
   Divider,
 } from '@mantine/core'
 import {
   IconPlus,
   IconDatabase,
-  IconLayoutGrid,
-  IconBolt,
   IconSettings,
   IconBook,
   IconArrowRight,
@@ -68,11 +65,6 @@ export function HomePage() {
     },
   ]
 
-  const stats = [
-    { label: 'Total Models', value: models.length, icon: IconDatabase },
-    { label: 'Entities', value: models.reduce((acc: number, m: any) => acc + (m.entities?.length || 0), 0), icon: IconLayoutGrid },
-    { label: 'Workflows', value: models.reduce((acc: number, m: any) => acc + (m.flows?.length || 0), 0), icon: IconBolt },
-  ]
 
   return (
     <Box style={{ minHeight: 'calc(100vh - 100px)', background: 'var(--mantine-color-gray-0)' }}>
@@ -88,35 +80,13 @@ export function HomePage() {
             </Text>
           </Box>
 
-          {/* Stats */}
-          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
-            {stats.map((stat) => (
-              <Paper key={stat.label} p="md" radius="md" shadow="sm">
-                <Group justify="space-between">
-                  <Box>
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
-                      {stat.label}
-                    </Text>
-                    <Text size="xl" fw={700}>
-                      {loading ? '...' : stat.value}
-                    </Text>
-                  </Box>
-                  <ThemeIcon color="gray" variant="light" size="xl" radius="md">
-                    <stat.icon size={24} />
-                  </ThemeIcon>
-                </Group>
-              </Paper>
-            ))}
-          </SimpleGrid>
-
-          <Divider />
 
           {/* Quick Actions */}
           <Box>
-            <Title order={2} mb="md">
+            <Title order={2} mb="lg">
               Quick Actions
             </Title>
-            <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+            <SimpleGrid cols={{ base: 2, sm: 2, md: 4 }} spacing="lg">
               {quickActions.map((action) =>
                 action.href ? (
                   <Card
@@ -124,13 +94,19 @@ export function HomePage() {
                     component={Link}
                     to={action.href}
                     shadow="sm"
-                    padding="lg"
+                    padding="md"
                     radius="md"
                     withBorder
                     style={{ 
                       cursor: 'pointer',
                       textDecoration: 'none',
                       transition: 'transform 150ms ease, box-shadow 150ms ease',
+                      minHeight: '160px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      textAlign: 'center',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)';
@@ -141,13 +117,13 @@ export function HomePage() {
                       e.currentTarget.style.boxShadow = '';
                     }}
                   >
-                    <ThemeIcon size="xl" radius="md" color={action.color} mb="md">
-                      <action.icon size={28} />
+                    <ThemeIcon size="lg" radius="md" color={action.color} mb="sm">
+                      <action.icon size={24} />
                     </ThemeIcon>
-                    <Text fw={500} size="lg" mb="xs">
+                    <Text fw={500} size="md" mb="xs">
                       {action.title}
                     </Text>
-                    <Text size="sm" c="dimmed">
+                    <Text size="xs" c="dimmed">
                       {action.description}
                     </Text>
                   </Card>
@@ -156,12 +132,18 @@ export function HomePage() {
                     key={action.title}
                     onClick={action.onClick}
                     shadow="sm"
-                    padding="lg"
+                    padding="md"
                     radius="md"
                     withBorder
                     style={{ 
                       cursor: 'pointer',
                       transition: 'transform 150ms ease, box-shadow 150ms ease',
+                      minHeight: '160px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      textAlign: 'center',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)';
@@ -172,13 +154,13 @@ export function HomePage() {
                       e.currentTarget.style.boxShadow = '';
                     }}
                   >
-                    <ThemeIcon size="xl" radius="md" color={action.color} mb="md">
-                      <action.icon size={28} />
+                    <ThemeIcon size="lg" radius="md" color={action.color} mb="sm">
+                      <action.icon size={24} />
                     </ThemeIcon>
-                    <Text fw={500} size="lg" mb="xs">
+                    <Text fw={500} size="md" mb="xs">
                       {action.title}
                     </Text>
-                    <Text size="sm" c="dimmed">
+                    <Text size="xs" c="dimmed">
                       {action.description}
                     </Text>
                   </Card>
