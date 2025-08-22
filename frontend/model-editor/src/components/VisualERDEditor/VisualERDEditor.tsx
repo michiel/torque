@@ -15,7 +15,7 @@ import {
   Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Group, Button, Text, ActionIcon } from '@mantine/core';
+import { Group, Button, Text, ActionIcon, Badge } from '@mantine/core';
 import { IconArrowLeft, IconDeviceFloppy, IconPlus, IconTrash, IconRefresh } from '@tabler/icons-react';
 import { EntityNode } from './EntityNode';
 import { RelationshipEdge } from './RelationshipEdge';
