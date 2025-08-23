@@ -142,6 +142,11 @@ async fn dispatch_non_console_method(
         "getServerLogs" => get_server_logs(state, params).await,
         "getCacheStats" => get_cache_stats(state, params).await,
         
+        // Model verification and remediation
+        "verifyModel" => verify_model(state, params).await,
+        "getRemediationStrategies" => get_remediation_strategies(state, params).await,
+        "executeAutoRemediation" => execute_auto_remediation(state, params).await,
+        
         // Explicitly exclude executeConsoleCommand to prevent recursion
         "executeConsoleCommand" => Err((-32603, "Recursive console command execution not allowed".to_string())),
         
@@ -189,6 +194,11 @@ async fn dispatch_method(
         // Enhanced introspection
         "getServerLogs" => get_server_logs(state, params).await,
         "getCacheStats" => get_cache_stats(state, params).await,
+        
+        // Model verification and remediation
+        "verifyModel" => verify_model(state, params).await,
+        "getRemediationStrategies" => get_remediation_strategies(state, params).await,
+        "executeAutoRemediation" => execute_auto_remediation(state, params).await,
         
         // Console command execution
         "executeConsoleCommand" => execute_console_command(state, params).await,
@@ -1039,6 +1049,166 @@ async fn execute_console_command(state: &AppState, params: &Value) -> Result<Val
             }))
         }
     }
+}
+
+// === Model Verification and Remediation Methods ===
+
+/// Verify a model for configuration errors and inconsistencies
+async fn verify_model(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let model_id_str = params.get("modelId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: modelId".to_string()))?;
+    
+    let model_id = Uuid::parse(model_id_str)
+        .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
+    
+    // Get the model first, then verify it
+    let model = state.services.model_service.get_model(model_id).await
+        .map_err(|e| (-32603, format!("Failed to load model: {}", e)))?
+        .ok_or((-32604, "Model not found".to_string()))?;
+    
+    // Use the model service to verify the model
+    let verification_report = state.services.model_service.verify_model(&model).await
+        .map_err(|e| (-32603, format!("Failed to verify model: {}", e)))?;
+    
+    Ok(json!({
+        "modelId": model_id_str,
+        "modelName": verification_report.model_name,
+        "generatedAt": verification_report.generated_at,
+        "totalErrors": verification_report.total_errors,
+        "errorsBySeverity": {
+            "critical": verification_report.errors_by_severity.critical,
+            "high": verification_report.errors_by_severity.high,
+            "medium": verification_report.errors_by_severity.medium,
+            "low": verification_report.errors_by_severity.low
+        },
+        "errors": verification_report.errors.into_iter().map(|error| json!({
+            "id": error.id,
+            "error": error.error,
+            "severity": error.severity,
+            "category": error.category,
+            "title": error.title,
+            "description": error.description,
+            "impact": error.impact,
+            "location": {
+                "componentType": error.location.component_type,
+                "componentId": error.location.component_id,
+                "componentName": error.location.component_name,
+                "path": error.location.path,
+                "fileReference": error.location.file_reference
+            },
+            "suggestedFixes": error.suggested_fixes,
+            "autoFixable": error.auto_fixable
+        })).collect::<Vec<_>>(),
+        "suggestions": verification_report.suggestions.into_iter().map(|suggestion| json!({
+            "title": suggestion.title,
+            "description": suggestion.description,
+            "actionType": suggestion.action_type,
+            "affectedErrors": suggestion.affected_errors,
+            "estimatedEffort": suggestion.estimated_effort
+        })).collect::<Vec<_>>()
+    }))
+}
+
+/// Get available remediation strategies for a specific error type
+async fn get_remediation_strategies(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let model_id_str = params.get("modelId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: modelId".to_string()))?;
+    
+    let error_type = params.get("errorType")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: errorType".to_string()))?;
+        
+    let error_parameters = params.get("errorParameters")
+        .cloned()
+        .unwrap_or(json!({}));
+    
+    let model_id = Uuid::parse(model_id_str)
+        .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
+    
+    // Use the model service to get remediation strategies
+    let strategies = state.services.model_service.get_remediation_strategies_by_type(model_id, error_type, &error_parameters).await
+        .map_err(|e| (-32603, format!("Failed to get remediation strategies: {}", e)))?;
+    
+    Ok(json!(strategies.into_iter().map(|strategy| json!({
+        "id": strategy.id,
+        "errorType": strategy.error_type,
+        "strategyType": strategy.strategy_type,
+        "title": strategy.title,
+        "description": strategy.description,
+        "parameters": strategy.parameters.into_iter().map(|param| json!({
+            "name": param.name,
+            "description": param.description,
+            "parameterType": param.parameter_type,
+            "required": param.required,
+            "defaultValue": param.default_value,
+            "validation": param.validation
+        })).collect::<Vec<_>>(),
+        "estimatedEffort": strategy.estimated_effort,
+        "riskLevel": strategy.risk_level,
+        "prerequisites": strategy.prerequisites
+    })).collect::<Vec<_>>()))
+}
+
+/// Execute an auto-remediation strategy to fix model configuration errors
+async fn execute_auto_remediation(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let model_id_str = params.get("modelId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: modelId".to_string()))?;
+    
+    let error_type = params.get("errorType")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: errorType".to_string()))?;
+        
+    let error_parameters = params.get("errorParameters")
+        .cloned()
+        .unwrap_or(json!({}));
+    
+    let strategy_type = params.get("strategyType")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: strategyType".to_string()))?;
+    
+    let parameters = params.get("parameters")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    
+    let model_id = Uuid::parse(model_id_str)
+        .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
+    
+    // Convert parameters to HashMap
+    let mut param_map = std::collections::HashMap::new();
+    for param in parameters {
+        if let (Some(name), Some(value)) = (param.get("name").and_then(|v| v.as_str()), param.get("value")) {
+            param_map.insert(name.to_string(), value.clone());
+        }
+    }
+    
+    // Execute auto-remediation using the model service
+    let result = state.services.model_service.execute_auto_remediation_by_type(
+        model_id, 
+        error_type, 
+        &error_parameters,
+        strategy_type, 
+        param_map
+    ).await
+        .map_err(|e| (-32603, format!("Failed to execute auto-remediation: {}", e)))?;
+    
+    Ok(json!({
+        "errorType": error_type,
+        "strategyType": strategy_type,
+        "success": result.success,
+        "changesApplied": result.changes_applied.into_iter().map(|change| json!({
+            "changeType": change.change_type,
+            "componentType": change.component_type,
+            "componentId": change.component_id,
+            "description": change.description,
+            "details": change.details
+        })).collect::<Vec<_>>(),
+        "errors": result.errors,
+        "warnings": result.warnings
+    }))
 }
 
 /// Format command history for display

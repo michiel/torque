@@ -246,6 +246,85 @@ async fn list_tools_mcp(
                 "required": ["modelId", "entityType"],
                 "additionalProperties": false
             }
+        }),
+        json!({
+            "name": "torque_verify_model",
+            "description": "Verify a model for configuration errors and inconsistencies",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "modelId": {
+                        "type": "string",
+                        "description": "Model/project ID to verify"
+                    }
+                },
+                "required": ["modelId"],
+                "additionalProperties": false
+            }
+        }),
+        json!({
+            "name": "torque_get_remediation_strategies",
+            "description": "Get available auto-remediation strategies for a specific error type",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "modelId": {
+                        "type": "string",
+                        "description": "Model/project ID"
+                    },
+                    "errorType": {
+                        "type": "string",
+                        "description": "Type of error (e.g., 'OrphanedReference', 'ComponentFieldReference')"
+                    },
+                    "errorParameters": {
+                        "type": "object",
+                        "description": "Parameters specific to the error type (e.g., component IDs, field names)",
+                        "additionalProperties": true
+                    }
+                },
+                "required": ["modelId", "errorType"],
+                "additionalProperties": false
+            }
+        }),
+        json!({
+            "name": "torque_execute_auto_remediation",
+            "description": "Execute an auto-remediation strategy to fix model configuration errors",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "modelId": {
+                        "type": "string",
+                        "description": "Model/project ID"
+                    },
+                    "errorType": {
+                        "type": "string",
+                        "description": "Type of error to remediate"
+                    },
+                    "errorParameters": {
+                        "type": "object",
+                        "description": "Parameters specific to the error type",
+                        "additionalProperties": true
+                    },
+                    "strategyType": {
+                        "type": "string",
+                        "description": "Type of remediation strategy to execute"
+                    },
+                    "parameters": {
+                        "type": "array",
+                        "description": "Parameters for the remediation strategy",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "value": {}
+                            },
+                            "required": ["name", "value"]
+                        }
+                    }
+                },
+                "required": ["modelId", "errorType", "strategyType"],
+                "additionalProperties": false
+            }
         })
     ];
     
@@ -289,6 +368,9 @@ async fn call_tool_mcp(
         "torque_get_cache_stats" => "getCacheStats",
         "torque_load_page" => "loadPage",
         "torque_load_entity_data" => "loadEntityData",
+        "torque_verify_model" => "verifyModel",
+        "torque_get_remediation_strategies" => "getRemediationStrategies",
+        "torque_execute_auto_remediation" => "executeAutoRemediation",
         _ => {
             let error_response = json!({
                 "jsonrpc": "2.0",

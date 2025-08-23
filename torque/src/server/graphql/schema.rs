@@ -461,15 +461,17 @@ impl Mutation {
         Ok(count)
     }
 
-    /// Get remediation strategies for a specific configuration error
-    async fn get_remediation_strategies(&self, ctx: &Context<'_>, error_id: String, model_id: String) -> Result<Vec<RemediationStrategy>> {
+    /// Get remediation strategies for a specific error type and parameters
+    async fn get_remediation_strategies(&self, ctx: &Context<'_>, input: GetRemediationStrategiesInput) -> Result<Vec<RemediationStrategy>> {
         let state = ctx.data::<AppState>()?;
-        let error_uuid = error_id.parse::<Uuid>()
-            .map_err(|_| async_graphql::Error::new("Invalid error ID format"))?;
-        let model_uuid = model_id.parse::<Uuid>()
+        let model_uuid = input.model_id.parse::<Uuid>()
             .map_err(|_| async_graphql::Error::new("Invalid model ID format"))?;
         
-        let strategies = state.services.model_service.get_remediation_strategies(error_uuid, model_uuid).await
+        let strategies = state.services.model_service.get_remediation_strategies_by_type(
+            model_uuid,
+            &input.error_type,
+            &input.error_parameters
+        ).await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get remediation strategies: {}", e)))?;
         
         Ok(strategies.into_iter().map(RemediationStrategy::from).collect())
@@ -480,8 +482,6 @@ impl Mutation {
         let state = ctx.data::<AppState>()?;
         let model_uuid = input.model_id.parse::<Uuid>()
             .map_err(|_| async_graphql::Error::new("Invalid model ID format"))?;
-        let strategy_uuid = input.strategy_id.parse::<Uuid>()
-            .map_err(|_| async_graphql::Error::new("Invalid strategy ID format"))?;
         
         // Convert GraphQL parameters to HashMap
         let parameters: std::collections::HashMap<String, serde_json::Value> = input.parameters
@@ -489,7 +489,13 @@ impl Mutation {
             .map(|p| (p.name, p.value))
             .collect();
         
-        let result = state.services.model_service.execute_auto_remediation(model_uuid, strategy_uuid, parameters).await
+        let result = state.services.model_service.execute_auto_remediation_by_type(
+            model_uuid, 
+            &input.error_type,
+            &input.error_parameters,
+            &input.strategy_type,
+            parameters
+        ).await
             .map_err(|e| async_graphql::Error::new(format!("Failed to execute auto-remediation: {}", e)))?;
         
         Ok(RemediationResult::from(result))
@@ -1140,11 +1146,25 @@ pub enum ModelChangeTypeEnum {
 }
 
 #[derive(InputObject)]
+pub struct GetRemediationStrategiesInput {
+    #[graphql(name = "modelId")]
+    pub model_id: UuidString,
+    #[graphql(name = "errorType")]
+    pub error_type: String,
+    #[graphql(name = "errorParameters")]
+    pub error_parameters: JSON,
+}
+
+#[derive(InputObject)]
 pub struct ExecuteRemediationInput {
     #[graphql(name = "modelId")]
     pub model_id: UuidString,
-    #[graphql(name = "strategyId")]
-    pub strategy_id: UuidString,
+    #[graphql(name = "errorType")]
+    pub error_type: String,
+    #[graphql(name = "errorParameters")]
+    pub error_parameters: JSON,
+    #[graphql(name = "strategyType")]
+    pub strategy_type: String,
     pub parameters: Vec<RemediationParameterInput>,
 }
 
@@ -1640,7 +1660,14 @@ impl From<crate::model::remediation::RemediationStrategy> for RemediationStrateg
         Self {
             id: strategy.id.to_string(),
             error_type: strategy.error_type,
-            strategy_type: format!("{:?}", strategy.strategy_type),
+            strategy_type: match strategy.strategy_type {
+                crate::model::remediation::RemediationStrategyType::RemoveInvalidReferences => "RemoveInvalidReferences".to_string(),
+                crate::model::remediation::RemediationStrategyType::CreateMissingEntity { .. } => "CreateMissingEntity".to_string(),
+                crate::model::remediation::RemediationStrategyType::AddMissingFields { .. } => "AddMissingFields".to_string(),
+                crate::model::remediation::RemediationStrategyType::UpdateComponentConfiguration { .. } => "UpdateComponentConfiguration".to_string(),
+                crate::model::remediation::RemediationStrategyType::RemoveOrphanedReferences { .. } => "RemoveOrphanedReferences".to_string(),
+                crate::model::remediation::RemediationStrategyType::FixRelationship { .. } => "FixRelationship".to_string(),
+            },
             title: strategy.title,
             description: strategy.description,
             parameters: strategy.parameters.into_iter().map(RemediationParameter::from).collect(),

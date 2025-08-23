@@ -35,6 +35,7 @@ import {
 import { useState } from 'react'
 import { notifications } from '@mantine/notifications'
 import { VERIFY_MODEL, GET_MODEL } from '../graphql/queries'
+import { RemediationSection } from '../components/RemediationSection'
 
 interface ConfigurationError {
   id: string
@@ -142,10 +143,12 @@ const getEffortColor = (effort: string) => {
   }
 }
 
-const ErrorCard = ({ error, isExpanded, onToggle }: { 
+const ErrorCard = ({ error, isExpanded, onToggle, modelId, onRemediationComplete }: { 
   error: ConfigurationError
   isExpanded: boolean
   onToggle: () => void
+  modelId: string
+  onRemediationComplete?: () => void
 }) => {
   return (
     <Card withBorder shadow="sm" radius="md">
@@ -199,22 +202,36 @@ const ErrorCard = ({ error, isExpanded, onToggle }: {
           </ActionIcon>
         </Group>
 
-        {isExpanded && error.suggestedFixes.length > 0 && (
+        {isExpanded && (
           <>
             <Divider />
-            <Stack gap="xs">
-              <Text size="sm" fw={500} c="dimmed">
-                💡 Suggested Fixes:
-              </Text>
-              {error.suggestedFixes.map((fix, index) => (
-                <Text key={index} size="sm" pl="md" style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '0', color: 'var(--mantine-color-dimmed)' }}>
-                    •
-                  </span>
-                  {fix}
+            
+            {/* Auto-remediation section for auto-fixable errors */}
+            {error.autoFixable && (
+              <RemediationSection
+                error={error.error}
+                modelId={modelId}
+                isAutoFixable={error.autoFixable}
+                onRemediationComplete={onRemediationComplete}
+              />
+            )}
+            
+            {/* Manual suggested fixes */}
+            {error.suggestedFixes.length > 0 && (
+              <Stack gap="xs">
+                <Text size="sm" fw={500} c="dimmed">
+                  💡 Suggested Fixes:
                 </Text>
-              ))}
-            </Stack>
+                {error.suggestedFixes.map((fix, index) => (
+                  <Text key={index} size="sm" pl="md" style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '0', color: 'var(--mantine-color-dimmed)' }}>
+                      •
+                    </span>
+                    {fix}
+                  </Text>
+                ))}
+              </Stack>
+            )}
           </>
         )}
       </Stack>
@@ -356,6 +373,11 @@ export function ModelVerificationPage() {
       newExpanded.add(errorId)
     }
     setExpandedErrors(newExpanded)
+  }
+
+  const handleRemediationComplete = () => {
+    // Refetch verification data to get updated error list
+    refetch()
   }
 
   const handleRefresh = () => {
@@ -567,6 +589,8 @@ export function ModelVerificationPage() {
                   error={error}
                   isExpanded={expandedErrors.has(error.id)}
                   onToggle={() => toggleErrorExpansion(error.id)}
+                  modelId={modelId || ''}
+                  onRemediationComplete={handleRemediationComplete}
                 />
               ))}
             </Stack>

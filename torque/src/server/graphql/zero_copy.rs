@@ -580,14 +580,16 @@ impl OptimizedQuery {
     }
 
     /// Get remediation strategies for a specific configuration error
-    async fn get_remediation_strategies(&self, ctx: &Context<'_>, error_id: String, model_id: String) -> Result<Vec<crate::server::graphql::schema::RemediationStrategy>> {
+    async fn get_remediation_strategies(&self, ctx: &Context<'_>, input: crate::server::graphql::schema::GetRemediationStrategiesInput) -> Result<Vec<crate::server::graphql::schema::RemediationStrategy>> {
         let state = ctx.data::<AppState>()?;
-        let error_uuid = error_id.parse::<Uuid>()
-            .map_err(|_| async_graphql::Error::new("Invalid error ID format"))?;
-        let model_uuid = model_id.parse::<Uuid>()
+        let model_uuid = input.model_id.parse::<Uuid>()
             .map_err(|_| async_graphql::Error::new("Invalid model ID format"))?;
         
-        let strategies = state.services.model_service.get_remediation_strategies(error_uuid, model_uuid).await
+        let strategies = state.services.model_service.get_remediation_strategies_by_type(
+            model_uuid,
+            &input.error_type,
+            &input.error_parameters
+        ).await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get remediation strategies: {}", e)))?;
         
         Ok(strategies.into_iter().map(crate::server::graphql::schema::RemediationStrategy::from).collect())
@@ -1057,8 +1059,6 @@ impl OptimizedMutation {
         let state = ctx.data::<AppState>()?;
         let model_uuid = input.model_id.parse::<Uuid>()
             .map_err(|_| async_graphql::Error::new("Invalid model ID format"))?;
-        let strategy_uuid = input.strategy_id.parse::<Uuid>()
-            .map_err(|_| async_graphql::Error::new("Invalid strategy ID format"))?;
         
         // Convert GraphQL parameters to HashMap
         let parameters: std::collections::HashMap<String, serde_json::Value> = input.parameters
@@ -1066,7 +1066,13 @@ impl OptimizedMutation {
             .map(|p| (p.name, p.value))
             .collect();
         
-        let result = state.services.model_service.execute_auto_remediation(model_uuid, strategy_uuid, parameters).await
+        let result = state.services.model_service.execute_auto_remediation_by_type(
+            model_uuid,
+            &input.error_type,
+            &input.error_parameters,
+            &input.strategy_type,
+            parameters
+        ).await
             .map_err(|e| async_graphql::Error::new(format!("Failed to execute auto-remediation: {}", e)))?;
         
         Ok(crate::server::graphql::schema::RemediationResult::from(result))
