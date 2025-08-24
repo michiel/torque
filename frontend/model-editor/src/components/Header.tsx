@@ -10,6 +10,7 @@ import {
   Menu,
   Avatar,
   rem,
+  useMantineColorScheme,
 } from '@mantine/core'
 import {
   IconHome,
@@ -22,6 +23,7 @@ import {
 import { useQuery } from '@apollo/client'
 import { ConnectionStatus } from './ConnectionStatus'
 import { ModelVerificationStatus } from './ModelVerificationStatus'
+import { DarkModeToggle } from './DarkModeToggle'
 import { GET_MODEL } from '../graphql/queries'
 
 interface BreadcrumbItem {
@@ -102,6 +104,7 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
 
 export function Header() {
   const location = useLocation()
+  const { colorScheme } = useMantineColorScheme()
   const breadcrumbs = getBreadcrumbs(location.pathname, location.search)
   
   // Extract model ID from URL if we're on a model page
@@ -121,7 +124,11 @@ export function Header() {
   return (
     <Box>
       {/* Main Header */}
-      <Group h={32} px="sm" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+      <Group h={32} px="sm" justify="space-between" style={{ 
+        borderBottom: colorScheme === 'dark' 
+          ? '1px solid var(--mantine-color-dark-5)' 
+          : '1px solid var(--mantine-color-gray-3)' 
+      }}>
         {/* Left side - Logo and Nav */}
         <Group>
           <Link 
@@ -155,6 +162,8 @@ export function Header() {
         <Group>
           <ConnectionStatus />
           
+          <DarkModeToggle />
+          
           <ActionIcon variant="subtle" size="md">
             <IconSettings size={16} />
           </ActionIcon>
@@ -186,7 +195,16 @@ export function Header() {
       </Group>
 
       {/* Breadcrumb Trail */}
-      <Box px="sm" py={rem(4)} bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+      <Box 
+        px="sm" 
+        py={rem(4)} 
+        bg={colorScheme === 'dark' ? 'dark.8' : 'gray.0'} 
+        style={{ 
+          borderBottom: colorScheme === 'dark' 
+            ? '1px solid var(--mantine-color-dark-5)' 
+            : '1px solid var(--mantine-color-gray-3)' 
+        }}
+      >
         <Breadcrumbs separator={<IconChevronRight size={12} />}>
           {breadcrumbs.map((item, index) =>
             item.href ? (

@@ -5,6 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Torque Model Editor</title>
+    <script>
+      // Prevent flash of unstyled content for dark mode
+      (function() {
+        const savedTheme = localStorage.getItem('torque-dark-mode');
+        const isDark = savedTheme === 'true' || 
+          (savedTheme === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        
+        if (isDark) {
+          document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
+        } else {
+          document.documentElement.setAttribute('data-mantine-color-scheme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
