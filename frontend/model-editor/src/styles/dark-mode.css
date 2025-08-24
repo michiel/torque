@@ -196,10 +196,60 @@
   background-color: var(--mantine-color-dark-5);
 }
 
-/* Badge improvements */
-[data-mantine-color-scheme="dark"] .mantine-Badge-root {
+/* Badge improvements - preserve semantic colors for status indicators */
+/* Default badge styling for badges without specific colors */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root:not([data-color]) {
   background-color: var(--mantine-color-dark-5);
   color: var(--mantine-color-dark-0);
+}
+
+/* Status badge colors - ensure they remain vibrant in dark mode */
+/* Green badges (Live status) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="green"] {
+  background-color: var(--mantine-color-green-9) !important;
+  color: var(--mantine-color-green-2) !important;
+}
+
+/* Red badges (Error status) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="red"] {
+  background-color: var(--mantine-color-red-9) !important;
+  color: var(--mantine-color-red-2) !important;
+}
+
+/* Orange badges (High severity) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="orange"] {
+  background-color: var(--mantine-color-orange-9) !important;
+  color: var(--mantine-color-orange-2) !important;
+}
+
+/* Yellow badges (Medium severity) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="yellow"] {
+  background-color: var(--mantine-color-yellow-9) !important;
+  color: var(--mantine-color-yellow-1) !important;
+}
+
+/* Blue badges (Low severity) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="blue"] {
+  background-color: var(--mantine-color-blue-9) !important;
+  color: var(--mantine-color-blue-2) !important;
+}
+
+/* Gray badges (Unknown/Loading) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="gray"] {
+  background-color: var(--mantine-color-dark-5) !important;
+  color: var(--mantine-color-dark-1) !important;
+}
+
+/* Purple badges */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="purple"] {
+  background-color: var(--mantine-color-violet-9) !important;
+  color: var(--mantine-color-violet-2) !important;
+}
+
+/* Teal badges */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="teal"] {
+  background-color: var(--mantine-color-teal-9) !important;
+  color: var(--mantine-color-teal-2) !important;
 }
 
 /* Accordion improvements */
@@ -382,4 +432,71 @@
 [data-mantine-color-scheme="dark"] #root {
   background-color: var(--mantine-color-dark-7);
   color: var(--mantine-color-dark-0);
+}
+
+/* Home and Models page specific backgrounds */
+[data-mantine-color-scheme="dark"] *[style*="var(--mantine-color-gray-0)"] {
+  background: var(--mantine-color-dark-7) !important;
+}
+
+/* Override gray-0 background references */
+[data-mantine-color-scheme="dark"] {
+  --mantine-color-gray-0: var(--mantine-color-dark-7);
+}
+
+/* Paper with bg="gray.0" override */
+[data-mantine-color-scheme="dark"] .mantine-Paper-root[data-bg="gray.0"] {
+  background-color: var(--mantine-color-dark-6) !important;
+}
+
+/* Box components with gray.0 background - override Mantine's gray.0 */
+[data-mantine-color-scheme="dark"] .mantine-Box-root[data-bg="gray.0"] {
+  background-color: var(--mantine-color-dark-7) !important;
+}
+
+/* Alternative selector for Box with gray background */
+[data-mantine-color-scheme="dark"] .mantine-Box-root[style*="background-color: var(--mantine-color-gray-0)"] {
+  background-color: var(--mantine-color-dark-7) !important;
+}
+
+/* Icon color overrides for semantic colors in dark mode */
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-red-6)"] {
+  color: var(--mantine-color-red-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-orange-6)"] {
+  color: var(--mantine-color-orange-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-yellow-6)"] {
+  color: var(--mantine-color-yellow-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-blue-6)"] {
+  color: var(--mantine-color-blue-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-green-6)"] {
+  color: var(--mantine-color-green-4) !important;
+}
+
+/* More specific overrides for icons with inline color styles */
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-red-6)"] {
+  color: var(--mantine-color-red-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-orange-6)"] {
+  color: var(--mantine-color-orange-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-yellow-6)"] {
+  color: var(--mantine-color-yellow-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-blue-6)"] {
+  color: var(--mantine-color-blue-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-green-6)"] {
+  color: var(--mantine-color-green-4) !important;
 }

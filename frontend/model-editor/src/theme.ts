@@ -31,6 +31,19 @@ export const theme = createTheme({
       '#1A1B1E',
       '#141517',
       '#101113'
+    ],
+    // Gray colors with dark mode override
+    gray: [
+      '#f8f9fa', // gray.0 - will be overridden in dark mode
+      '#f1f3f4',
+      '#e9ecef',
+      '#dee2e6',
+      '#ced4da',
+      '#adb5bd',
+      '#868e96',
+      '#495057',
+      '#343a40',
+      '#212529'
     ]
   },
   components: {
