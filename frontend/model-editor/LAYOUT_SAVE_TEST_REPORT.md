@@ -9,7 +9,7 @@
 The Visual Layout Editor was experiencing an "Invalid target entity ID format" error when saving layouts that contained components with entity bindings (DataGrid, TorqueForm). The issue was caused by the layout migration utility not properly converting entity names to UUIDs when preparing data for the GraphQL mutation.
 
 ## Fix Implementation
-The fix was implemented in `/home/michiel/dev/torque/frontend/model-editor/src/components/VisualLayoutEditor/migration/layoutMigration.ts` in the `convertPuckToLegacyLayout` function:
+The fix was implemented in `src/components/VisualLayoutEditor/migration/layoutMigration.ts` in the `convertPuckToLegacyLayout` function:
 
 ```typescript
 // Extract target entities from components and convert to entity IDs

@@ -7,5 +7,12 @@
     "outDir": "./dist"
   },
   "include": ["src"],
-  "exclude": ["src/main.tsx", "src/App.tsx", "src/pages"]
+  "exclude": [
+    "src/main.tsx", 
+    "src/App.tsx", 
+    "src/pages",
+    "src/**/*.test.tsx",
+    "src/**/*.test.ts",
+    "src/test"
+  ]
 }

@@ -43,6 +43,11 @@ export interface LoadEntityDataParams {
   page?: number
   limit?: number
   filters?: Record<string, any>
+  sort?: {
+    field: string
+    direction: 'asc' | 'desc'
+  }
+  search?: string
 }
 
 export interface LoadEntityDataResponse {
@@ -138,10 +143,24 @@ export interface FormField {
   name: string
   label: string
   type: 'text' | 'number' | 'checkbox' | 'date' | 'datetime-local' | 'time' | 'textarea' | 'file' | 'select' | 'multiselect'
-  required: boolean
+  required: boolean | ConditionalRule
   defaultValue?: any
   validation?: Record<string, any>
-  uiConfig?: Record<string, any>
+  uiConfig?: {
+    showIf?: ConditionalRule
+    requiredIf?: ConditionalRule
+    section?: string
+    helpText?: string
+    placeholder?: string
+    acceptedFileTypes?: string[]
+    maxFileSize?: number
+  }
+}
+
+export interface ConditionalRule {
+  field: string
+  operator: 'equals' | 'notEquals' | 'contains' | 'isEmpty' | 'isNotEmpty' | 'greaterThan' | 'lessThan'
+  value?: any
 }
 
 export interface DataGridColumn {
@@ -151,6 +170,65 @@ export interface DataGridColumn {
   sortable: boolean
   filterable: boolean
   width: number
+  editable?: boolean
+  filterOptions?: string[]
+}
+
+export interface DataGridFilter {
+  field: string
+  operator: 'equals' | 'notEquals' | 'contains' | 'startsWith' | 'endsWith' | 'greaterThan' | 'lessThan' | 'between' | 'in' | 'isNull' | 'isNotNull'
+  value: any
+  value2?: any // for 'between' operator
+}
+
+export interface DataGridSort {
+  field: string
+  direction: 'asc' | 'desc'
+}
+
+// Import System types
+export interface ImportFieldMapping {
+  sourceColumn: string
+  targetField: string
+  transform?: 'none' | 'trim' | 'lowercase' | 'uppercase' | 'date' | 'number'
+  required: boolean
+  defaultValue?: any
+}
+
+export interface ImportPreviewData {
+  headers: string[]
+  rows: any[][]
+  totalRows: number
+  sampleRows: any[][]
+}
+
+export interface ImportValidationError {
+  row: number
+  column: string
+  error: string
+  value: any
+}
+
+export interface ImportResult {
+  success: boolean
+  totalRows: number
+  successCount: number
+  errorCount: number
+  duplicateCount: number
+  errors: ImportValidationError[]
+  createdIds: string[]
+}
+
+export interface BulkImportParams {
+  modelId: string
+  entityName: string
+  data: any[]
+  fieldMapping: ImportFieldMapping[]
+  options: {
+    skipDuplicates: boolean
+    updateExisting: boolean
+    validateOnly: boolean
+  }
 }
 
 // TorqueApp capabilities

@@ -9,8 +9,45 @@ use axum::{
 use serde_json::{json, Value};
 use crate::model::types::LayoutType;
 use crate::common::{Uuid, UtcDateTime};
-use crate::services::entity::EntityQuery;
-use std::collections::HashMap;
+use dashmap::DashMap;
+use serde::{Serialize, Deserialize};
+
+/// Console session state for tracking project context and command history
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConsoleSession {
+    pub session_id: String,
+    pub project_id: Option<Uuid>,
+    pub project_name: Option<String>,
+    pub history: Vec<String>,
+    pub capabilities: Vec<String>,
+    pub created_at: UtcDateTime,
+    pub last_active: UtcDateTime,
+}
+
+impl ConsoleSession {
+    pub fn new() -> Self {
+        let session_id = Uuid::new_v4().to_string();
+        let now = UtcDateTime::now();
+        Self {
+            session_id,
+            project_id: None,
+            project_name: None,
+            history: Vec::new(),
+            capabilities: vec![
+                "listProjects".to_string(),
+                "createProject".to_string(),
+                "deleteProject".to_string(),
+                "getProjectInfo".to_string(),
+            ],
+            created_at: now,
+            last_active: UtcDateTime::now(),
+        }
+    }
+}
+
+/// Global console session storage
+static CONSOLE_SESSIONS: once_cell::sync::Lazy<DashMap<String, ConsoleSession>> = 
+    once_cell::sync::Lazy::new(|| DashMap::new());
 
 /// JSON-RPC endpoint handler for TorqueApp Runtime
 pub async fn jsonrpc_handler(
@@ -64,6 +101,59 @@ pub async fn jsonrpc_handler(
     }
 }
 
+/// Non-console JSON-RPC method dispatcher to avoid recursion
+async fn dispatch_non_console_method(
+    state: &AppState,
+    method: &str,
+    params: &Value,
+) -> Result<Value, (i32, String)> {
+    tracing::debug!("Dispatching non-console JSON-RPC method: {} with params: {}", method, params);
+    
+    match method {
+        // Core TorqueApp methods
+        "loadPage" => load_page(state, params).await,
+        "loadEntityData" => load_entity_data(state, params).await,
+        "getFormDefinition" => get_form_definition(state, params).await,
+        "createEntity" => create_entity(state, params).await,
+        "updateEntity" => update_entity(state, params).await,
+        "deleteEntity" => delete_entity(state, params).await,
+        
+        // Layout and UI methods
+        "getComponentConfig" => get_component_config(state, params).await,
+        "getLayoutConfig" => get_layout_config(state, params).await,
+        "getModelMetadata" => get_model_metadata(state, params).await,
+        
+        // Health and introspection
+        "ping" => Ok(json!({"status": "ok", "timestamp": UtcDateTime::now()})),
+        "getCapabilities" => get_capabilities().await,
+        
+        // Console/Project management methods (also exposed as MCP tools)
+        "listProjects" => list_projects(state, params).await,
+        "createProject" => create_project(state, params).await,
+        "deleteProject" => delete_project(state, params).await,
+        "getProjectInfo" => get_project_info(state, params).await,
+        
+        // Console session management
+        "createConsoleSession" => create_console_session(state, params).await,
+        "setProjectContext" => set_project_context(state, params).await,
+        "getConsoleState" => get_console_state(state, params).await,
+        
+        // Enhanced introspection
+        "getServerLogs" => get_server_logs(state, params).await,
+        "getCacheStats" => get_cache_stats(state, params).await,
+        
+        // Model verification and remediation
+        "verifyModel" => verify_model(state, params).await,
+        "getRemediationStrategies" => get_remediation_strategies(state, params).await,
+        "executeAutoRemediation" => execute_auto_remediation(state, params).await,
+        
+        // Explicitly exclude executeConsoleCommand to prevent recursion
+        "executeConsoleCommand" => Err((-32603, "Recursive console command execution not allowed".to_string())),
+        
+        _ => Err((-32601, format!("Method '{}' not found", method)))
+    }
+}
+
 /// JSON-RPC method dispatcher for TorqueApp Runtime
 async fn dispatch_method(
     state: &AppState,
@@ -89,6 +179,29 @@ async fn dispatch_method(
         // Health and introspection
         "ping" => Ok(json!({"status": "ok", "timestamp": UtcDateTime::now()})),
         "getCapabilities" => get_capabilities().await,
+        
+        // Console/Project management methods (also exposed as MCP tools)
+        "listProjects" => list_projects(state, params).await,
+        "createProject" => create_project(state, params).await,
+        "deleteProject" => delete_project(state, params).await,
+        "getProjectInfo" => get_project_info(state, params).await,
+        
+        // Console session management
+        "createConsoleSession" => create_console_session(state, params).await,
+        "setProjectContext" => set_project_context(state, params).await,
+        "getConsoleState" => get_console_state(state, params).await,
+        
+        // Enhanced introspection
+        "getServerLogs" => get_server_logs(state, params).await,
+        "getCacheStats" => get_cache_stats(state, params).await,
+        
+        // Model verification and remediation
+        "verifyModel" => verify_model(state, params).await,
+        "getRemediationStrategies" => get_remediation_strategies(state, params).await,
+        "executeAutoRemediation" => execute_auto_remediation(state, params).await,
+        
+        // Console command execution
+        "executeConsoleCommand" => execute_console_command(state, params).await,
         
         _ => Err((-32601, format!("Method '{}' not found", method)))
     }
@@ -194,7 +307,7 @@ async fn load_entity_data(state: &AppState, params: &Value) -> Result<Value, (i3
         .and_then(|v| v.as_u64())
         .unwrap_or(20);
     
-    let filters = params.get("filters").cloned();
+    let _filters = params.get("filters").cloned();
     
     // Parse model ID
     let model_uuid = Uuid::parse(model_id)
@@ -509,7 +622,9 @@ async fn get_capabilities() -> Result<Value, (i32, String)> {
             "validation",
             "relationships",
             "flows",
-            "layouts"
+            "layouts",
+            "console-session-management",
+            "project-management"
         ],
         "supportedComponents": [
             "DataGrid",
@@ -525,6 +640,593 @@ async fn get_capabilities() -> Result<Value, (i32, String)> {
             "absolute"
         ]
     }))
+}
+
+// === Project Management Methods (MCP Tools: torque_list_projects, etc.) ===
+
+/// List all projects/models
+async fn list_projects(state: &AppState, _params: &Value) -> Result<Value, (i32, String)> {
+    let models = state.services.model_service.get_models().await
+        .map_err(|e| (-32603, format!("Failed to list projects: {}", e)))?;
+    
+    let projects: Vec<Value> = models.into_iter().map(|model| json!({
+        "id": model.id,
+        "name": model.name,
+        "description": model.description,
+        "version": model.version,
+        "createdAt": model.created_at,
+        "updatedAt": model.updated_at,
+        "entityCount": model.entities.len(),
+        "layoutCount": model.layouts.len(),
+        "flowCount": model.flows.len()
+    })).collect();
+    
+    Ok(json!({
+        "projects": projects,
+        "total": projects.len()
+    }))
+}
+
+/// Create a new project/model
+async fn create_project(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let name = params.get("name")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: name".to_string()))?;
+    
+    let description = params.get("description")
+        .and_then(|v| v.as_str());
+    
+    use crate::services::model::CreateModelInput;
+    let input = CreateModelInput {
+        name: name.to_string(),
+        description: description.map(|s| s.to_string()),
+        config: None,
+    };
+    
+    let model = state.services.model_service.create_model(input).await
+        .map_err(|e| (-32603, format!("Failed to create project: {}", e)))?;
+    
+    Ok(json!({
+        "id": model.id,
+        "name": model.name,
+        "description": model.description,
+        "version": model.version,
+        "createdAt": model.created_at,
+        "updatedAt": model.updated_at
+    }))
+}
+
+/// Delete a project/model
+async fn delete_project(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let id_str = params.get("id")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: id".to_string()))?;
+    
+    let project_id = Uuid::parse(id_str)
+        .map_err(|_| (-32602, "Invalid project ID format".to_string()))?;
+    
+    let deleted = state.services.model_service.delete_model(project_id).await
+        .map_err(|e| (-32603, format!("Failed to delete project: {}", e)))?;
+    
+    Ok(json!({
+        "success": deleted,
+        "id": id_str
+    }))
+}
+
+/// Get project/model information
+async fn get_project_info(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let id_str = params.get("id")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: id".to_string()))?;
+    
+    let project_id = Uuid::parse(id_str)
+        .map_err(|_| (-32602, "Invalid project ID format".to_string()))?;
+    
+    let model = state.services.model_service.get_model(project_id).await
+        .map_err(|e| (-32603, format!("Failed to get project info: {}", e)))?
+        .ok_or((-32604, "Project not found".to_string()))?;
+    
+    Ok(json!({
+        "id": model.id,
+        "name": model.name,
+        "description": model.description,
+        "version": model.version,
+        "createdAt": model.created_at,
+        "updatedAt": model.updated_at,
+        "entities": model.entities.iter().map(|e| json!({
+            "id": e.id,
+            "name": e.name,
+            "displayName": e.display_name,
+            "entityType": e.entity_type,
+            "fieldCount": e.fields.len()
+        })).collect::<Vec<_>>(),
+        "layouts": model.layouts.iter().map(|l| json!({
+            "id": l.id,
+            "name": l.name,
+            "layoutType": l.layout_type
+        })).collect::<Vec<_>>(),
+        "relationships": model.relationships.len(),
+        "flows": model.flows.len()
+    }))
+}
+
+// === Console Session Management Methods ===
+
+/// Create a new console session
+async fn create_console_session(_state: &AppState, _params: &Value) -> Result<Value, (i32, String)> {
+    let session = ConsoleSession::new();
+    let session_id = session.session_id.clone();
+    
+    CONSOLE_SESSIONS.insert(session_id.clone(), session.clone());
+    
+    Ok(json!({
+        "sessionId": session_id,
+        "capabilities": session.capabilities,
+        "createdAt": session.created_at,
+        "context": {
+            "projectId": session.project_id,
+            "projectName": session.project_name
+        }
+    }))
+}
+
+/// Set project context for a console session
+async fn set_project_context(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let session_id = params.get("sessionId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: sessionId".to_string()))?;
+    
+    let project_id_str = params.get("projectId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: projectId".to_string()))?;
+    
+    let project_id = Uuid::parse(project_id_str)
+        .map_err(|_| (-32602, "Invalid project ID format".to_string()))?;
+    
+    // Verify project exists
+    let model = state.services.model_service.get_model(project_id.clone()).await
+        .map_err(|e| (-32603, format!("Failed to verify project: {}", e)))?
+        .ok_or((-32604, "Project not found".to_string()))?;
+    
+    // Update session
+    if let Some(mut session_entry) = CONSOLE_SESSIONS.get_mut(session_id) {
+        session_entry.project_id = Some(project_id);
+        session_entry.project_name = Some(model.name.clone());
+        session_entry.last_active = UtcDateTime::now();
+        
+        // Add project-scoped capabilities
+        let capabilities = vec![
+            "listProjects".to_string(),
+            "createProject".to_string(),
+            "deleteProject".to_string(),
+            "getProjectInfo".to_string(),
+            "loadPage".to_string(),
+            "loadEntityData".to_string(),
+            "createEntity".to_string(),
+            "updateEntity".to_string(),
+            "deleteEntity".to_string(),
+            "getModelMetadata".to_string(),
+        ];
+        session_entry.capabilities = capabilities;
+        
+        Ok(json!({
+            "success": true,
+            "sessionId": session_id,
+            "context": {
+                "projectId": project_id_str,
+                "projectName": model.name
+            },
+            "capabilities": session_entry.capabilities
+        }))
+    } else {
+        Err((-32604, "Console session not found".to_string()))
+    }
+}
+
+/// Get console session state
+async fn get_console_state(_state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let session_id = params.get("sessionId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: sessionId".to_string()))?;
+    
+    if let Some(session) = CONSOLE_SESSIONS.get(session_id) {
+        Ok(json!({
+            "sessionId": session.session_id,
+            "context": {
+                "projectId": session.project_id,
+                "projectName": session.project_name
+            },
+            "capabilities": session.capabilities,
+            "historyCount": session.history.len(),
+            "createdAt": session.created_at,
+            "lastActive": session.last_active
+        }))
+    } else {
+        Err((-32604, "Console session not found".to_string()))
+    }
+}
+
+// === Enhanced Introspection Methods ===
+
+/// Get server logs (recent entries)
+async fn get_server_logs(_state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let tail = params.get("tail")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(100) as usize;
+    
+    // For now, return a placeholder response
+    // In a real implementation, you'd integrate with your logging system
+    Ok(json!({
+        "logs": [],
+        "message": "Server logs not yet implemented - requires tracing subscriber integration",
+        "requestedLines": tail,
+        "timestamp": UtcDateTime::now()
+    }))
+}
+
+/// Get cache performance statistics
+async fn get_cache_stats(_state: &AppState, _params: &Value) -> Result<Value, (i32, String)> {
+    // Get basic cache stats from the cache service
+    // This is a simplified implementation - you might want more detailed stats
+    Ok(json!({
+        "cacheService": {
+            "status": "active",
+            "type": "DashMap-based"
+        },
+        "modelCache": {
+            "entries": CONSOLE_SESSIONS.len(),
+            "message": "Console sessions currently tracked"
+        },
+        "performance": {
+            "message": "Detailed performance metrics not yet implemented"
+        },
+        "timestamp": UtcDateTime::now()
+    }))
+}
+
+/// Execute a console command and return formatted result
+async fn execute_console_command(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    use crate::console::{parser, commands, ConsoleContext};
+    
+    let session_id = params.get("sessionId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: sessionId".to_string()))?;
+    
+    let command_text = params.get("command")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: command".to_string()))?;
+    
+    // Get session context
+    let session = CONSOLE_SESSIONS.get(session_id)
+        .ok_or((-32604, "Console session not found".to_string()))?;
+    
+    // Create console context
+    let mut context = ConsoleContext::new(session_id.to_string());
+    if let Some(project_id) = &session.project_id {
+        if let Some(project_name) = &session.project_name {
+            context = context.with_project(project_id.clone(), project_name.clone());
+        }
+    }
+    
+    // Handle special commands that don't map to JSON-RPC
+    match command_text.trim() {
+        "clear" => {
+            return Ok(json!({
+                "success": true,
+                "output": "",
+                "action": "clear"
+            }));
+        },
+        "history" => {
+            return Ok(json!({
+                "success": true,
+                "output": format_command_history(&session.history),
+                "data": session.history.clone()
+            }));
+        },
+        "exit" => {
+            return Ok(json!({
+                "success": true,
+                "output": "Console session ended",
+                "action": "exit"
+            }));
+        },
+        cmd if cmd.starts_with("help") => {
+            let help_parts: Vec<&str> = cmd.split_whitespace().collect();
+            let help_command = help_parts.get(1).copied();
+            let help_subcommand = help_parts.get(2).copied();
+            
+            let help_text = crate::console::completion::get_command_help(
+                help_command.unwrap_or(""),
+                help_subcommand
+            );
+            
+            return Ok(json!({
+                "success": true,
+                "output": help_text
+            }));
+        },
+        _ => {}
+    }
+    
+    // Parse the command
+    let parsed_command = parser::parse_command(command_text)
+        .map_err(|e| (-32602, format!("Command parse error: {}", e)))?;
+    
+    // Validate command
+    parser::validate_command(&parsed_command, context.has_project())
+        .map_err(|e| (-32602, e))?;
+    
+    // Update command history
+    if let Some(mut session_entry) = CONSOLE_SESSIONS.get_mut(session_id) {
+        session_entry.history.push(command_text.to_string());
+        session_entry.last_active = UtcDateTime::now();
+        
+        // Keep only last 100 commands in history
+        if session_entry.history.len() > 100 {
+            session_entry.history.remove(0);
+        }
+    }
+    
+    // Handle "project use" command specially to update session
+    if parsed_command.command == "project" && 
+       parsed_command.subcommand.as_deref() == Some("use") &&
+       !parsed_command.args.is_empty() {
+        
+        let project_id_str = &parsed_command.args[0];
+        let project_id = Uuid::parse(project_id_str)
+            .map_err(|_| (-32602, "Invalid project ID format".to_string()))?;
+        
+        // Verify project exists and update session
+        let model = state.services.model_service.get_model(project_id.clone()).await
+            .map_err(|e| (-32603, format!("Failed to verify project: {}", e)))?
+            .ok_or((-32604, "Project not found".to_string()))?;
+        
+        // Update session with project context
+        if let Some(mut session_entry) = CONSOLE_SESSIONS.get_mut(session_id) {
+            session_entry.project_id = Some(project_id);
+            session_entry.project_name = Some(model.name.clone());
+            session_entry.last_active = UtcDateTime::now();
+        }
+        
+        return Ok(json!({
+            "success": true,
+            "output": format!("Project context set to: {} ({})", model.name, project_id_str),
+            "data": {
+                "projectId": project_id_str,
+                "projectName": model.name
+            }
+        }));
+    }
+    
+    // Map command to JSON-RPC and execute
+    let jsonrpc_request = commands::map_command_to_jsonrpc(&parsed_command, &context)
+        .map_err(|e| (-32602, format!("Command mapping error: {}", e)))?;
+    
+    // Execute the JSON-RPC request by calling non-recursive dispatch
+    let request_method = jsonrpc_request.get("method")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    let default_params = json!({});
+    let request_params = jsonrpc_request.get("params")
+        .unwrap_or(&default_params);
+    
+    match dispatch_non_console_method(state, request_method, request_params).await {
+        Ok(result) => {
+            let response = json!({
+                "jsonrpc": "2.0",
+                "id": jsonrpc_request.get("id"),
+                "result": result
+            });
+            
+            let console_result = commands::format_response_for_console(&response);
+            
+            Ok(json!({
+                "success": console_result.success,
+                "output": console_result.output,
+                "data": console_result.data,
+                "error": console_result.error
+            }))
+        },
+        Err((code, message)) => {
+            let response = json!({
+                "jsonrpc": "2.0",
+                "id": jsonrpc_request.get("id"),
+                "error": {
+                    "code": code,
+                    "message": message
+                }
+            });
+            
+            let console_result = commands::format_response_for_console(&response);
+            
+            Ok(json!({
+                "success": console_result.success,
+                "output": console_result.output,
+                "data": console_result.data,
+                "error": console_result.error
+            }))
+        }
+    }
+}
+
+// === Model Verification and Remediation Methods ===
+
+/// Verify a model for configuration errors and inconsistencies
+async fn verify_model(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let model_id_str = params.get("modelId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: modelId".to_string()))?;
+    
+    let model_id = Uuid::parse(model_id_str)
+        .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
+    
+    // Get the model first, then verify it
+    let model = state.services.model_service.get_model(model_id).await
+        .map_err(|e| (-32603, format!("Failed to load model: {}", e)))?
+        .ok_or((-32604, "Model not found".to_string()))?;
+    
+    // Use the model service to verify the model
+    let verification_report = state.services.model_service.verify_model(&model).await
+        .map_err(|e| (-32603, format!("Failed to verify model: {}", e)))?;
+    
+    Ok(json!({
+        "modelId": model_id_str,
+        "modelName": verification_report.model_name,
+        "generatedAt": verification_report.generated_at,
+        "totalErrors": verification_report.total_errors,
+        "errorsBySeverity": {
+            "critical": verification_report.errors_by_severity.critical,
+            "high": verification_report.errors_by_severity.high,
+            "medium": verification_report.errors_by_severity.medium,
+            "low": verification_report.errors_by_severity.low
+        },
+        "errors": verification_report.errors.into_iter().map(|error| json!({
+            "id": error.id,
+            "error": error.error,
+            "severity": error.severity,
+            "category": error.category,
+            "title": error.title,
+            "description": error.description,
+            "impact": error.impact,
+            "location": {
+                "componentType": error.location.component_type,
+                "componentId": error.location.component_id,
+                "componentName": error.location.component_name,
+                "path": error.location.path,
+                "fileReference": error.location.file_reference
+            },
+            "suggestedFixes": error.suggested_fixes,
+            "autoFixable": error.auto_fixable
+        })).collect::<Vec<_>>(),
+        "suggestions": verification_report.suggestions.into_iter().map(|suggestion| json!({
+            "title": suggestion.title,
+            "description": suggestion.description,
+            "actionType": suggestion.action_type,
+            "affectedErrors": suggestion.affected_errors,
+            "estimatedEffort": suggestion.estimated_effort
+        })).collect::<Vec<_>>()
+    }))
+}
+
+/// Get available remediation strategies for a specific error type
+async fn get_remediation_strategies(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let model_id_str = params.get("modelId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: modelId".to_string()))?;
+    
+    let error_type = params.get("errorType")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: errorType".to_string()))?;
+        
+    let error_parameters = params.get("errorParameters")
+        .cloned()
+        .unwrap_or(json!({}));
+    
+    let model_id = Uuid::parse(model_id_str)
+        .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
+    
+    // Use the model service to get remediation strategies
+    let strategies = state.services.model_service.get_remediation_strategies_by_type(model_id, error_type, &error_parameters).await
+        .map_err(|e| (-32603, format!("Failed to get remediation strategies: {}", e)))?;
+    
+    Ok(json!(strategies.into_iter().map(|strategy| json!({
+        "id": strategy.id,
+        "errorType": strategy.error_type,
+        "strategyType": strategy.strategy_type,
+        "title": strategy.title,
+        "description": strategy.description,
+        "parameters": strategy.parameters.into_iter().map(|param| json!({
+            "name": param.name,
+            "description": param.description,
+            "parameterType": param.parameter_type,
+            "required": param.required,
+            "defaultValue": param.default_value,
+            "validation": param.validation
+        })).collect::<Vec<_>>(),
+        "estimatedEffort": strategy.estimated_effort,
+        "riskLevel": strategy.risk_level,
+        "prerequisites": strategy.prerequisites
+    })).collect::<Vec<_>>()))
+}
+
+/// Execute an auto-remediation strategy to fix model configuration errors
+async fn execute_auto_remediation(state: &AppState, params: &Value) -> Result<Value, (i32, String)> {
+    let model_id_str = params.get("modelId")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: modelId".to_string()))?;
+    
+    let error_type = params.get("errorType")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: errorType".to_string()))?;
+        
+    let error_parameters = params.get("errorParameters")
+        .cloned()
+        .unwrap_or(json!({}));
+    
+    let strategy_type = params.get("strategyType")
+        .and_then(|v| v.as_str())
+        .ok_or((-32602, "Missing required parameter: strategyType".to_string()))?;
+    
+    let parameters = params.get("parameters")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    
+    let model_id = Uuid::parse(model_id_str)
+        .map_err(|_| (-32602, "Invalid modelId format".to_string()))?;
+    
+    // Convert parameters to HashMap
+    let mut param_map = std::collections::HashMap::new();
+    for param in parameters {
+        if let (Some(name), Some(value)) = (param.get("name").and_then(|v| v.as_str()), param.get("value")) {
+            param_map.insert(name.to_string(), value.clone());
+        }
+    }
+    
+    // Execute auto-remediation using the model service
+    let result = state.services.model_service.execute_auto_remediation_by_type(
+        model_id, 
+        error_type, 
+        &error_parameters,
+        strategy_type, 
+        param_map
+    ).await
+        .map_err(|e| (-32603, format!("Failed to execute auto-remediation: {}", e)))?;
+    
+    Ok(json!({
+        "errorType": error_type,
+        "strategyType": strategy_type,
+        "success": result.success,
+        "changesApplied": result.changes_applied.into_iter().map(|change| json!({
+            "changeType": change.change_type,
+            "componentType": change.component_type,
+            "componentId": change.component_id,
+            "description": change.description,
+            "details": change.details
+        })).collect::<Vec<_>>(),
+        "errors": result.errors,
+        "warnings": result.warnings
+    }))
+}
+
+/// Format command history for display
+fn format_command_history(history: &[String]) -> String {
+    if history.is_empty() {
+        return "No commands in history".to_string();
+    }
+    
+    let mut output = String::from("Command History:\n\n");
+    for (i, cmd) in history.iter().enumerate().rev().take(20) {
+        output.push_str(&format!("  {}: {}\n", i + 1, cmd));
+    }
+    
+    if history.len() > 20 {
+        output.push_str(&format!("\n... and {} more commands\n", history.len() - 20));
+    }
+    
+    output
 }
 
 /// Validate JSON-RPC request format

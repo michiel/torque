@@ -69,7 +69,7 @@ export function useLoadPage(modelId: string, pageName?: string, apiBaseUrl?: str
   console.log('[useLoadPage] Hook initialized:', { 
     modelId, 
     pageName: pageName || 'default (start page)', 
-    apiBaseUrl: apiBaseUrl || 'default (localhost:8080)'
+    apiBaseUrl: apiBaseUrl || 'default (localhost:8081)'
   });
   
   return useJsonRpc('loadPage', params, [], client)

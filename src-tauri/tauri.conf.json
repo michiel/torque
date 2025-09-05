@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Torque Desktop",
+  "version": "0.1.0",
+  "identifier": "com.torque.desktop",
+  "build": {
+    "frontendDist": "frontend/model-editor/dist",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "cd frontend/model-editor && VITE_TAURI_DEV=true npm run dev",
+    "beforeBuildCommand": "cd frontend/model-editor && npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Torque Desktop",
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' torque: 127.0.0.1:* localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' torque:; connect-src 'self' torque: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:*; img-src 'self' data: torque:; style-src 'self' 'unsafe-inline' torque:;"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

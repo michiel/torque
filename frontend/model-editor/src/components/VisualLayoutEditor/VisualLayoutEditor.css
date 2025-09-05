@@ -1,9 +1,10 @@
 /* Visual Layout Editor Styles */
 .visual-layout-editor {
-  height: 100vh;
+  height: calc(100vh - 50px); /* Account for AppShell header */
   width: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .visual-layout-editor-header {
@@ -17,12 +18,19 @@
   flex-shrink: 0;
 }
 
+.visual-layout-editor-title {
+  padding: 12px 16px 8px 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+}
+
 .visual-layout-editor-canvas {
   flex: 1;
   width: 100%;
   position: relative;
   overflow: hidden;
-  min-height: 600px;
+  min-height: 0; /* Allow flex child to shrink */
 }
 
 /* Ensure Puck editor takes full space */

@@ -1,0 +1,502 @@
+/* Dark mode specific styles */
+
+/* Global background for dark mode */
+[data-mantine-color-scheme="dark"] {
+  color-scheme: dark;
+}
+
+/* Ensure scrollbars look good in dark mode */
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-track {
+  background: var(--mantine-color-dark-6);
+}
+
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--mantine-color-dark-4);
+  border-radius: 4px;
+}
+
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--mantine-color-dark-3);
+}
+
+/* Firefox scrollbars */
+[data-mantine-color-scheme="dark"] * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mantine-color-dark-4) var(--mantine-color-dark-6);
+}
+
+/* Selection colors */
+[data-mantine-color-scheme="dark"] ::selection {
+  background: var(--mantine-color-blue-9);
+  color: var(--mantine-color-blue-0);
+}
+
+/* Code blocks and pre elements */
+[data-mantine-color-scheme="dark"] pre,
+[data-mantine-color-scheme="dark"] code {
+  background: var(--mantine-color-dark-8);
+  border: 1px solid var(--mantine-color-dark-5);
+}
+
+/* Form inputs dark mode improvements */
+[data-mantine-color-scheme="dark"] .mantine-Input-input {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+  color: var(--mantine-color-dark-0);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Input-input:focus {
+  border-color: var(--mantine-color-blue-4);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Input-input::placeholder {
+  color: var(--mantine-color-dark-2);
+}
+
+/* Dropdowns and popovers */
+[data-mantine-color-scheme="dark"] .mantine-Popover-dropdown,
+[data-mantine-color-scheme="dark"] .mantine-Select-dropdown,
+[data-mantine-color-scheme="dark"] .mantine-Menu-dropdown {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+/* Table improvements */
+[data-mantine-color-scheme="dark"] .mantine-Table-table {
+  background-color: var(--mantine-color-dark-7);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Table-table thead tr th {
+  background-color: var(--mantine-color-dark-6);
+  border-bottom-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Table-table tbody tr td {
+  border-bottom-color: var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Table-table tbody tr:hover {
+  background-color: var(--mantine-color-dark-6);
+}
+
+/* Notification improvements */
+[data-mantine-color-scheme="dark"] .mantine-Notification-root {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+/* ReactFlow / ERD Editor dark mode */
+[data-mantine-color-scheme="dark"] .visual-erd-editor {
+  background: var(--mantine-color-dark-7);
+}
+
+[data-mantine-color-scheme="dark"] .visual-erd-editor-header {
+  background: var(--mantine-color-dark-6);
+  border-bottom-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .visual-erd-editor-canvas {
+  background: var(--mantine-color-dark-7);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__background {
+  background: var(--mantine-color-dark-7);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__controls {
+  background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__controls button {
+  background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+  color: var(--mantine-color-dark-0);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__controls button:hover {
+  background: var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__minimap {
+  background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__panel {
+  background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+  color: var(--mantine-color-dark-0);
+}
+
+/* ReactFlow node dark mode */
+[data-mantine-color-scheme="dark"] .react-flow__node {
+  background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+  color: var(--mantine-color-dark-0);
+}
+
+/* ReactFlow edge dark mode */
+[data-mantine-color-scheme="dark"] .react-flow__edge-path {
+  stroke: var(--mantine-color-blue-4);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__edge-path:hover {
+  stroke: var(--mantine-color-blue-3);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__edge-text {
+  fill: var(--mantine-color-blue-3);
+}
+
+/* Paper and Card improvements */
+[data-mantine-color-scheme="dark"] .mantine-Paper-root {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Card-root {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+/* Text and headers */
+[data-mantine-color-scheme="dark"] .mantine-Title-root {
+  color: var(--mantine-color-dark-0);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Text-root {
+  color: var(--mantine-color-dark-0);
+}
+
+/* Buttons improvements */
+[data-mantine-color-scheme="dark"] .mantine-Button-root {
+  border-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Button-root[data-variant="subtle"] {
+  color: var(--mantine-color-dark-0);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Button-root[data-variant="subtle"]:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+/* ActionIcon improvements */
+[data-mantine-color-scheme="dark"] .mantine-ActionIcon-root[data-variant="subtle"] {
+  color: var(--mantine-color-dark-0);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-ActionIcon-root[data-variant="subtle"]:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+/* Badge improvements - preserve semantic colors for status indicators */
+/* Default badge styling for badges without specific colors */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root:not([data-color]) {
+  background-color: var(--mantine-color-dark-5);
+  color: var(--mantine-color-dark-0);
+}
+
+/* Status badge colors - ensure they remain vibrant in dark mode */
+/* Green badges (Live status) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="green"] {
+  background-color: var(--mantine-color-green-9) !important;
+  color: var(--mantine-color-green-2) !important;
+}
+
+/* Red badges (Error status) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="red"] {
+  background-color: var(--mantine-color-red-9) !important;
+  color: var(--mantine-color-red-2) !important;
+}
+
+/* Orange badges (High severity) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="orange"] {
+  background-color: var(--mantine-color-orange-9) !important;
+  color: var(--mantine-color-orange-2) !important;
+}
+
+/* Yellow badges (Medium severity) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="yellow"] {
+  background-color: var(--mantine-color-yellow-9) !important;
+  color: var(--mantine-color-yellow-1) !important;
+}
+
+/* Blue badges (Low severity) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="blue"] {
+  background-color: var(--mantine-color-blue-9) !important;
+  color: var(--mantine-color-blue-2) !important;
+}
+
+/* Gray badges (Unknown/Loading) */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="gray"] {
+  background-color: var(--mantine-color-dark-5) !important;
+  color: var(--mantine-color-dark-1) !important;
+}
+
+/* Purple badges */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="purple"] {
+  background-color: var(--mantine-color-violet-9) !important;
+  color: var(--mantine-color-violet-2) !important;
+}
+
+/* Teal badges */
+[data-mantine-color-scheme="dark"] .mantine-Badge-root[data-variant="light"][data-color="teal"] {
+  background-color: var(--mantine-color-teal-9) !important;
+  color: var(--mantine-color-teal-2) !important;
+}
+
+/* Accordion improvements */
+[data-mantine-color-scheme="dark"] .mantine-Accordion-root {
+  background-color: var(--mantine-color-dark-6);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Accordion-item {
+  border-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Accordion-control {
+  background-color: var(--mantine-color-dark-6);
+  color: var(--mantine-color-dark-0);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Accordion-control:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Accordion-panel {
+  background-color: var(--mantine-color-dark-7);
+}
+
+/* Tabs improvements */
+[data-mantine-color-scheme="dark"] .mantine-Tabs-root {
+  background-color: var(--mantine-color-dark-6);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Tabs-list {
+  border-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Tabs-tab {
+  color: var(--mantine-color-dark-0);
+  border-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Tabs-tab:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Tabs-panel {
+  background-color: var(--mantine-color-dark-7);
+}
+
+/* Loader improvements */
+[data-mantine-color-scheme="dark"] .mantine-Loader-root {
+  color: var(--mantine-color-blue-4);
+}
+
+/* Generic container improvements */
+[data-mantine-color-scheme="dark"] .mantine-Container-root,
+[data-mantine-color-scheme="dark"] .mantine-Stack-root,
+[data-mantine-color-scheme="dark"] .mantine-Group-root {
+  color: var(--mantine-color-dark-0);
+}
+
+/* AppShell improvements */
+[data-mantine-color-scheme="dark"] .mantine-AppShell-main {
+  background-color: var(--mantine-color-dark-7);
+}
+
+/* General improvements for components with white backgrounds */
+[data-mantine-color-scheme="dark"] *[style*="background: white"],
+[data-mantine-color-scheme="dark"] *[style*="background-color: white"] {
+  background: var(--mantine-color-dark-6) !important;
+  background-color: var(--mantine-color-dark-6) !important;
+}
+
+/* Visual Layout Editor dark mode */
+[data-mantine-color-scheme="dark"] .visual-layout-editor-header {
+  background-color: var(--mantine-color-dark-6);
+  border-bottom-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .visual-layout-editor-title {
+  background-color: var(--mantine-color-dark-6);
+  border-bottom-color: var(--mantine-color-dark-4);
+}
+
+[data-mantine-color-scheme="dark"] .visual-layout-editor [data-puck-canvas] {
+  background-color: var(--mantine-color-dark-7);
+}
+
+/* Entity Node dark mode - override inline styles */
+[data-mantine-color-scheme="dark"] .react-flow__node .mantine-Paper-root {
+  background-color: var(--mantine-color-dark-6) !important;
+  border-color: var(--mantine-color-dark-4) !important;
+  color: var(--mantine-color-dark-0);
+}
+
+[data-mantine-color-scheme="dark"] .react-flow__node.selected .mantine-Paper-root {
+  border-color: var(--mantine-color-blue-4) !important;
+}
+
+/* ReactFlow handle dark mode */
+[data-mantine-color-scheme="dark"] .react-flow__handle {
+  background: var(--mantine-color-dark-4) !important;
+  border-color: var(--mantine-color-dark-0) !important;
+}
+
+/* Console dark mode */
+[data-mantine-color-scheme="dark"] .xterm {
+  background-color: var(--mantine-color-dark-8) !important;
+}
+
+[data-mantine-color-scheme="dark"] .xterm-screen {
+  background-color: var(--mantine-color-dark-8) !important;
+}
+
+/* Alert improvements */
+[data-mantine-color-scheme="dark"] .mantine-Alert-root {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+/* JSON Input improvements */
+[data-mantine-color-scheme="dark"] .mantine-JsonInput-input {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+  color: var(--mantine-color-dark-0);
+}
+
+/* Tooltip improvements */
+[data-mantine-color-scheme="dark"] .mantine-Tooltip-tooltip {
+  background-color: var(--mantine-color-dark-5);
+  color: var(--mantine-color-dark-0);
+}
+
+/* Code/Pre element improvements */
+[data-mantine-color-scheme="dark"] .mantine-Code-root {
+  background-color: var(--mantine-color-dark-8);
+  color: var(--mantine-color-dark-0);
+}
+
+/* Divider improvements */
+[data-mantine-color-scheme="dark"] .mantine-Divider-root {
+  border-color: var(--mantine-color-dark-4);
+}
+
+/* Checkbox and Radio improvements */
+[data-mantine-color-scheme="dark"] .mantine-Checkbox-root,
+[data-mantine-color-scheme="dark"] .mantine-Radio-root {
+  color: var(--mantine-color-dark-0);
+}
+
+/* Switch improvements */
+[data-mantine-color-scheme="dark"] .mantine-Switch-root {
+  color: var(--mantine-color-dark-0);
+}
+
+/* Spotlight/Command palette improvements */
+[data-mantine-color-scheme="dark"] .mantine-Spotlight-root {
+  background-color: var(--mantine-color-dark-6);
+}
+
+/* General text color fix for all components */
+[data-mantine-color-scheme="dark"] * {
+  color: inherit;
+}
+
+/* Fix for hardcoded colors in inline styles */
+[data-mantine-color-scheme="dark"] *[style*="background-color: #fff"],
+[data-mantine-color-scheme="dark"] *[style*="backgroundColor: '#fff'"] {
+  background-color: var(--mantine-color-dark-6) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: #868e96"] {
+  color: var(--mantine-color-dark-2) !important;
+}
+
+/* Body background for dark mode */
+[data-mantine-color-scheme="dark"] body {
+  background-color: var(--mantine-color-dark-7);
+  color: var(--mantine-color-dark-0);
+}
+
+/* Root element background */
+[data-mantine-color-scheme="dark"] #root {
+  background-color: var(--mantine-color-dark-7);
+  color: var(--mantine-color-dark-0);
+}
+
+/* Home and Models page specific backgrounds */
+[data-mantine-color-scheme="dark"] *[style*="var(--mantine-color-gray-0)"] {
+  background: var(--mantine-color-dark-7) !important;
+}
+
+/* Override gray-0 background references */
+[data-mantine-color-scheme="dark"] {
+  --mantine-color-gray-0: var(--mantine-color-dark-7);
+}
+
+/* Paper with bg="gray.0" override */
+[data-mantine-color-scheme="dark"] .mantine-Paper-root[data-bg="gray.0"] {
+  background-color: var(--mantine-color-dark-6) !important;
+}
+
+/* Box components with gray.0 background - override Mantine's gray.0 */
+[data-mantine-color-scheme="dark"] .mantine-Box-root[data-bg="gray.0"] {
+  background-color: var(--mantine-color-dark-7) !important;
+}
+
+/* Alternative selector for Box with gray background */
+[data-mantine-color-scheme="dark"] .mantine-Box-root[style*="background-color: var(--mantine-color-gray-0)"] {
+  background-color: var(--mantine-color-dark-7) !important;
+}
+
+/* Icon color overrides for semantic colors in dark mode */
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-red-6)"] {
+  color: var(--mantine-color-red-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-orange-6)"] {
+  color: var(--mantine-color-orange-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-yellow-6)"] {
+  color: var(--mantine-color-yellow-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-blue-6)"] {
+  color: var(--mantine-color-blue-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] svg[color*="var(--mantine-color-green-6)"] {
+  color: var(--mantine-color-green-4) !important;
+}
+
+/* More specific overrides for icons with inline color styles */
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-red-6)"] {
+  color: var(--mantine-color-red-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-orange-6)"] {
+  color: var(--mantine-color-orange-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-yellow-6)"] {
+  color: var(--mantine-color-yellow-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-blue-6)"] {
+  color: var(--mantine-color-blue-4) !important;
+}
+
+[data-mantine-color-scheme="dark"] *[style*="color: var(--mantine-color-green-6)"] {
+  color: var(--mantine-color-green-4) !important;
+}

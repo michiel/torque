@@ -49,6 +49,7 @@ import {
 } from '../services/appDatabaseService';
 import EntityDataModal from '../components/EntityDataModal';
 import TorqueAppPreview from '../components/TorqueAppPreview';
+import { useTorqueConfig } from '../providers/TorqueConfigProvider';
 
 interface RouteParams extends Record<string, string | undefined> {
   id: string;
@@ -57,6 +58,20 @@ interface RouteParams extends Record<string, string | undefined> {
 export const AppPreviewerPage: React.FC = () => {
   const { id } = useParams<RouteParams>();
   const navigate = useNavigate();
+  const { baseUrl } = useTorqueConfig();
+  
+  console.log('[AppPreviewerPage] baseUrl:', baseUrl);
+  
+  // Configure appDatabaseService with dynamic URL
+  React.useEffect(() => {
+    console.log('[AppPreviewerPage] useEffect triggered, baseUrl:', baseUrl);
+    if (baseUrl) {
+      console.log('[AppPreviewerPage] Configuring appDatabaseService with:', baseUrl);
+      appDatabaseService.configure(baseUrl);
+    } else {
+      console.log('[AppPreviewerPage] baseUrl is falsy, not configuring service');
+    }
+  }, [baseUrl]);
   
   // Loading states
   const [isEmptyingDb, setIsEmptyingDb] = useState(false);

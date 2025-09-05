@@ -37,7 +37,10 @@ export interface LegacyLayout {
 /**
  * Converts legacy layout format to Puck Data format
  */
-export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
+export const migrateLegacyLayout = (
+  legacyLayout: LegacyLayout, 
+  availableEntities?: Array<{ id: string; name: string; displayName: string }>
+): Data => {
   // If already has Puck data, return it
   if (legacyLayout.puckData) {
     return legacyLayout.puckData;
@@ -109,8 +112,17 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
 
     switch (comp.componentType) {
       case 'DataGrid':
+        // Try to get entity from properties, fallback to first available entity if it exists
+        let entityType = comp.properties?.entityType || comp.properties?.entity;
+        if (!entityType && availableEntities && availableEntities.length > 0) {
+          entityType = availableEntities[0].name;
+          console.warn(`DataGrid component using fallback entity: ${entityType}`);
+        } else if (!entityType) {
+          entityType = 'project'; // Final fallback
+        }
+        
         props = {
-          entityType: comp.properties?.entityType || 'project',
+          entityType,
           columns: comp.properties?.columns || [
             { field: 'id', header: 'ID', type: 'text', sortable: true, filterable: true },
             { field: 'name', header: 'Name', type: 'text', sortable: true, filterable: true }
@@ -142,7 +154,7 @@ export const migrateLegacyLayout = (legacyLayout: LegacyLayout): Data => {
 
       case 'TorqueButton':
         props = {
-          text: comp.properties?.text || 'Button',
+          text: comp.properties?.text || comp.properties?.label || 'Button',
           variant: comp.properties?.variant || 'filled',
           size: comp.properties?.size || 'md',
           color: comp.properties?.color || 'blue',
@@ -360,7 +372,7 @@ export const getMigrationWarnings = (layout: LegacyLayout): string[] => {
   layout.components.forEach((comp, index) => {
     switch (comp.componentType) {
       case 'DataGrid':
-        if (!comp.properties?.entityType) {
+        if (!comp.properties?.entityType && !comp.properties?.entity) {
           warnings.push(`DataGrid component #${index + 1}: Missing entity type - will default to 'project'`);
         }
         break;
@@ -370,7 +382,7 @@ export const getMigrationWarnings = (layout: LegacyLayout): string[] => {
         }
         break;
       case 'TorqueButton':
-        if (!comp.properties?.text) {
+        if (!comp.properties?.text && !comp.properties?.label) {
           warnings.push(`TorqueButton component #${index + 1}: Missing button text - will default to 'Button'`);
         }
         break;

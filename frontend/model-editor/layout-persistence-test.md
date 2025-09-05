@@ -16,7 +16,7 @@ To verify the fix works:
 
 1. **Start Development Server**
    ```bash
-   cd /home/michiel/dev/torque
+   cd ../..
    ./scripts/dev.sh
    ```
 

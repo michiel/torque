@@ -1889,6 +1889,265 @@ impl ModelService {
         tracing::info!("Persisted model '{}' to database", model.name);
         Ok(())
     }
+    
+    /// Verify a model for configuration mismatches
+    pub async fn verify_model(&self, model: &TorqueModel) -> Result<crate::model::validation::ConfigurationErrorReport, Error> {
+        use crate::model::validation::ModelVerificationScanner;
+        
+        tracing::info!("Verifying model '{}' for configuration issues", model.name);
+        let scanner = ModelVerificationScanner::new();
+        let report = scanner.scan_model(model);
+        
+        tracing::info!(
+            "Model verification complete: {} errors found ({} critical, {} high, {} medium, {} low)",
+            report.total_errors,
+            report.errors_by_severity.critical,
+            report.errors_by_severity.high,
+            report.errors_by_severity.medium,
+            report.errors_by_severity.low
+        );
+        
+        Ok(report)
+    }
+
+    /// Get remediation strategies for a specific error
+    pub async fn get_remediation_strategies(&self, error_id: Uuid, model_id: Uuid) -> Result<Vec<crate::model::remediation::RemediationStrategy>, Error> {
+        use crate::model::remediation::RemediationStrategyGenerator;
+        
+        // Get the model
+        let model = self.get_model(model_id.clone()).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+        
+        // Verify the model to get current errors
+        let report = self.verify_model(&model).await?;
+        
+        // Find the specific error
+        let error_details = report.errors.iter()
+            .find(|e| e.id == error_id)
+            .ok_or_else(|| Error::NotFound(format!("Error with id {} not found", error_id)))?;
+        
+        // Generate remediation strategies
+        let generator = RemediationStrategyGenerator::new();
+        let strategies = generator.generate_strategies(error_details);
+        
+        tracing::info!("Generated {} remediation strategies for error {}", strategies.len(), error_id);
+        Ok(strategies)
+    }
+
+    /// Execute auto-remediation for a specific error
+    pub async fn execute_auto_remediation(
+        &self,
+        model_id: Uuid,
+        strategy_id: Uuid,
+        parameters: std::collections::HashMap<String, serde_json::Value>
+    ) -> Result<crate::model::remediation::RemediationResult, Error> {
+        use crate::model::remediation::RemediationStrategyGenerator;
+        use crate::model::RemediationExecutor;
+        
+        // Get the model
+        let mut model = self.get_model(model_id.clone()).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+        
+        // Verify the model to get current errors
+        let report = self.verify_model(&model).await?;
+        
+        // Find all strategies for all errors and locate the requested strategy
+        let generator = RemediationStrategyGenerator::new();
+        let mut target_strategy = None;
+        
+        for error_details in &report.errors {
+            let strategies = generator.generate_strategies(error_details);
+            if let Some(strategy) = strategies.iter().find(|s| s.id == strategy_id) {
+                target_strategy = Some(strategy.clone());
+                break;
+            }
+        }
+        
+        let strategy = target_strategy
+            .ok_or_else(|| Error::NotFound(format!("Remediation strategy with id {} not found", strategy_id)))?;
+        
+        // Execute the remediation
+        let executor = RemediationExecutor::new();
+        let result = executor.execute_remediation(&mut model, &strategy, &parameters).await?;
+        
+        // If successful, update the model in the database and cache
+        if result.success {
+            model.updated_at = UtcDateTime::now();
+            
+            // Update cache
+            self.model_cache.insert(
+                model_id.clone(),
+                CacheEntry::new(model.clone(), 3600),
+            );
+            
+            // Persist to database
+            self.persist_model_to_database(&model).await?;
+            
+            // Emit model updated event
+            self.emit_event(ModelChangeEvent::model_updated(model));
+            
+            tracing::info!("Successfully executed auto-remediation for model {} with strategy {}", model_id, strategy_id);
+        } else {
+            tracing::warn!("Auto-remediation failed for model {} with strategy {}: {:?}", model_id, strategy_id, result.errors);
+        }
+        
+        Ok(result)
+    }
+
+    /// Get remediation strategies for a specific error type and parameters
+    pub async fn get_remediation_strategies_by_type(
+        &self, 
+        model_id: Uuid, 
+        error_type: &str,
+        error_parameters: &serde_json::Value
+    ) -> Result<Vec<crate::model::remediation::RemediationStrategy>, Error> {
+        use crate::model::remediation::RemediationStrategyGenerator;
+        use crate::model::validation::ConfigurationError;
+        
+        // Get the model
+        let model = self.get_model(model_id.clone()).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+
+        // Create a mock error from the type and parameters to generate strategies
+        let mock_error = self.create_error_from_type_and_parameters(error_type, error_parameters)?;
+        
+        // Generate remediation strategies
+        let generator = RemediationStrategyGenerator::new();
+        let strategies = generator.generate_strategies(&mock_error);
+        
+        tracing::info!("Generated {} remediation strategies for error type {}", strategies.len(), error_type);
+        Ok(strategies)
+    }
+
+    /// Execute auto-remediation for a specific error type and strategy
+    pub async fn execute_auto_remediation_by_type(
+        &self,
+        model_id: Uuid,
+        error_type: &str,
+        error_parameters: &serde_json::Value,
+        strategy_type: &str,
+        parameters: std::collections::HashMap<String, serde_json::Value>
+    ) -> Result<crate::model::remediation::RemediationResult, Error> {
+        use crate::model::remediation::RemediationStrategyGenerator;
+        use crate::model::RemediationExecutor;
+
+        // Get the model
+        let mut model = self.get_model(model_id.clone()).await?
+            .ok_or_else(|| Error::NotFound(format!("Model with id {} not found", model_id)))?;
+
+        // Create a mock error and generate strategies
+        let mock_error = self.create_error_from_type_and_parameters(error_type, error_parameters)?;
+        let generator = RemediationStrategyGenerator::new();
+        let strategies = generator.generate_strategies(&mock_error);
+
+        // Find the target strategy by type - match on enum variant name
+        let target_strategy = strategies.into_iter()
+            .find(|s| {
+                use crate::model::remediation::RemediationStrategyType;
+                match &s.strategy_type {
+                    RemediationStrategyType::RemoveInvalidReferences => strategy_type == "RemoveInvalidReferences",
+                    RemediationStrategyType::CreateMissingEntity { .. } => strategy_type == "CreateMissingEntity",
+                    RemediationStrategyType::AddMissingFields { .. } => strategy_type == "AddMissingFields",
+                    RemediationStrategyType::UpdateComponentConfiguration { .. } => strategy_type == "UpdateComponentConfiguration",
+                    RemediationStrategyType::RemoveOrphanedReferences { .. } => strategy_type == "RemoveOrphanedReferences",
+                    RemediationStrategyType::FixRelationship { .. } => strategy_type == "FixRelationship",
+                }
+            })
+            .ok_or_else(|| Error::NotFound(format!("Remediation strategy '{}' not found for error type '{}'", strategy_type, error_type)))?;
+
+        // Execute the remediation
+        let executor = RemediationExecutor::new();
+        let result = executor.execute_remediation(&mut model, &target_strategy, &parameters).await?;
+        
+        // If successful, update the model in the database and cache
+        if result.success {
+            model.updated_at = UtcDateTime::now();
+            
+            // Update cache
+            self.model_cache.insert(
+                model_id.clone(),
+                CacheEntry::new(model.clone(), 3600),
+            );
+            
+            // Persist to database
+            self.persist_model_to_database(&model).await?;
+            
+            // Emit model updated event
+            self.emit_event(ModelChangeEvent::model_updated(model));
+            
+            tracing::info!("Successfully executed auto-remediation for model {} with strategy type {}", model_id, strategy_type);
+        } else {
+            tracing::warn!("Auto-remediation failed for model {} with strategy type {}: {:?}", model_id, strategy_type, result.errors);
+        }
+        
+        Ok(result)
+    }
+
+    /// Helper method to create an error from type and parameters for strategy generation
+    fn create_error_from_type_and_parameters(
+        &self,
+        error_type: &str, 
+        error_parameters: &serde_json::Value
+    ) -> Result<crate::model::validation::ConfigurationErrorDetails, Error> {
+        use crate::model::validation::{ConfigurationErrorDetails, ConfigurationError, ErrorLocation, ErrorImpact, ErrorSeverity, ErrorCategory};
+        
+        // Parse error parameters based on error type
+        let error = match error_type {
+            "OrphanedReference" => {
+                let source_id = error_parameters.get("source_id")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| Uuid::parse(s).ok())
+                    .ok_or_else(|| Error::InvalidInput("Missing or invalid source_id parameter".to_string()))?;
+                
+                let target_id = error_parameters.get("target_id")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| Uuid::parse(s).ok())
+                    .ok_or_else(|| Error::InvalidInput("Missing or invalid target_id parameter".to_string()))?;
+                
+                let source_type = error_parameters.get("source_type")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| Error::InvalidInput("Missing source_type parameter".to_string()))?;
+                    
+                let target_type = error_parameters.get("target_type")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| Error::InvalidInput("Missing target_type parameter".to_string()))?;
+                    
+                let reference_field = error_parameters.get("reference_field")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+
+                ConfigurationError::OrphanedReference {
+                    source_id,
+                    target_id,
+                    source_type: source_type.to_string(),
+                    target_type: target_type.to_string(),
+                    reference_field: reference_field.to_string(),
+                }
+            },
+            _ => {
+                return Err(Error::InvalidInput(format!("Unsupported error type: {}", error_type)));
+            }
+        };
+
+        Ok(ConfigurationErrorDetails {
+            id: Uuid::new_v4(),
+            error,
+            severity: ErrorSeverity::Medium,
+            category: ErrorCategory::UserInterface,
+            title: format!("{} error", error_type),
+            description: format!("Auto-remediation for {} error", error_type),
+            impact: ErrorImpact::UserExperienceIssue,
+            location: ErrorLocation {
+                component_type: "Unknown".to_string(),
+                component_id: Uuid::new_v4(),
+                component_name: "Unknown".to_string(),
+                path: vec!["Model".to_string()],
+                file_reference: None,
+            },
+            suggested_fixes: vec!["Auto-remediation available".to_string()],
+            auto_fixable: true,
+        })
+    }
 }
 
 // Input types for the service layer

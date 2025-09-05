@@ -30,6 +30,11 @@ impl Query {
         Ok(models.into_iter().map(Model::from).collect())
     }
 
+    /// Test method to debug GraphQL registration
+    async fn test_method(&self, _ctx: &Context<'_>) -> Result<String> {
+        Ok("Test method works".to_string())
+    }
+
     /// Get a specific model by ID
     async fn model(&self, ctx: &Context<'_>, id: String) -> Result<Option<Model>> {
         let state = ctx.data::<AppState>()?;
@@ -455,6 +460,46 @@ impl Mutation {
             .map_err(|e| async_graphql::Error::new(format!("Failed to load sample data: {}", e)))?;
         Ok(count)
     }
+
+    /// Get remediation strategies for a specific error type and parameters
+    async fn get_remediation_strategies(&self, ctx: &Context<'_>, input: GetRemediationStrategiesInput) -> Result<Vec<RemediationStrategy>> {
+        let state = ctx.data::<AppState>()?;
+        let model_uuid = input.model_id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid model ID format"))?;
+        
+        let strategies = state.services.model_service.get_remediation_strategies_by_type(
+            model_uuid,
+            &input.error_type,
+            &input.error_parameters
+        ).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to get remediation strategies: {}", e)))?;
+        
+        Ok(strategies.into_iter().map(RemediationStrategy::from).collect())
+    }
+
+    /// Execute auto-remediation for a configuration error
+    async fn execute_auto_remediation(&self, ctx: &Context<'_>, input: ExecuteRemediationInput) -> Result<RemediationResult> {
+        let state = ctx.data::<AppState>()?;
+        let model_uuid = input.model_id.parse::<Uuid>()
+            .map_err(|_| async_graphql::Error::new("Invalid model ID format"))?;
+        
+        // Convert GraphQL parameters to HashMap
+        let parameters: std::collections::HashMap<String, serde_json::Value> = input.parameters
+            .into_iter()
+            .map(|p| (p.name, p.value))
+            .collect();
+        
+        let result = state.services.model_service.execute_auto_remediation_by_type(
+            model_uuid, 
+            &input.error_type,
+            &input.error_parameters,
+            &input.strategy_type,
+            parameters
+        ).await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to execute auto-remediation: {}", e)))?;
+        
+        Ok(RemediationResult::from(result))
+    }
 }
 
 /// Subscription type for real-time updates (placeholder for now)
@@ -658,6 +703,76 @@ pub struct ValidationMessage {
     pub code: String,
 }
 
+/// Configuration error report for GraphQL
+#[derive(SimpleObject)]
+pub struct ConfigurationReport {
+    #[graphql(name = "modelId")]
+    pub model_id: UuidString,
+    #[graphql(name = "modelName")]
+    pub model_name: String,
+    #[graphql(name = "generatedAt")]
+    pub generated_at: DateTimeString,
+    #[graphql(name = "totalErrors")]
+    pub total_errors: i32,
+    #[graphql(name = "errorsBySeverity")]
+    pub errors_by_severity: ErrorSeverityCount,
+    pub errors: Vec<ConfigurationErrorDetail>,
+    pub suggestions: Vec<ErrorSuggestion>,
+}
+
+/// Error severity count for GraphQL
+#[derive(SimpleObject)]
+pub struct ErrorSeverityCount {
+    pub critical: i32,
+    pub high: i32,
+    pub medium: i32,
+    pub low: i32,
+}
+
+/// Configuration error detail for GraphQL
+#[derive(SimpleObject)]
+pub struct ConfigurationErrorDetail {
+    pub id: UuidString,
+    pub error: JSON,
+    pub severity: ConfigErrorSeverityEnum,
+    pub category: ConfigErrorCategoryEnum,
+    pub title: String,
+    pub description: String,
+    pub impact: JSON,
+    pub location: ErrorLocation,
+    #[graphql(name = "suggestedFixes")]
+    pub suggested_fixes: Vec<String>,
+    #[graphql(name = "autoFixable")]
+    pub auto_fixable: bool,
+}
+
+/// Error location for GraphQL
+#[derive(SimpleObject)]
+pub struct ErrorLocation {
+    #[graphql(name = "componentType")]
+    pub component_type: String,
+    #[graphql(name = "componentId")]
+    pub component_id: UuidString,
+    #[graphql(name = "componentName")]
+    pub component_name: String,
+    pub path: Vec<String>,
+    #[graphql(name = "fileReference")]
+    pub file_reference: Option<String>,
+}
+
+/// Error suggestion for GraphQL
+#[derive(SimpleObject)]
+pub struct ErrorSuggestion {
+    pub title: String,
+    pub description: String,
+    #[graphql(name = "actionType")]
+    pub action_type: SuggestionActionTypeEnum,
+    #[graphql(name = "affectedErrors")]
+    pub affected_errors: Vec<UuidString>,
+    #[graphql(name = "estimatedEffort")]
+    pub estimated_effort: EstimatedEffortEnum,
+}
+
 // GraphQL Enums
 
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]
@@ -759,6 +874,42 @@ pub enum IndexTypeEnum {
     Hash,
     Gin,
     Gist,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum ConfigErrorSeverityEnum {
+    Critical,
+    High,
+    Medium,
+    Low,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum ConfigErrorCategoryEnum {
+    DataModel,
+    UserInterface,
+    BusinessLogic,
+    Integration,
+    Performance,
+    Security,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum SuggestionActionTypeEnum {
+    CreateMissingEntity,
+    UpdateEntitySchema,
+    FixLayoutConfiguration,
+    RemoveInvalidReferences,
+    UpdateValidationRules,
+    RefactorRelationships,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum EstimatedEffortEnum {
+    Low,
+    Medium,
+    High,
+    Complex,
 }
 
 // Input types for mutations
@@ -918,6 +1069,109 @@ pub struct CreateLayoutComponentInput {
     pub properties: JSON,
     pub styling: Option<JSON>,
     pub metadata: Option<JSON>,
+}
+
+// Remediation types
+
+#[derive(SimpleObject)]
+pub struct RemediationStrategy {
+    pub id: UuidString,
+    #[graphql(name = "errorType")]
+    pub error_type: String,
+    #[graphql(name = "strategyType")]
+    pub strategy_type: String,
+    pub title: String,
+    pub description: String,
+    pub parameters: Vec<RemediationParameter>,
+    #[graphql(name = "estimatedEffort")]
+    pub estimated_effort: EstimatedEffortEnum,
+    #[graphql(name = "riskLevel")]
+    pub risk_level: RiskLevelEnum,
+    pub prerequisites: Vec<String>,
+}
+
+#[derive(SimpleObject)]
+pub struct RemediationParameter {
+    pub name: String,
+    pub description: String,
+    #[graphql(name = "parameterType")]
+    pub parameter_type: String,
+    pub required: bool,
+    #[graphql(name = "defaultValue")]
+    pub default_value: Option<JSON>,
+    pub validation: Option<String>,
+}
+
+#[derive(SimpleObject)]
+pub struct RemediationResult {
+    #[graphql(name = "strategyId")]
+    pub strategy_id: UuidString,
+    pub success: bool,
+    #[graphql(name = "changesApplied")]
+    pub changes_applied: Vec<ModelChange>,
+    pub errors: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(SimpleObject)]
+pub struct ModelChange {
+    #[graphql(name = "changeType")]
+    pub change_type: ModelChangeTypeEnum,
+    #[graphql(name = "componentType")]
+    pub component_type: String,
+    #[graphql(name = "componentId")]
+    pub component_id: UuidString,
+    pub description: String,
+    pub details: JSON,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum RiskLevelEnum {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum ModelChangeTypeEnum {
+    EntityCreated,
+    EntityUpdated,
+    FieldAdded,
+    FieldUpdated,
+    LayoutUpdated,
+    ComponentUpdated,
+    RelationshipUpdated,
+    RelationshipRemoved,
+    ReferenceRemoved,
+}
+
+#[derive(InputObject)]
+pub struct GetRemediationStrategiesInput {
+    #[graphql(name = "modelId")]
+    pub model_id: UuidString,
+    #[graphql(name = "errorType")]
+    pub error_type: String,
+    #[graphql(name = "errorParameters")]
+    pub error_parameters: JSON,
+}
+
+#[derive(InputObject)]
+pub struct ExecuteRemediationInput {
+    #[graphql(name = "modelId")]
+    pub model_id: UuidString,
+    #[graphql(name = "errorType")]
+    pub error_type: String,
+    #[graphql(name = "errorParameters")]
+    pub error_parameters: JSON,
+    #[graphql(name = "strategyType")]
+    pub strategy_type: String,
+    pub parameters: Vec<RemediationParameterInput>,
+}
+
+#[derive(InputObject)]
+pub struct RemediationParameterInput {
+    pub name: String,
+    pub value: JSON,
 }
 
 // Event types for subscriptions
@@ -1279,6 +1533,210 @@ impl From<crate::services::model::ValidationResult> for ValidationResult {
                 field: w.field,
                 code: w.code,
             }).collect(),
+        }
+    }
+}
+
+// Convert ConfigurationErrorReport to GraphQL ConfigurationReport
+impl From<crate::model::validation::ConfigurationErrorReport> for ConfigurationReport {
+    fn from(report: crate::model::validation::ConfigurationErrorReport) -> Self {
+        Self {
+            model_id: report.model_id.to_string(),
+            model_name: report.model_name,
+            generated_at: report.generated_at.to_iso8601(),
+            total_errors: report.total_errors as i32,
+            errors_by_severity: ErrorSeverityCount::from(report.errors_by_severity),
+            errors: report.errors.into_iter().map(ConfigurationErrorDetail::from).collect(),
+            suggestions: report.suggestions.into_iter().map(ErrorSuggestion::from).collect(),
+        }
+    }
+}
+
+impl From<crate::model::validation::ErrorSeverityCount> for ErrorSeverityCount {
+    fn from(count: crate::model::validation::ErrorSeverityCount) -> Self {
+        Self {
+            critical: count.critical as i32,
+            high: count.high as i32,
+            medium: count.medium as i32,
+            low: count.low as i32,
+        }
+    }
+}
+
+impl From<crate::model::validation::ConfigurationErrorDetails> for ConfigurationErrorDetail {
+    fn from(details: crate::model::validation::ConfigurationErrorDetails) -> Self {
+        Self {
+            id: details.id.to_string(),
+            error: serde_json::to_value(details.error).unwrap_or_default(),
+            severity: details.severity.into(),
+            category: details.category.into(),
+            title: details.title,
+            description: details.description,
+            impact: serde_json::to_value(details.impact).unwrap_or_default(),
+            location: ErrorLocation::from(details.location),
+            suggested_fixes: details.suggested_fixes,
+            auto_fixable: details.auto_fixable,
+        }
+    }
+}
+
+impl From<crate::model::validation::ErrorLocation> for ErrorLocation {
+    fn from(location: crate::model::validation::ErrorLocation) -> Self {
+        Self {
+            component_type: location.component_type,
+            component_id: location.component_id.to_string(),
+            component_name: location.component_name,
+            path: location.path,
+            file_reference: location.file_reference,
+        }
+    }
+}
+
+impl From<crate::model::validation::ErrorSuggestion> for ErrorSuggestion {
+    fn from(suggestion: crate::model::validation::ErrorSuggestion) -> Self {
+        Self {
+            title: suggestion.title,
+            description: suggestion.description,
+            action_type: suggestion.action_type.into(),
+            affected_errors: suggestion.affected_errors.into_iter().map(|id| id.to_string()).collect(),
+            estimated_effort: suggestion.estimated_effort.into(),
+        }
+    }
+}
+
+// Enum conversions for configuration error types
+impl From<crate::model::validation::ErrorSeverity> for ConfigErrorSeverityEnum {
+    fn from(severity: crate::model::validation::ErrorSeverity) -> Self {
+        match severity {
+            crate::model::validation::ErrorSeverity::Critical => ConfigErrorSeverityEnum::Critical,
+            crate::model::validation::ErrorSeverity::High => ConfigErrorSeverityEnum::High,
+            crate::model::validation::ErrorSeverity::Medium => ConfigErrorSeverityEnum::Medium,
+            crate::model::validation::ErrorSeverity::Low => ConfigErrorSeverityEnum::Low,
+        }
+    }
+}
+
+impl From<crate::model::validation::ErrorCategory> for ConfigErrorCategoryEnum {
+    fn from(category: crate::model::validation::ErrorCategory) -> Self {
+        match category {
+            crate::model::validation::ErrorCategory::DataModel => ConfigErrorCategoryEnum::DataModel,
+            crate::model::validation::ErrorCategory::UserInterface => ConfigErrorCategoryEnum::UserInterface,
+            crate::model::validation::ErrorCategory::BusinessLogic => ConfigErrorCategoryEnum::BusinessLogic,
+            crate::model::validation::ErrorCategory::Integration => ConfigErrorCategoryEnum::Integration,
+            crate::model::validation::ErrorCategory::Performance => ConfigErrorCategoryEnum::Performance,
+            crate::model::validation::ErrorCategory::Security => ConfigErrorCategoryEnum::Security,
+        }
+    }
+}
+
+impl From<crate::model::validation::SuggestionActionType> for SuggestionActionTypeEnum {
+    fn from(action_type: crate::model::validation::SuggestionActionType) -> Self {
+        match action_type {
+            crate::model::validation::SuggestionActionType::CreateMissingEntity => SuggestionActionTypeEnum::CreateMissingEntity,
+            crate::model::validation::SuggestionActionType::UpdateEntitySchema => SuggestionActionTypeEnum::UpdateEntitySchema,
+            crate::model::validation::SuggestionActionType::FixLayoutConfiguration => SuggestionActionTypeEnum::FixLayoutConfiguration,
+            crate::model::validation::SuggestionActionType::RemoveInvalidReferences => SuggestionActionTypeEnum::RemoveInvalidReferences,
+            crate::model::validation::SuggestionActionType::UpdateValidationRules => SuggestionActionTypeEnum::UpdateValidationRules,
+            crate::model::validation::SuggestionActionType::RefactorRelationships => SuggestionActionTypeEnum::RefactorRelationships,
+        }
+    }
+}
+
+impl From<crate::model::validation::EstimatedEffort> for EstimatedEffortEnum {
+    fn from(effort: crate::model::validation::EstimatedEffort) -> Self {
+        match effort {
+            crate::model::validation::EstimatedEffort::Low => EstimatedEffortEnum::Low,
+            crate::model::validation::EstimatedEffort::Medium => EstimatedEffortEnum::Medium,
+            crate::model::validation::EstimatedEffort::High => EstimatedEffortEnum::High,
+            crate::model::validation::EstimatedEffort::Complex => EstimatedEffortEnum::Complex,
+        }
+    }
+}
+
+// Remediation type conversions
+
+impl From<crate::model::remediation::RemediationStrategy> for RemediationStrategy {
+    fn from(strategy: crate::model::remediation::RemediationStrategy) -> Self {
+        Self {
+            id: strategy.id.to_string(),
+            error_type: strategy.error_type,
+            strategy_type: match strategy.strategy_type {
+                crate::model::remediation::RemediationStrategyType::RemoveInvalidReferences => "RemoveInvalidReferences".to_string(),
+                crate::model::remediation::RemediationStrategyType::CreateMissingEntity { .. } => "CreateMissingEntity".to_string(),
+                crate::model::remediation::RemediationStrategyType::AddMissingFields { .. } => "AddMissingFields".to_string(),
+                crate::model::remediation::RemediationStrategyType::UpdateComponentConfiguration { .. } => "UpdateComponentConfiguration".to_string(),
+                crate::model::remediation::RemediationStrategyType::RemoveOrphanedReferences { .. } => "RemoveOrphanedReferences".to_string(),
+                crate::model::remediation::RemediationStrategyType::FixRelationship { .. } => "FixRelationship".to_string(),
+            },
+            title: strategy.title,
+            description: strategy.description,
+            parameters: strategy.parameters.into_iter().map(RemediationParameter::from).collect(),
+            estimated_effort: strategy.estimated_effort.into(),
+            risk_level: strategy.risk_level.into(),
+            prerequisites: strategy.prerequisites,
+        }
+    }
+}
+
+impl From<crate::model::remediation::RemediationParameter> for RemediationParameter {
+    fn from(param: crate::model::remediation::RemediationParameter) -> Self {
+        Self {
+            name: param.name,
+            description: param.description,
+            parameter_type: format!("{:?}", param.parameter_type),
+            required: param.required,
+            default_value: param.default_value,
+            validation: param.validation,
+        }
+    }
+}
+
+impl From<crate::model::remediation::RemediationResult> for RemediationResult {
+    fn from(result: crate::model::remediation::RemediationResult) -> Self {
+        Self {
+            strategy_id: result.strategy_id.to_string(),
+            success: result.success,
+            changes_applied: result.changes_applied.into_iter().map(ModelChange::from).collect(),
+            errors: result.errors,
+            warnings: result.warnings,
+        }
+    }
+}
+
+impl From<crate::model::remediation::ModelChange> for ModelChange {
+    fn from(change: crate::model::remediation::ModelChange) -> Self {
+        Self {
+            change_type: change.change_type.into(),
+            component_type: change.component_type,
+            component_id: change.component_id.to_string(),
+            description: change.description,
+            details: change.details,
+        }
+    }
+}
+
+impl From<crate::model::remediation::RiskLevel> for RiskLevelEnum {
+    fn from(risk: crate::model::remediation::RiskLevel) -> Self {
+        match risk {
+            crate::model::remediation::RiskLevel::Low => RiskLevelEnum::Low,
+            crate::model::remediation::RiskLevel::Medium => RiskLevelEnum::Medium,
+            crate::model::remediation::RiskLevel::High => RiskLevelEnum::High,
+        }
+    }
+}
+
+impl From<crate::model::remediation::ModelChangeType> for ModelChangeTypeEnum {
+    fn from(change_type: crate::model::remediation::ModelChangeType) -> Self {
+        match change_type {
+            crate::model::remediation::ModelChangeType::EntityCreated => ModelChangeTypeEnum::EntityCreated,
+            crate::model::remediation::ModelChangeType::EntityUpdated => ModelChangeTypeEnum::EntityUpdated,
+            crate::model::remediation::ModelChangeType::FieldAdded => ModelChangeTypeEnum::FieldAdded,
+            crate::model::remediation::ModelChangeType::FieldUpdated => ModelChangeTypeEnum::FieldUpdated,
+            crate::model::remediation::ModelChangeType::LayoutUpdated => ModelChangeTypeEnum::LayoutUpdated,
+            crate::model::remediation::ModelChangeType::ComponentUpdated => ModelChangeTypeEnum::ComponentUpdated,
+            crate::model::remediation::ModelChangeType::RelationshipUpdated => ModelChangeTypeEnum::RelationshipUpdated,
+            crate::model::remediation::ModelChangeType::RelationshipRemoved => ModelChangeTypeEnum::RelationshipRemoved,
+            crate::model::remediation::ModelChangeType::ReferenceRemoved => ModelChangeTypeEnum::ReferenceRemoved,
         }
     }
 }

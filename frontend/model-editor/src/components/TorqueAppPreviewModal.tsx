@@ -28,7 +28,7 @@ const TorqueAppPreviewModal: React.FC<TorqueAppPreviewModalProps> = ({
   model
 }) => {
   const handleOpenInNewTab = () => {
-    const torqueAppUrl = `http://localhost:3004/app/${modelId}`;
+    const torqueAppUrl = `http://localhost:3002/app/${modelId}`;
     window.open(torqueAppUrl, '_blank');
   };
 

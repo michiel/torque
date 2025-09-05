@@ -70,6 +70,14 @@
  - Data export includes entity instances with referential integrity preservation
  - Import/export operations support versioning and migration paths
 
+# Torque Tauri app
+
+ - The torque tauri app is tauri https://v2.tauri.app/ v2 Tauri cross-platform desktop application
+ - It is a binary artifact separate from the main torque binary
+ - The rust source code is in ./src-tauri/
+ - The tauri front-end uses the same frontend code as the web version for the console tauri binary. Tauri-specific front-end elements are in ./frontend/tauri
+ - The Torque Tauri app uses the existing torque code, server, apis, mcp, etc
+ - The Torque Tauri app uses cross-platform rust crates for user-preference and application data directories
 
 # Scenarios
 

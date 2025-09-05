@@ -67,6 +67,7 @@ rust-embed = "8.0"
 dashmap = "5.5" # Lock-free concurrent hashmap
 parking_lot = "0.12" # Faster mutex implementation
 mimalloc = { version = "0.1", optional = true } # Fast allocator
+once_cell = "1.19" # Global static initialization
 
 # CLI and configuration
 clap = { version = "4.0", features = ["derive"] }

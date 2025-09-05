@@ -54,27 +54,47 @@ export interface DatabaseStats {
 
 class AppDatabaseService {
   private baseUrl = '/api/v1';
+  
+  // Allow dynamic configuration of base URL for Tauri environments
+  public configure(baseUrl: string) {
+    if (!baseUrl) {
+      console.warn('[AppDatabaseService] configure called with undefined baseUrl');
+      return;
+    }
+    // In Tauri environments, use the full URL directly
+    // In web environments, use the proxy path
+    this.baseUrl = baseUrl.startsWith('http') ? `${baseUrl}/api/v1` : '/api/v1';
+    console.log('[AppDatabaseService] Configured with baseUrl:', this.baseUrl);
+  }
 
   /**
    * Get database status and overview for a model
    */
   async getDatabaseStatus(modelId: string): Promise<DatabaseStatus> {
-    const response = await fetch(`${this.baseUrl}/models/${modelId}/app-database/status`);
+    const url = `${this.baseUrl}/models/${modelId}/app-database/status`;
+    console.log('[AppDatabaseService] Fetching database status from:', url);
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to get database status: ${response.statusText}`);
     }
-    return response.json();
+    const data = await response.json();
+    console.log('[AppDatabaseService] Database status response:', data);
+    return data;
   }
 
   /**
    * Get overview of all entities in the app database
    */
   async getEntitiesOverview(modelId: string): Promise<EntityOverview[]> {
-    const response = await fetch(`${this.baseUrl}/models/${modelId}/app-database/entities`);
+    const url = `${this.baseUrl}/models/${modelId}/app-database/entities`;
+    console.log('[AppDatabaseService] Fetching entities overview from:', url);
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to get entities overview: ${response.statusText}`);
     }
-    return response.json();
+    const data = await response.json();
+    console.log('[AppDatabaseService] Entities overview response:', data);
+    return data;
   }
 
   /**

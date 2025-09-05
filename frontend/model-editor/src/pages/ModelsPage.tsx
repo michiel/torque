@@ -115,7 +115,7 @@ export function ModelsPage() {
   }
 
   return (
-    <Box style={{ minHeight: 'calc(100vh - 100px)', background: 'var(--mantine-color-gray-0)' }}>
+    <Box style={{ minHeight: 'calc(100vh - 100px)' }} bg="gray.0">
       <Container size="xl" py="xl">
         <Stack>
       {/* Header */}

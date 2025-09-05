@@ -91,12 +91,14 @@
   margin: 10px;
 }
 
-/* Actions menu positioning */
-.erd-actions-menu {
-  position: absolute !important;
-  left: 80px !important;
-  bottom: 20px !important;
-  z-index: 1000 !important;
+/* Enhanced styling for custom buttons in ReactFlow controls */
+.react-flow__controls button.react-flow__controls-button:hover {
+  background: var(--mantine-color-gray-1) !important;
+}
+
+.react-flow__controls button.react-flow__controls-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
 }
 
 /* Ensure modals are properly layered above header */

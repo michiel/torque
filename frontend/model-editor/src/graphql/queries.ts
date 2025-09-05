@@ -217,3 +217,88 @@ export const SEARCH_MODELS = gql`
     }
   }
 `
+
+// Query to verify a model for configuration mismatches
+export const VERIFY_MODEL = gql`
+  query VerifyModel($modelId: String!) {
+    verifyModel(modelId: $modelId) {
+      modelId
+      modelName
+      generatedAt
+      totalErrors
+      errorsBySeverity {
+        critical
+        high
+        medium
+        low
+      }
+      errors {
+        id
+        error
+        severity
+        category
+        title
+        description
+        impact
+        location {
+          componentType
+          componentId
+          componentName
+          path
+          fileReference
+        }
+        suggestedFixes
+        autoFixable
+      }
+      suggestions {
+        title
+        description
+        actionType
+        affectedErrors
+        estimatedEffort
+      }
+    }
+  }
+`
+
+// Query to get remediation strategies for a specific error type
+export const GET_REMEDIATION_STRATEGIES = gql`
+  query GetRemediationStrategies($input: GetRemediationStrategiesInput!) {
+    getRemediationStrategies(input: $input) {
+      id
+      errorType
+      strategyType
+      title
+      description
+      parameters {
+        name
+        description
+        parameterType
+        required
+        defaultValue
+        validation
+      }
+      estimatedEffort
+      riskLevel
+      prerequisites
+    }
+  }
+`
+
+// Mutation to execute auto-remediation
+export const EXECUTE_AUTO_REMEDIATION = gql`
+  mutation ExecuteAutoRemediation($input: ExecuteRemediationInput!) {
+    executeAutoRemediation(input: $input) {
+      success
+      changesApplied {
+        changeType
+        componentType
+        componentId
+        description
+        details
+      }
+      errors
+      warnings
+    }
+  }
+`

@@ -23,6 +23,7 @@ Thumbs.db
 
 # Database
 *.db
+*.db-*
 *.sqlite
 
 # Temporary files

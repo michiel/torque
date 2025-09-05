@@ -78,46 +78,6 @@ export const ModelOverviewPage: React.FC = () => {
           </Group>
         </div>
 
-        {/* Model Statistics */}
-        <Grid>
-          <Grid.Col span={3}>
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Stack gap="xs" align="center">
-                <IconDatabase size={32} color="var(--mantine-color-blue-6)" />
-                <Text fw={700} size="xl">{model.entities?.length || 0}</Text>
-                <Text size="sm" c="dimmed">Entities</Text>
-              </Stack>
-            </Card>
-          </Grid.Col>
-          <Grid.Col span={3}>
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Stack gap="xs" align="center">
-                <IconEdit size={32} color="var(--mantine-color-green-6)" />
-                <Text fw={700} size="xl">{model.relationships?.length || 0}</Text>
-                <Text size="sm" c="dimmed">Relationships</Text>
-              </Stack>
-            </Card>
-          </Grid.Col>
-          <Grid.Col span={3}>
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Stack gap="xs" align="center">
-                <IconSettings size={32} color="var(--mantine-color-orange-6)" />
-                <Text fw={700} size="xl">{model.layouts?.length || 0}</Text>
-                <Text size="sm" c="dimmed">Layouts</Text>
-              </Stack>
-            </Card>
-          </Grid.Col>
-          <Grid.Col span={3}>
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Stack gap="xs" align="center">
-                <IconFileImport size={32} color="var(--mantine-color-purple-6)" />
-                <Text fw={700} size="xl">{model.flows?.length || 0}</Text>
-                <Text size="sm" c="dimmed">Flows</Text>
-              </Stack>
-            </Card>
-          </Grid.Col>
-        </Grid>
-
         {/* Navigation Options */}
         <Grid>
           <Grid.Col span={6}>
@@ -179,6 +139,47 @@ export const ModelOverviewPage: React.FC = () => {
             </Card>
           </Grid.Col>
         </Grid>
+
+        {/* Model Statistics */}
+        <Grid>
+          <Grid.Col span={3}>
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="xs" align="center">
+                <IconDatabase size={32} color="var(--mantine-color-blue-6)" />
+                <Text fw={700} size="xl">{model.entities?.length || 0}</Text>
+                <Text size="sm" c="dimmed">Entities</Text>
+              </Stack>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={3}>
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="xs" align="center">
+                <IconEdit size={32} color="var(--mantine-color-green-6)" />
+                <Text fw={700} size="xl">{model.relationships?.length || 0}</Text>
+                <Text size="sm" c="dimmed">Relationships</Text>
+              </Stack>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={3}>
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="xs" align="center">
+                <IconSettings size={32} color="var(--mantine-color-orange-6)" />
+                <Text fw={700} size="xl">{model.layouts?.length || 0}</Text>
+                <Text size="sm" c="dimmed">Layouts</Text>
+              </Stack>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={3}>
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="xs" align="center">
+                <IconFileImport size={32} color="var(--mantine-color-purple-6)" />
+                <Text fw={700} size="xl">{model.flows?.length || 0}</Text>
+                <Text size="sm" c="dimmed">Flows</Text>
+              </Stack>
+            </Card>
+          </Grid.Col>
+        </Grid>
+
       </Stack>
     </Container>
   );

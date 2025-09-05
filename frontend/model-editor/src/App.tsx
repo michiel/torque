@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { AppShell } from '@mantine/core'
 
 import { Header } from './components/Header'
+import { ServerStatus } from './components/ServerStatus'
 import { HomePage } from './pages/HomePage'
 import { ModelsPage } from './pages/ModelsPage'
 import { ModelOverviewPage } from './pages/ModelOverviewPage'
@@ -14,18 +15,20 @@ import { EntityEditorPage } from './pages/EntityEditorPage'
 import { RelationshipEditorPage } from './pages/RelationshipEditorPage'
 import { ERDEditorPage } from './pages/ERDEditorPage'
 import { DebugLayoutPage } from './pages/DebugLayoutPage'
+import { ModelVerificationPage } from './pages/ModelVerificationPage'
 
 function App() {
   return (
     <AppShell
       header={{ height: { base: 50 } }}
       padding={0}
+      style={{ height: '100vh', overflow: 'hidden' }}
     >
       <AppShell.Header>
         <Header />
       </AppShell.Header>
 
-      <AppShell.Main>
+      <AppShell.Main style={{ height: 'calc(100vh - 50px)', overflow: 'auto' }}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/models" element={<ModelsPage />} />
@@ -41,8 +44,10 @@ function App() {
           <Route path="/models/:id/editor/layouts/new" element={<LayoutEditorPage />} />
           <Route path="/models/:id/editor/layouts/:layoutId" element={<LayoutEditorPage />} />
           <Route path="/models/:id/editor/erd" element={<ERDEditorPage />} />
+          <Route path="/models/:id/verification" element={<ModelVerificationPage />} />
           <Route path="/debug-layout" element={<DebugLayoutPage />} />
         </Routes>
+        <ServerStatus />
       </AppShell.Main>
     </AppShell>
   )

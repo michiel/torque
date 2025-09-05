@@ -10,6 +10,7 @@ import {
   Menu,
   Avatar,
   rem,
+  useMantineColorScheme,
 } from '@mantine/core'
 import {
   IconHome,
@@ -19,7 +20,11 @@ import {
   IconDatabase,
   IconChevronRight,
 } from '@tabler/icons-react'
+import { useQuery } from '@apollo/client'
 import { ConnectionStatus } from './ConnectionStatus'
+import { ModelVerificationStatus } from './ModelVerificationStatus'
+import { DarkModeToggle } from './DarkModeToggle'
+import { GET_MODEL } from '../graphql/queries'
 
 interface BreadcrumbItem {
   title: string
@@ -86,6 +91,8 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
             }
           }
         }
+      } else if (segments[2] === 'verification') {
+        breadcrumbs.push({ title: 'Model Verification' })
       } else if (segments[2] === 'previewer') {
         breadcrumbs.push({ title: 'App Previewer' })
       }
@@ -97,12 +104,31 @@ function getBreadcrumbs(pathname: string, search: string): BreadcrumbItem[] {
 
 export function Header() {
   const location = useLocation()
+  const { colorScheme } = useMantineColorScheme()
   const breadcrumbs = getBreadcrumbs(location.pathname, location.search)
+  
+  // Extract model ID from URL if we're on a model page
+  const pathSegments = location.pathname.split('/').filter(Boolean)
+  const isModelPage = pathSegments[0] === 'models' && pathSegments[1] && pathSegments[1] !== 'new'
+  const modelId = isModelPage ? pathSegments[1] : null
+  
+  // Fetch model data when on a model page
+  const { data: modelData } = useQuery(GET_MODEL, {
+    variables: { id: modelId },
+    skip: !modelId,
+    errorPolicy: 'all',
+  })
+  
+  const model = modelData?.model
 
   return (
     <Box>
       {/* Main Header */}
-      <Group h={32} px="sm" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+      <Group h={32} px="sm" justify="space-between" style={{ 
+        borderBottom: colorScheme === 'dark' 
+          ? '1px solid var(--mantine-color-dark-5)' 
+          : '1px solid var(--mantine-color-gray-3)' 
+      }}>
         {/* Left side - Logo and Nav */}
         <Group>
           <Link 
@@ -122,11 +148,21 @@ export function Header() {
               <Text size="lg" fw={600}>Torque</Text>
             </Group>
           </Link>
+          
+          {/* Model verification status when on a model page */}
+          {model && modelId && (
+            <ModelVerificationStatus 
+              modelId={modelId} 
+              modelName={model.name}
+            />
+          )}
         </Group>
 
         {/* Right side - User menu and settings */}
         <Group>
           <ConnectionStatus />
+          
+          <DarkModeToggle />
           
           <ActionIcon variant="subtle" size="md">
             <IconSettings size={16} />
@@ -159,7 +195,16 @@ export function Header() {
       </Group>
 
       {/* Breadcrumb Trail */}
-      <Box px="sm" py={rem(4)} bg="gray.0" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+      <Box 
+        px="sm" 
+        py={rem(4)} 
+        bg={colorScheme === 'dark' ? 'dark.8' : 'gray.0'} 
+        style={{ 
+          borderBottom: colorScheme === 'dark' 
+            ? '1px solid var(--mantine-color-dark-5)' 
+            : '1px solid var(--mantine-color-gray-3)' 
+        }}
+      >
         <Breadcrumbs separator={<IconChevronRight size={12} />}>
           {breadcrumbs.map((item, index) =>
             item.href ? (
