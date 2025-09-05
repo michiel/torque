@@ -27,13 +27,14 @@ jobs:
         platform:
           - os-name: linux-x86_64
             runs-on: ubuntu-24.04
-            target: x86_64-unknown-linux-musl
+            target: x86_64-unknown-linux-gnu
             binary-ext: ""
 
-          - os-name: linux-aarch64
-            runs-on: ubuntu-24.04
-            target: aarch64-unknown-linux-musl
-            binary-ext: ""
+          # Disabled aarch64 Linux due to cross-compilation complexity with GUI dependencies
+          # - os-name: linux-aarch64
+          #   runs-on: ubuntu-24.04
+          #   target: aarch64-unknown-linux-gnu
+          #   binary-ext: ""
 
           - os-name: windows-x86_64
             runs-on: windows-latest
@@ -125,9 +126,11 @@ jobs:
       - name: Build torque-desktop binary (Tauri)
         run: |
           if [ "${{ matrix.platform.target }}" = "x86_64-pc-windows-msvc" ]; then
-            cargo tauri build --target ${{ matrix.platform.target }} --config '{"bundle":{"active":false}}'
+            # Windows: disable bundling for raw executable
+            cargo tauri build --config '{"bundle":{"active":false}}'
           else
-            cargo tauri build --target ${{ matrix.platform.target }}
+            # Linux/macOS: use native builds to avoid cross-compilation issues with GUI deps
+            cargo tauri build
           fi
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
