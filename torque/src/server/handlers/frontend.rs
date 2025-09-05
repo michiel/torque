@@ -4,22 +4,46 @@ use axum::{
     response::{Html, Response},
     body::Body,
 };
+use rust_embed::RustEmbed;
 use std::path::PathBuf;
+
+#[derive(RustEmbed)]
+#[folder = "../frontend/model-editor/dist/"]
+struct ModelEditorAssets;
 
 /// Serve the Model Editor frontend - serve the built React app
 pub async fn serve_model_editor() -> Result<Response<Body>, StatusCode> {
-    tracing::info!("Serving Model Editor index.html");
-    serve_static_file("../frontend/model-editor/dist/index.html").await
+    tracing::info!("Serving Model Editor index.html from embedded assets");
+    serve_embedded_file("index.html").await
 }
 
-
-/// Serve static assets (CSS, JS files)
+/// Serve static assets (CSS, JS files) from embedded assets
 pub async fn serve_static_assets(Path(path): Path<String>) -> Result<Response<Body>, StatusCode> {
-    let file_path = format!("../frontend/model-editor/dist/assets/{}", path);
-    serve_static_file(&file_path).await
+    let file_path = format!("assets/{}", path);
+    serve_embedded_file(&file_path).await
 }
 
-/// Helper function to serve static files with proper MIME types
+/// Helper function to serve embedded files with proper MIME types
+async fn serve_embedded_file(file_path: &str) -> Result<Response<Body>, StatusCode> {
+    tracing::info!("Serving embedded file: {}", file_path);
+    
+    let content = ModelEditorAssets::get(file_path)
+        .ok_or_else(|| {
+            tracing::error!("Embedded file not found: {}", file_path);
+            StatusCode::NOT_FOUND
+        })?;
+    
+    let content_type = determine_content_type_from_path(file_path);
+    
+    Response::builder()
+        .header(header::CONTENT_TYPE, content_type)
+        .header(header::CACHE_CONTROL, "public, max-age=86400") // Longer cache for embedded assets
+        .body(Body::from(content.data.as_ref().to_vec()))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+/// Legacy helper function for serving static files (fallback for development)
+#[allow(dead_code)]
 async fn serve_static_file(file_path: &str) -> Result<Response<Body>, StatusCode> {
     let current_dir = std::env::current_dir()
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -54,6 +78,25 @@ fn determine_content_type(path: &PathBuf) -> HeaderValue {
         Some("svg") => HeaderValue::from_static("image/svg+xml"),
         Some("ico") => HeaderValue::from_static("image/x-icon"),
         Some("json") => HeaderValue::from_static("application/json"),
+        _ => HeaderValue::from_static("application/octet-stream"),
+    }
+}
+
+/// Determine MIME type based on file path string
+fn determine_content_type_from_path(file_path: &str) -> HeaderValue {
+    let extension = file_path.split('.').last().unwrap_or("");
+    match extension {
+        "html" => HeaderValue::from_static("text/html; charset=utf-8"),
+        "js" => HeaderValue::from_static("application/javascript"),
+        "css" => HeaderValue::from_static("text/css"),
+        "png" => HeaderValue::from_static("image/png"),
+        "jpg" | "jpeg" => HeaderValue::from_static("image/jpeg"),
+        "gif" => HeaderValue::from_static("image/gif"),
+        "svg" => HeaderValue::from_static("image/svg+xml"),
+        "ico" => HeaderValue::from_static("image/x-icon"),
+        "json" => HeaderValue::from_static("application/json"),
+        "woff" | "woff2" => HeaderValue::from_static("font/woff2"),
+        "ttf" => HeaderValue::from_static("font/ttf"),
         _ => HeaderValue::from_static("application/octet-stream"),
     }
 }
