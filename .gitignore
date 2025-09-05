@@ -1,7 +1,7 @@
 # Rust
 target/
 **/*.rs.bk
-Cargo.lock
+# Cargo.lock - tracked for reproducible binary builds
 
 # IDE
 .vscode/
