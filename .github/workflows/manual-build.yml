@@ -124,7 +124,6 @@ jobs:
           
       - name: Build torque-desktop binary (Tauri)
         run: |
-          cd src-tauri
           if [ "${{ matrix.platform.target }}" = "x86_64-pc-windows-msvc" ]; then
             cargo tauri build --target ${{ matrix.platform.target }} --config '{"bundle":{"active":false}}'
           else
