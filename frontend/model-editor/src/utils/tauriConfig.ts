@@ -6,20 +6,29 @@
  */
 
 import React from 'react';
+import { invoke } from '@tauri-apps/api/core';
 
 // Check if we're running inside Tauri
 export const isTauri = (): boolean => {
-  // Check if we have the Tauri API (production build)
-  const hasTauriAPI = typeof window !== 'undefined' && '__TAURI__' in window;
-  
-  // In development mode, check environment variable that indicates Tauri dev mode
-  const isTauriDev = process.env.VITE_TAURI_DEV === 'true';
-  
-  const result = hasTauriAPI || isTauriDev;
-  console.log('🔍 [TauriConfig] isTauri check:', result, 'hasTauriAPI:', hasTauriAPI, 'isTauriDev:', isTauriDev, 'VITE_TAURI_DEV:', process.env.VITE_TAURI_DEV);
-  console.log('🔍 [TauriConfig] window.__TAURI__ available:', typeof window !== 'undefined' && '__TAURI__' in window);
-  console.log('🔍 [TauriConfig] NODE_ENV:', process.env.NODE_ENV);
-  return result;
+  try {
+    // Try to access Tauri API by testing if we can invoke a simple command
+    // This is a synchronous check, so we test if the invoke function is available
+    if (typeof invoke === 'function') {
+      console.log('🔍 [TauriConfig] Tauri API invoke function available');
+      return true;
+    }
+    return false;
+  } catch (error) {
+    // Fallback: check legacy global API and dev environment
+    const hasTauriAPI = typeof window !== 'undefined' && '__TAURI__' in window;
+    const isTauriDev = process.env.VITE_TAURI_DEV === 'true';
+    
+    const result = hasTauriAPI || isTauriDev;
+    console.log('🔍 [TauriConfig] isTauri check (fallback):', result, 'hasTauriAPI:', hasTauriAPI, 'isTauriDev:', isTauriDev, 'VITE_TAURI_DEV:', process.env.VITE_TAURI_DEV);
+    console.log('🔍 [TauriConfig] NODE_ENV:', process.env.NODE_ENV);
+    console.log('🔍 [TauriConfig] Tauri API error:', error);
+    return result;
+  }
 };
 
 // Async version that can check for port file availability as a fallback
@@ -46,14 +55,7 @@ export const isTauriAsync = async (): Promise<boolean> => {
   }
 };
 
-// Get Tauri API if available
-const getTauriAPI = () => {
-  if (isTauri()) {
-    // @ts-ignore - Tauri API is injected at runtime
-    return window.__TAURI__;
-  }
-  return null;
-};
+// Note: Tauri API is now imported directly from @tauri-apps/api packages
 
 // Configuration for different environments
 interface TorqueConfig {
@@ -221,12 +223,6 @@ const getServerPort = async (): Promise<number> => {
       } else {
         // Production mode - use Tauri API
         console.log('[TauriConfig] Production mode - using Tauri API...');
-        const tauri = getTauriAPI();
-        if (!tauri) {
-          throw new Error('Tauri API not available');
-        }
-
-        console.log('[TauriConfig] Tauri API available, checking for server port...');
         
         // Wait for server to be ready with retries
         let attempts = 0;
@@ -235,7 +231,7 @@ const getServerPort = async (): Promise<number> => {
         while (attempts < maxAttempts) {
           try {
             console.log(`[TauriConfig] Attempt ${attempts + 1}: Calling get_server_port...`);
-            const port = await tauri.core.invoke('get_server_port');
+            const port = await invoke('get_server_port');
             console.log(`[TauriConfig] get_server_port returned:`, port);
             
             if (port && typeof port === 'number') {

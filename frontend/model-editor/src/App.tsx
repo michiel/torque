@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { AppShell } from '@mantine/core'
 import { useEffect } from 'react'
+import { invoke } from '@tauri-apps/api/core'
 
 import { Header } from './components/Header'
 import { ServerStatus } from './components/ServerStatus'
@@ -22,45 +23,51 @@ function App() {
   useEffect(() => {
     // Debug Tauri API availability
     console.log('🧪 [App] Testing Tauri API availability...');
-    console.log('🧪 [App] window.__TAURI__ exists:', typeof window !== 'undefined' && '__TAURI__' in window);
-    console.log('🧪 [App] window.__TAURI__ value:', (window as any).__TAURI__);
     console.log('🧪 [App] NODE_ENV:', process.env.NODE_ENV);
     console.log('🧪 [App] VITE_TAURI_DEV:', process.env.VITE_TAURI_DEV);
     
-    // Try to call Tauri API if available
-    if (typeof window !== 'undefined' && '__TAURI__' in window) {
-      const tauri = (window as any).__TAURI__;
-      console.log('🧪 [App] Tauri API object:', tauri);
+    // Test new Tauri API
+    try {
+      console.log('🧪 [App] Testing @tauri-apps/api...');
+      console.log('🧪 [App] typeof invoke:', typeof invoke);
       
-      // Test the test command
-      try {
+      if (typeof invoke === 'function') {
+        console.log('✅ [App] Tauri invoke function is available - we are in Tauri!');
+        
+        // Test the test command
         console.log('🧪 [App] Calling test_tauri_api...');
-        tauri.core.invoke('test_tauri_api')
+        invoke('test_tauri_api')
           .then((result: string) => {
             console.log('✅ [App] test_tauri_api success:', result);
           })
           .catch((error: any) => {
             console.error('❌ [App] test_tauri_api failed:', error);
           });
-      } catch (error) {
-        console.error('❌ [App] Error calling test_tauri_api:', error);
-      }
-      
-      // Test the port command
-      try {
+        
+        // Test the port command  
         console.log('🧪 [App] Calling get_server_port...');
-        tauri.core.invoke('get_server_port')
+        invoke('get_server_port')
           .then((result: any) => {
             console.log('✅ [App] get_server_port success:', result);
           })
           .catch((error: any) => {
             console.error('❌ [App] get_server_port failed:', error);
           });
-      } catch (error) {
-        console.error('❌ [App] Error calling get_server_port:', error);
+        
+      } else {
+        console.log('❌ [App] Tauri invoke function not available - not in Tauri context');
+        
+        // Fallback test for legacy API
+        if (typeof window !== 'undefined' && '__TAURI__' in window) {
+          console.log('🧪 [App] Fallback: Using legacy window.__TAURI__');
+          const tauri = (window as any).__TAURI__;
+          console.log('🧪 [App] Legacy Tauri API object:', tauri);
+        } else {
+          console.log('❌ [App] No Tauri API available (neither new nor legacy)');
+        }
       }
-    } else {
-      console.log('❌ [App] Tauri API not available - frontend not running in Tauri context');
+    } catch (error) {
+      console.error('❌ [App] Error testing Tauri API:', error);
     }
   }, []);
 
