@@ -95,8 +95,9 @@ const getServerPort = async (): Promise<number> => {
 
   serverPortPromise = (async () => {
     try {
-      // Always try development mode approach first, as it's more reliable
-      const isDev = process.env.NODE_ENV === 'development' || !window.__TAURI__;
+      // Check if we have Tauri API available (production build) or are in actual development mode
+      const hasTauriAPI = typeof window !== 'undefined' && '__TAURI__' in window;
+      const isDev = process.env.NODE_ENV === 'development' && !hasTauriAPI;
       
       if (isDev) {
         // In development, try to read the port from the port file
@@ -217,32 +218,60 @@ const getServerPort = async (): Promise<number> => {
         throw new Error('Could not find embedded server in development mode');
       } else {
         // Production mode - use Tauri API
+        console.log('[TauriConfig] Production mode - using Tauri API...');
         const tauri = getTauriAPI();
         if (!tauri) {
           throw new Error('Tauri API not available');
         }
 
+        console.log('[TauriConfig] Tauri API available, checking for server port...');
+        
         // Wait for server to be ready with retries
         let attempts = 0;
-        const maxAttempts = 30; // 30 seconds max wait
+        const maxAttempts = 60; // 60 seconds max wait (server needs time to start)
         
         while (attempts < maxAttempts) {
           try {
+            console.log(`[TauriConfig] Attempt ${attempts + 1}: Calling get_server_port...`);
             const port = await tauri.core.invoke('get_server_port');
-            if (port) {
-              cachedServerPort = port;
-              serverPortPromise = null;
-              return port;
+            console.log(`[TauriConfig] get_server_port returned:`, port);
+            
+            if (port && typeof port === 'number') {
+              console.log(`[TauriConfig] Server ready on port ${port}`);
+              
+              // Verify the server is actually responding
+              try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const healthResponse = await fetch(`http://127.0.0.1:${port}/health/health`, {
+                  signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                
+                if (healthResponse.ok) {
+                  console.log(`[TauriConfig] Server health verified on port ${port}`);
+                  cachedServerPort = port;
+                  serverPortPromise = null;
+                  return port;
+                } else {
+                  console.log(`[TauriConfig] Server health check failed: ${healthResponse.status}`);
+                }
+              } catch (healthError) {
+                console.log(`[TauriConfig] Server health check error:`, healthError);
+              }
+            } else {
+              console.log(`[TauriConfig] Server not ready yet, port is:`, port);
             }
           } catch (error) {
-            console.log(`Attempt ${attempts + 1}: Server not ready yet...`);
+            console.log(`[TauriConfig] get_server_port error on attempt ${attempts + 1}:`, error);
           }
           
           attempts++;
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        throw new Error('Server failed to start within 30 seconds');
+        throw new Error('Server failed to start within 60 seconds');
       }
     } catch (error) {
       serverPortPromise = null;
