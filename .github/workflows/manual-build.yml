@@ -152,25 +152,62 @@ jobs:
           cp "target/${target}/${profile}/torque${binary_ext}" "dist/torque-${os_name}${binary_ext}"
           
           # Copy torque-desktop binary (Tauri places binaries in different locations)
-          if [ "$os_name" = "macos-x86_64" ] || [ "$os_name" = "macos-aarch64" ]; then
-            # macOS: Tauri creates .app bundles, but we want the binary
-            if [ -f "src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}" ]; then
-              cp "src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}" "dist/torque-desktop-${os_name}${binary_ext}"
-            elif [ -f "src-tauri/target/${target}/${profile}/bundle/macos/torque-desktop.app/Contents/MacOS/torque-desktop" ]; then
-              cp "src-tauri/target/${target}/${profile}/bundle/macos/torque-desktop.app/Contents/MacOS/torque-desktop" "dist/torque-desktop-${os_name}"
-            fi
-          elif [ "$os_name" = "windows-x86_64" ]; then
-            # Windows: Copy the raw binary (bundle disabled)
-            if [ -f "src-tauri/target/${target}/${profile}/torque-desktop.exe" ]; then
-              cp "src-tauri/target/${target}/${profile}/torque-desktop.exe" "dist/torque-desktop-${os_name}.exe"
-            fi
+          # Try multiple possible locations since we use native builds
+          desktop_found=false
+          
+          # Possible locations for Tauri binaries
+          possible_locations=(
+            "src-tauri/target/${profile}/torque-desktop${binary_ext}"
+            "src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}"
+            "target/${profile}/torque-desktop${binary_ext}"
+            "target/${target}/${profile}/torque-desktop${binary_ext}"
+          )
+          
+          # Windows raw binary (bundle disabled)
+          if [ "$os_name" = "windows-x86_64" ]; then
+            for location in "${possible_locations[@]}"; do
+              if [ -f "$location" ]; then
+                cp "$location" "dist/torque-desktop-${os_name}${binary_ext}"
+                echo "Found Windows desktop binary at: $location"
+                desktop_found=true
+                break
+              fi
+            done
           else
-            # Linux: Tauri creates AppImage and other formats
-            if [ -f "src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}" ]; then
-              cp "src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}" "dist/torque-desktop-${os_name}${binary_ext}"
-            elif [ -f "src-tauri/target/${target}/${profile}/bundle/appimage/torque-desktop_0.1.0_amd64.AppImage" ]; then
-              cp "src-tauri/target/${target}/${profile}/bundle/appimage/torque-desktop_0.1.0_amd64.AppImage" "dist/torque-desktop-${os_name}.AppImage"
+            # Linux/macOS: Try raw binary first, then bundles
+            for location in "${possible_locations[@]}"; do
+              if [ -f "$location" ]; then
+                cp "$location" "dist/torque-desktop-${os_name}${binary_ext}"
+                echo "Found desktop binary at: $location"
+                desktop_found=true
+                break
+              fi
+            done
+            
+            # If no raw binary found, try bundled formats
+            if [ "$desktop_found" = false ]; then
+              # macOS: Try .app bundle
+              if [ "$os_name" = "macos-x86_64" ] || [ "$os_name" = "macos-aarch64" ]; then
+                app_binary="src-tauri/target/${profile}/bundle/macos/Torque Desktop.app/Contents/MacOS/torque-desktop"
+                if [ -f "$app_binary" ]; then
+                  cp "$app_binary" "dist/torque-desktop-${os_name}"
+                  echo "Found macOS app bundle at: $app_binary"
+                  desktop_found=true
+                fi
+              else
+                # Linux: Try AppImage
+                appimage="src-tauri/target/${profile}/bundle/appimage/torque-desktop_0.1.0_amd64.AppImage"
+                if [ -f "$appimage" ]; then
+                  cp "$appimage" "dist/torque-desktop-${os_name}.AppImage"
+                  echo "Found Linux AppImage at: $appimage"
+                  desktop_found=true
+                fi
+              fi
             fi
+          fi
+          
+          if [ "$desktop_found" = false ]; then
+            echo "WARNING: torque-desktop binary not found for $os_name"
           fi
           
           # List what we actually have for debugging
