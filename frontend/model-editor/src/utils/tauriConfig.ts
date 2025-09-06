@@ -16,7 +16,9 @@ export const isTauri = (): boolean => {
   const isTauriDev = process.env.VITE_TAURI_DEV === 'true';
   
   const result = hasTauriAPI || isTauriDev;
-  console.log('[TauriConfig] isTauri check:', result, 'hasTauriAPI:', hasTauriAPI, 'isTauriDev:', isTauriDev, 'VITE_TAURI_DEV:', process.env.VITE_TAURI_DEV);
+  console.log('🔍 [TauriConfig] isTauri check:', result, 'hasTauriAPI:', hasTauriAPI, 'isTauriDev:', isTauriDev, 'VITE_TAURI_DEV:', process.env.VITE_TAURI_DEV);
+  console.log('🔍 [TauriConfig] window.__TAURI__ available:', typeof window !== 'undefined' && '__TAURI__' in window);
+  console.log('🔍 [TauriConfig] NODE_ENV:', process.env.NODE_ENV);
   return result;
 };
 
