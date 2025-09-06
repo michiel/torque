@@ -124,6 +124,7 @@ jobs:
           cargo install tauri-cli --version "^2.0" --locked
           
       - name: Build torque-desktop binary (Tauri)
+        shell: bash
         run: |
           if [ "${{ matrix.platform.target }}" = "x86_64-pc-windows-msvc" ]; then
             # Windows: disable bundling for raw executable
