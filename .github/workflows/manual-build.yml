@@ -188,13 +188,23 @@ jobs:
 
       # Build server binary
       - name: Build torque server binary
+        shell: bash
         run: |
-          cargo build \
-            --locked \
-            --target ${{ matrix.platform.target }} \
-            --${{ github.event.inputs.profile || 'release' }} \
-            -p torque \
-            --features simd,mimalloc
+          profile="${{ github.event.inputs.profile || 'release' }}"
+          if [ "$profile" = "debug" ]; then
+            cargo build \
+              --locked \
+              --target ${{ matrix.platform.target }} \
+              -p torque \
+              --features simd,mimalloc
+          else
+            cargo build \
+              --locked \
+              --target ${{ matrix.platform.target }} \
+              --release \
+              -p torque \
+              --features simd,mimalloc
+          fi
         env:
           OPENSSL_STATIC: "1"
           
