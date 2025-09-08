@@ -220,17 +220,30 @@ jobs:
           echo "Building Tauri app for ${{ matrix.platform.os-name }} with bundles: $bundles"
           
           # Build with specific bundles for this platform
+          echo "Starting Tauri build with bundles: $bundles"
           if [ "$profile" = "debug" ]; then
+            echo "Building in debug mode..."
             cargo tauri build \
               --target ${{ matrix.platform.target }} \
               --debug \
               --bundles $bundles \
               --verbose
+            build_result=$?
           else
+            echo "Building in release mode..."
             cargo tauri build \
               --target ${{ matrix.platform.target }} \
               --bundles $bundles \
               --verbose
+            build_result=$?
+          fi
+          
+          echo "Tauri build completed with exit code: $build_result"
+          if [ $build_result -ne 0 ]; then
+            echo "❌ Tauri build failed!"
+            exit $build_result
+          else
+            echo "✅ Tauri build succeeded"
           fi
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
@@ -266,37 +279,74 @@ jobs:
             echo "✅ Packaged desktop binary: $desktop_binary"
           fi
           
-          # Copy platform-specific installers
-          bundle_dir="src-tauri/target/${target}/${profile}/bundle"
+          # Debug: Check what was actually built
+          echo ""
+          echo "=== Debug: Tauri build output ==="
+          echo "Target directory structure:"
+          find src-tauri/target -name "bundle" -type d 2>/dev/null || echo "No bundle directories found"
           
+          # Look for bundle directory in different possible locations
+          possible_bundle_dirs=(
+            "src-tauri/target/${target}/${profile}/bundle"
+            "src-tauri/target/${profile}/bundle"
+            "src-tauri/target/bundle"
+          )
+          
+          bundle_dir=""
+          for dir in "${possible_bundle_dirs[@]}"; do
+            if [ -d "$dir" ]; then
+              bundle_dir="$dir"
+              echo "Found bundle directory: $bundle_dir"
+              break
+            fi
+          done
+          
+          if [ -z "$bundle_dir" ]; then
+            echo "❌ No bundle directory found. Checking all target directories:"
+            find src-tauri/target -type d -name "*" 2>/dev/null | head -20
+            echo "Tauri build may have failed to generate installers."
+          else
+            echo "Bundle directory contents:"
+            ls -la "$bundle_dir" 2>/dev/null || echo "Bundle directory exists but is empty"
+          fi
+          
+          # Copy platform-specific installers  
           case "$os_name" in
             linux-*)
               # DEB package
-              if ls ${bundle_dir}/deb/*.deb 1> /dev/null 2>&1; then
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/deb/*.deb 1> /dev/null 2>&1; then
                 cp ${bundle_dir}/deb/*.deb dist/
-                echo "✅ Packaged DEB installer"
+                echo "✅ Packaged DEB installer: $(ls ${bundle_dir}/deb/*.deb)"
+              else
+                echo "❌ No DEB installer found in ${bundle_dir}/deb/"
               fi
               
               # RPM package
-              if ls ${bundle_dir}/rpm/*.rpm 1> /dev/null 2>&1; then
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/rpm/*.rpm 1> /dev/null 2>&1; then
                 cp ${bundle_dir}/rpm/*.rpm dist/
-                echo "✅ Packaged RPM installer"
+                echo "✅ Packaged RPM installer: $(ls ${bundle_dir}/rpm/*.rpm)"
+              else
+                echo "❌ No RPM installer found in ${bundle_dir}/rpm/"
               fi
               ;;
               
             windows-*)
               # MSI installer
-              if ls ${bundle_dir}/msi/*.msi 1> /dev/null 2>&1; then
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/msi/*.msi 1> /dev/null 2>&1; then
                 cp ${bundle_dir}/msi/*.msi dist/
-                echo "✅ Packaged MSI installer"
+                echo "✅ Packaged MSI installer: $(ls ${bundle_dir}/msi/*.msi)"
+              else
+                echo "❌ No MSI installer found in ${bundle_dir}/msi/"
               fi
               ;;
               
             macos-*)
               # DMG installer
-              if ls ${bundle_dir}/dmg/*.dmg 1> /dev/null 2>&1; then
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/dmg/*.dmg 1> /dev/null 2>&1; then
                 cp ${bundle_dir}/dmg/*.dmg dist/
-                echo "✅ Packaged DMG installer"
+                echo "✅ Packaged DMG installer: $(ls ${bundle_dir}/dmg/*.dmg)"
+              else
+                echo "❌ No DMG installer found in ${bundle_dir}/dmg/"
               fi
               ;;
           esac
