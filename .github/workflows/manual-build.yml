@@ -1,4 +1,4 @@
-name: Build and Release Torque Binaries
+name: Build and Release Torque Desktop
 on:
   workflow_dispatch:
     inputs:
@@ -15,51 +15,30 @@ on:
         required: false
         default: 'main'
         type: string
+      skip_cache:
+        description: 'Skip caches and rebuild everything'
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - 'v*'
 
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
 jobs:
-  release:
-    name: Build - ${{ matrix.platform.os-name }}
-    strategy:
-      matrix:
-        platform:
-          - os-name: linux-x86_64
-            runs-on: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-            binary-ext: ""
-
-          # Disabled aarch64 Linux due to cross-compilation complexity with GUI dependencies
-          # - os-name: linux-aarch64
-          #   runs-on: ubuntu-24.04
-          #   target: aarch64-unknown-linux-gnu
-          #   binary-ext: ""
-
-          - os-name: windows-x86_64
-            runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary-ext: ".exe"
-
-          - os-name: macos-x86_64
-            runs-on: macOS-latest
-            target: x86_64-apple-darwin
-            binary-ext: ""
-
-          - os-name: macos-aarch64
-            runs-on: macOS-latest
-            target: aarch64-apple-darwin
-            binary-ext: ""
-
-    runs-on: ${{ matrix.platform.runs-on }}
+  # Build frontend once and share across all platforms
+  build-frontend:
+    name: Build Frontend Assets
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
-          submodules: recursive
 
-      # Set up Node.js for frontend builds
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -67,7 +46,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'frontend/*/package-lock.json'
 
-      # Build frontend assets
+      - name: Cache frontend node_modules
+        if: github.event.inputs.skip_cache != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/torque-client/node_modules
+            frontend/model-editor/node_modules
+          key: frontend-deps-${{ runner.os }}-${{ hashFiles('frontend/*/package-lock.json') }}
+          restore-keys: |
+            frontend-deps-${{ runner.os }}-
+
       - name: Install torque-client dependencies
         run: |
           cd frontend/torque-client
@@ -81,141 +70,223 @@ jobs:
       - name: Build frontend assets
         run: |
           cd frontend/model-editor
-          # Skip TypeScript checking to avoid compilation errors during build
-          npx vite build
+          npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/model-editor/dist/
+          retention-days: 1
+
+  # Build binaries and installers for each platform
+  build-platform:
+    name: Build - ${{ matrix.platform.os-name }}
+    needs: build-frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os-name: linux-x86_64
+            runs-on: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            binary-ext: ""
+            bundles: "deb,rpm"
+
+          - os-name: windows-x86_64
+            runs-on: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary-ext: ".exe"
+            bundles: "msi"
+
+          - os-name: macos-x86_64
+            runs-on: macOS-latest
+            target: x86_64-apple-darwin
+            binary-ext: ""
+            bundles: "dmg"
+
+          - os-name: macos-aarch64
+            runs-on: macOS-latest
+            target: aarch64-apple-darwin
+            binary-ext: ""
+            bundles: "dmg"
+
+    runs-on: ${{ matrix.platform.runs-on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+          submodules: recursive
+
+      # Download pre-built frontend
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/model-editor/dist/
+
+      # Setup Rust with caching
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Cache Rust dependencies
+        if: github.event.inputs.skip_cache != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+            src-tauri/target/
+          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ matrix.platform.target }}-
+            cargo-
 
       # Set up system dependencies
-      - name: Set up dependencies (Ubuntu only)
+      - name: Set up dependencies (Linux)
         if: startsWith(matrix.platform.runs-on, 'ubuntu-')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config musl-dev perl perl-modules-5.* libfindbin-libs-perl
-          # Additional dependencies for Tauri on Linux
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+          sudo apt-get install -y \
+            libssl-dev pkg-config build-essential curl wget \
+            libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev \
+            perl perl-modules-5.*
 
-      - name: Set up dependencies (Windows only)
+      - name: Set up dependencies (Windows)
         if: startsWith(matrix.platform.runs-on, 'windows-')
         run: |
           # Install Strawberry Perl for vendored OpenSSL builds
           choco install strawberryperl -y
-          # Add Strawberry Perl to PATH for this job
           echo "C:\strawberry\perl\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "C:\strawberry\c\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Set up dependencies (macOS only)
+      - name: Set up dependencies (macOS)
         if: startsWith(matrix.platform.runs-on, 'macOS-')
         run: |
           # Verify perl is available (usually pre-installed)
-          perl -e "use FindBin;" && echo "Perl with FindBin ready for vendored builds"
+          perl -e "use FindBin;" && echo "Perl with FindBin ready"
 
-      # Build Rust binaries
-      - name: Build torque binary
-        uses: houseabsolute/actions-rust-cross@v1
-        env:
-          OPENSSL_STATIC: "1"
+      # Install Tauri CLI with caching
+      - name: Cache Tauri CLI
+        if: github.event.inputs.skip_cache != 'true'
+        id: cache-tauri-cli
+        uses: actions/cache@v4
         with:
-          command: build
-          target: ${{ matrix.platform.target }}
-          args: "--locked --${{ github.event.inputs.profile || 'release' }} -p torque --features simd,mimalloc"
-          strip: true
+          path: ~/.cargo/bin/cargo-tauri
+          key: tauri-cli-${{ runner.os }}-2.0
 
       - name: Install Tauri CLI
+        if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
         run: |
           cargo install tauri-cli --version "^2.0" --locked
+
+      # Build server binary
+      - name: Build torque server binary
+        run: |
+          cargo build \
+            --locked \
+            --target ${{ matrix.platform.target }} \
+            --${{ github.event.inputs.profile || 'release' }} \
+            -p torque \
+            --features simd,mimalloc
+        env:
+          OPENSSL_STATIC: "1"
           
-      - name: Build torque-desktop binary (Tauri)
+      # Build Tauri desktop app with installers
+      - name: Build Tauri desktop app and installers
         shell: bash
         run: |
-          if [ "${{ matrix.platform.target }}" = "x86_64-pc-windows-msvc" ]; then
-            # Windows: disable bundling for raw executable
-            cargo tauri build --config '{"bundle":{"active":false}}'
-          else
-            # Linux/macOS: use native builds to avoid cross-compilation issues with GUI deps
-            cargo tauri build
-          fi
+          cd src-tauri
+          
+          profile="${{ github.event.inputs.profile || 'release' }}"
+          bundles="${{ matrix.platform.bundles }}"
+          
+          echo "Building Tauri app for ${{ matrix.platform.os-name }} with bundles: $bundles"
+          
+          # Build with specific bundles for this platform
+          cargo tauri build \
+            --target ${{ matrix.platform.target }} \
+            --$profile \
+            --bundles $bundles \
+            --verbose
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
-      # Package binaries
-      - name: Package binaries
+      # Package installers and binaries
+      - name: Package release artifacts
         shell: bash
         run: |
           profile="${{ github.event.inputs.profile || 'release' }}"
           target="${{ matrix.platform.target }}"
           os_name="${{ matrix.platform.os-name }}"
           binary_ext="${{ matrix.platform.binary-ext }}"
+          bundles="${{ matrix.platform.bundles }}"
           
           mkdir -p dist
           
-          # Copy torque binary
-          cp "target/${target}/${profile}/torque${binary_ext}" "dist/torque-${os_name}${binary_ext}"
+          echo "=== Packaging artifacts for $os_name ==="
           
-          # Copy torque-desktop binary (Tauri places binaries in different locations)
-          # Try multiple possible locations since we use native builds
-          desktop_found=false
-          
-          # Possible locations for Tauri binaries
-          possible_locations=(
-            "src-tauri/target/${profile}/torque-desktop${binary_ext}"
-            "src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}"
-            "target/${profile}/torque-desktop${binary_ext}"
-            "target/${target}/${profile}/torque-desktop${binary_ext}"
-          )
-          
-          # Windows raw binary (bundle disabled)
-          if [ "$os_name" = "windows-x86_64" ]; then
-            for location in "${possible_locations[@]}"; do
-              if [ -f "$location" ]; then
-                cp "$location" "dist/torque-desktop-${os_name}${binary_ext}"
-                echo "Found Windows desktop binary at: $location"
-                desktop_found=true
-                break
-              fi
-            done
+          # Copy server binary
+          server_binary="target/${target}/${profile}/torque${binary_ext}"
+          if [ -f "$server_binary" ]; then
+            cp "$server_binary" "dist/torque-server-${os_name}${binary_ext}"
+            echo "✅ Packaged server binary: $server_binary"
           else
-            # Linux/macOS: Try raw binary first, then bundles
-            for location in "${possible_locations[@]}"; do
-              if [ -f "$location" ]; then
-                cp "$location" "dist/torque-desktop-${os_name}${binary_ext}"
-                echo "Found desktop binary at: $location"
-                desktop_found=true
-                break
-              fi
-            done
-            
-            # If no raw binary found, try bundled formats
-            if [ "$desktop_found" = false ]; then
-              # macOS: Try .app bundle
-              if [ "$os_name" = "macos-x86_64" ] || [ "$os_name" = "macos-aarch64" ]; then
-                app_binary="src-tauri/target/${profile}/bundle/macos/Torque Desktop.app/Contents/MacOS/torque-desktop"
-                if [ -f "$app_binary" ]; then
-                  cp "$app_binary" "dist/torque-desktop-${os_name}"
-                  echo "Found macOS app bundle at: $app_binary"
-                  desktop_found=true
-                fi
-              else
-                # Linux: Try AppImage
-                appimage="src-tauri/target/${profile}/bundle/appimage/torque-desktop_0.1.0_amd64.AppImage"
-                if [ -f "$appimage" ]; then
-                  cp "$appimage" "dist/torque-desktop-${os_name}.AppImage"
-                  echo "Found Linux AppImage at: $appimage"
-                  desktop_found=true
-                fi
-              fi
-            fi
+            echo "❌ Server binary not found: $server_binary"
           fi
           
-          if [ "$desktop_found" = false ]; then
-            echo "WARNING: torque-desktop binary not found for $os_name"
+          # Copy desktop binary (raw executable)
+          desktop_binary="src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}"
+          if [ -f "$desktop_binary" ]; then
+            cp "$desktop_binary" "dist/torque-desktop-${os_name}${binary_ext}"
+            echo "✅ Packaged desktop binary: $desktop_binary"
           fi
           
-          # List what we actually have for debugging
-          echo "Contents of target directories:"
-          find target -name "*torque*" -type f || echo "No torque binaries found in target/"
-          find src-tauri/target -name "*torque*" -type f || echo "No torque binaries found in src-tauri/target/"
+          # Copy platform-specific installers
+          bundle_dir="src-tauri/target/${target}/${profile}/bundle"
           
-          echo "Contents of dist directory:"
+          case "$os_name" in
+            linux-*)
+              # DEB package
+              if ls ${bundle_dir}/deb/*.deb 1> /dev/null 2>&1; then
+                cp ${bundle_dir}/deb/*.deb dist/
+                echo "✅ Packaged DEB installer"
+              fi
+              
+              # RPM package
+              if ls ${bundle_dir}/rpm/*.rpm 1> /dev/null 2>&1; then
+                cp ${bundle_dir}/rpm/*.rpm dist/
+                echo "✅ Packaged RPM installer"
+              fi
+              ;;
+              
+            windows-*)
+              # MSI installer
+              if ls ${bundle_dir}/msi/*.msi 1> /dev/null 2>&1; then
+                cp ${bundle_dir}/msi/*.msi dist/
+                echo "✅ Packaged MSI installer"
+              fi
+              ;;
+              
+            macos-*)
+              # DMG installer
+              if ls ${bundle_dir}/dmg/*.dmg 1> /dev/null 2>&1; then
+                cp ${bundle_dir}/dmg/*.dmg dist/
+                echo "✅ Packaged DMG installer"
+              fi
+              ;;
+          esac
+          
+          # List all artifacts
+          echo ""
+          echo "=== Final artifacts for $os_name ==="
           ls -la dist/
           
           # Create checksums
@@ -224,36 +295,93 @@ jobs:
             sha256sum * > checksums-${os_name}.txt
           elif command -v shasum > /dev/null; then
             shasum -a 256 * > checksums-${os_name}.txt
-          else
-            echo "No checksum utility available"
           fi
+          
+          echo ""
+          echo "=== Checksums ==="
+          cat checksums-${os_name}.txt
 
       # Upload artifacts
-      - name: Upload binaries as artifacts
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-${{ matrix.platform.os-name }}
+          name: release-${{ matrix.platform.os-name }}
           path: dist/
-          retention-days: 90
+          retention-days: 30
 
   # Create GitHub release if this is a tag push
   create-release:
-    needs: release
+    name: Create GitHub Release
+    needs: build-platform
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all release artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts/
 
+      - name: Organize release files
+        run: |
+          mkdir -p release-files
+          
+          # Move all files from platform-specific folders to release-files
+          find artifacts -type f \( -name "*.dmg" -o -name "*.msi" -o -name "*.deb" -o -name "*.rpm" -o -name "torque-*" -o -name "checksums-*" \) -exec cp {} release-files/ \;
+          
+          echo "=== Release Files ==="
+          ls -la release-files/
+          
+          echo ""
+          echo "=== File Summary ==="
+          echo "DMG files:" && ls release-files/*.dmg 2>/dev/null || echo "  None"
+          echo "MSI files:" && ls release-files/*.msi 2>/dev/null || echo "  None"  
+          echo "DEB files:" && ls release-files/*.deb 2>/dev/null || echo "  None"
+          echo "RPM files:" && ls release-files/*.rpm 2>/dev/null || echo "  None"
+          echo "Binaries:" && ls release-files/torque-* 2>/dev/null || echo "  None"
+
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: release-files/*
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
           generate_release_notes: true
+          name: "Torque Desktop ${{ github.ref_name }}"
+          body: |
+            # Torque Desktop ${{ github.ref_name }}
+            
+            ## 📦 Installation Options
+            
+            ### Windows
+            - **torque-desktop-windows-x86_64.msi** - Windows Installer (Recommended)
+            - **torque-desktop-windows-x86_64.exe** - Portable executable
+            - **torque-server-windows-x86_64.exe** - Server-only binary
+            
+            ### macOS
+            - **torque-desktop-macos-x86_64.dmg** - Intel Mac installer (Recommended)
+            - **torque-desktop-macos-aarch64.dmg** - Apple Silicon (M1/M2) installer (Recommended)
+            - **torque-desktop-macos-*.** - Portable executables
+            - **torque-server-macos-*.** - Server-only binaries
+            
+            ### Linux
+            - **torque-desktop-linux-x86_64.deb** - Debian/Ubuntu package (Recommended)
+            - **torque-desktop-linux-x86_64.rpm** - RedHat/Fedora/SUSE package (Recommended)
+            - **torque-desktop-linux-x86_64** - Portable executable
+            - **torque-server-linux-x86_64** - Server-only binary
+            
+            ## ✅ Verification
+            
+            All files include SHA256 checksums for integrity verification:
+            - `checksums-windows-x86_64.txt`
+            - `checksums-macos-x86_64.txt` / `checksums-macos-aarch64.txt`
+            - `checksums-linux-x86_64.txt`
+            
+            ## 🚀 What's New
+            
+            ${{ github.event.head_commit.message }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

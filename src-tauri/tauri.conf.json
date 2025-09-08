@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.torque.desktop",
   "build": {
-    "frontendDist": "../frontend/model-editor/dist",
+    "frontendDist": "frontend/model-editor/dist",
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "cd ../frontend/model-editor && VITE_TAURI_DEV=true npm run dev",
+    "beforeDevCommand": "cd frontend/model-editor && VITE_TAURI_DEV=true npm run dev",
     "beforeBuildCommand": ""
   },
   "app": {
@@ -17,7 +17,8 @@
         "height": 800,
         "resizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "additionalBrowserArgs": "--enable-logging --log-level=0"
       }
     ],
     "security": {
@@ -26,13 +27,52 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      {
+        "target": "dmg",
+        "platforms": ["macOS"]
+      },
+      {
+        "target": "msi",
+        "platforms": ["windows"]
+      },
+      {
+        "target": "deb",
+        "platforms": ["linux"]
+      },
+      {
+        "target": "rpm",
+        "platforms": ["linux"]
+      }
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "dmg": {
+      "appPosition": {
+        "x": 180,
+        "y": 170
+      },
+      "applicationFolderPosition": {
+        "x": 480,
+        "y": 170
+      },
+      "window": {
+        "width": 660,
+        "height": 400
+      }
+    },
+    "windows": {
+      "msi": {
+        "language": "en-US",
+        "productName": "Torque Desktop",
+        "manufacturerName": "Torque Contributors",
+        "upgradeCode": "E7F10B2B-1F3C-4E4F-8A6E-2F8A3D9C5E7F"
+      }
+    }
   }
 }

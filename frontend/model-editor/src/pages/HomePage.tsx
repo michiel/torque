@@ -16,8 +16,6 @@ import {
 import {
   IconPlus,
   IconDatabase,
-  IconSettings,
-  IconBook,
   IconArrowRight,
 } from '@tabler/icons-react'
 import { useQuery } from '@apollo/client'
@@ -51,18 +49,6 @@ export function HomePage() {
       color: 'green',
       href: '/models',
     },
-    {
-      title: 'Documentation',
-      description: 'Learn how to use Torque Model Editor',
-      icon: IconBook,
-      color: 'grape',
-    },
-    {
-      title: 'Settings',
-      description: 'Configure your workspace',
-      icon: IconSettings,
-      color: 'gray',
-    },
   ]
 
 
@@ -86,7 +72,7 @@ export function HomePage() {
             <Title order={2} mb="lg">
               Quick Actions
             </Title>
-            <SimpleGrid cols={{ base: 2, sm: 2, md: 4 }} spacing="lg">
+            <SimpleGrid cols={{ base: 2 }} spacing="md">
               {quickActions.map((action) =>
                 action.href ? (
                   <Card
@@ -94,14 +80,14 @@ export function HomePage() {
                     component={Link}
                     to={action.href}
                     shadow="sm"
-                    padding="md"
+                    padding="sm"
                     radius="md"
                     withBorder
                     style={{ 
                       cursor: 'pointer',
                       textDecoration: 'none',
                       transition: 'transform 150ms ease, box-shadow 150ms ease',
-                      minHeight: '160px',
+                      minHeight: '120px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',
@@ -117,10 +103,10 @@ export function HomePage() {
                       e.currentTarget.style.boxShadow = '';
                     }}
                   >
-                    <ThemeIcon size="lg" radius="md" color={action.color} mb="sm">
-                      <action.icon size={24} />
+                    <ThemeIcon size="md" radius="md" color={action.color} mb="xs">
+                      <action.icon size={18} />
                     </ThemeIcon>
-                    <Text fw={500} size="md" mb="xs">
+                    <Text fw={500} size="sm" mb="xs">
                       {action.title}
                     </Text>
                     <Text size="xs" c="dimmed">
@@ -132,13 +118,13 @@ export function HomePage() {
                     key={action.title}
                     onClick={action.onClick}
                     shadow="sm"
-                    padding="md"
+                    padding="sm"
                     radius="md"
                     withBorder
                     style={{ 
                       cursor: 'pointer',
                       transition: 'transform 150ms ease, box-shadow 150ms ease',
-                      minHeight: '160px',
+                      minHeight: '120px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',
@@ -154,10 +140,10 @@ export function HomePage() {
                       e.currentTarget.style.boxShadow = '';
                     }}
                   >
-                    <ThemeIcon size="lg" radius="md" color={action.color} mb="sm">
-                      <action.icon size={24} />
+                    <ThemeIcon size="md" radius="md" color={action.color} mb="xs">
+                      <action.icon size={18} />
                     </ThemeIcon>
-                    <Text fw={500} size="md" mb="xs">
+                    <Text fw={500} size="sm" mb="xs">
                       {action.title}
                     </Text>
                     <Text size="xs" c="dimmed">
