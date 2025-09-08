@@ -191,7 +191,7 @@ export function TorqueForm({
               if (file) {
                 // Check file type
                 if (field.uiConfig?.acceptedFileTypes && field.uiConfig.acceptedFileTypes.length > 0) {
-                  const isValidType = field.uiConfig.acceptedFileTypes.some(type => 
+                  const isValidType = field.uiConfig.acceptedFileTypes.some((type: string) => 
                     file.name.toLowerCase().endsWith(type.toLowerCase())
                   )
                   if (!isValidType) {
@@ -260,7 +260,7 @@ export function TorqueForm({
   const { form } = formDef
 
   // Group fields by section
-  const fieldsBySection = form.fields.reduce((acc: Record<string, FormField[]>, field) => {
+  const fieldsBySection = form.fields.reduce((acc: Record<string, FormField[]>, field: FormField) => {
     const section = field.uiConfig?.section || 'default'
     if (!acc[section]) acc[section] = []
     acc[section].push(field)
@@ -277,7 +277,7 @@ export function TorqueForm({
       <Stack gap="md">
         {sections.map((sectionName, index) => {
           const sectionFields = fieldsBySection[sectionName]
-          const visibleFields = sectionFields.filter(field => shouldShowField(field, watchedValues))
+          const visibleFields = sectionFields.filter((field: FormField) => shouldShowField(field, watchedValues))
           
           if (visibleFields.length === 0) return null
           
@@ -295,18 +295,18 @@ export function TorqueForm({
               <Stack gap="md">
                 {visibleFields.map((field: FormField) => {
                   const fieldError = errors[field.name]?.message as string || validationErrors[field.name]
-                  const isRequired = isFieldRequired(field, watchedValues)
                   
                   return (
                     <FormFieldRenderer
                       key={field.id}
-                      field={{ ...field, required: isRequired }}
+                      field={field}
                       register={register}
                       setValue={setValue}
                       watch={watch}
                       error={fieldError}
                       onFileChange={handleFileChange}
                       trigger={trigger}
+                      isFieldRequired={isFieldRequired}
                     />
                   )
                 })}
@@ -352,14 +352,21 @@ interface FormFieldRendererProps {
   error?: string
   onFileChange?: (fieldName: string, file: File | null) => void
   trigger?: any
+  isFieldRequired?: (field: FormField, formValues: Record<string, any>) => boolean
 }
 
-function FormFieldRenderer({ field, register, setValue, watch, error, onFileChange, trigger }: FormFieldRendererProps) {
+function FormFieldRenderer({ field, register, setValue, watch, error, onFileChange, trigger, isFieldRequired }: FormFieldRendererProps) {
   const value = watch(field.name)
+  const watchedValues = watch()
+  
+  // Evaluate required field properly - convert ConditionalRule to boolean
+  const isRequired = typeof field.required === 'boolean' 
+    ? field.required 
+    : (isFieldRequired ? isFieldRequired(field, watchedValues) : false)
 
   const commonProps = {
     label: field.label,
-    required: field.required,
+    required: isRequired,
     error: error,
     defaultValue: field.defaultValue,
     description: field.uiConfig?.helpText,
