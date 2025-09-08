@@ -210,11 +210,18 @@ jobs:
           echo "Building Tauri app for ${{ matrix.platform.os-name }} with bundles: $bundles"
           
           # Build with specific bundles for this platform
-          cargo tauri build \
-            --target ${{ matrix.platform.target }} \
-            --$profile \
-            --bundles $bundles \
-            --verbose
+          if [ "$profile" = "debug" ]; then
+            cargo tauri build \
+              --target ${{ matrix.platform.target }} \
+              --debug \
+              --bundles $bundles \
+              --verbose
+          else
+            cargo tauri build \
+              --target ${{ matrix.platform.target }} \
+              --bundles $bundles \
+              --verbose
+          fi
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
