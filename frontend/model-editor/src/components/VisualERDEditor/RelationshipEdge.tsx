@@ -15,7 +15,7 @@ interface RelationshipEdgeData extends Record<string, unknown> {
   onEdit: (relationship: any) => void;
 }
 
-export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
+export const RelationshipEdge: React.FC<EdgeProps<any>> = ({
   id,
   sourceX,
   sourceY,
@@ -79,7 +79,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
       <BaseEdge
         path={edgePath}
         style={{
-          ...style,
+          ...(style || {}),
           strokeWidth: selected ? 3 : 2,
           stroke: selected ? '#228be6' : '#868e96',
         }}

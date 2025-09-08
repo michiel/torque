@@ -89,21 +89,14 @@ export function ImportWizard({
           
           // Parse data rows (remaining lines)
           const data = lines.slice(1, Math.min(lines.length, 11)).map((line, index) => {
-            const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''))
-            const row: Record<string, any> = { _rowIndex: index + 2 }
-            
-            headers.forEach((header, i) => {
-              row[header] = values[i] || ''
-            })
-            
-            return row
+            return line.split(',').map(v => v.trim().replace(/['"]/g, ''))
           })
           
           resolve({
             headers,
-            data,
+            rows: data,
             totalRows: lines.length - 1,
-            preview: true
+            sampleRows: data.slice(0, 5)
           })
         } catch (error) {
           reject(error)
@@ -357,7 +350,7 @@ export function ImportWizard({
                 disabled={loading}
               />
               
-              {loading && <Progress size="xs" animated value={undefined} />}
+              {loading && <Progress size="xs" value={100} />}
               
               {previewData && (
                 <Alert icon={<IconCheck size={16} />} color="green" title="File Loaded Successfully">

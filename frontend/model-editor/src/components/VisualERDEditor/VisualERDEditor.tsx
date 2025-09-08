@@ -450,11 +450,11 @@ export const VisualERDEditor: React.FC<VisualERDEditorProps> = ({
   }, [initialEdges, setEdges]);
 
   const nodeTypes: NodeTypes = useMemo(() => ({
-    entity: EntityNode
+    entity: EntityNode as any
   }), []);
 
   const edgeTypes: EdgeTypes = useMemo(() => ({
-    relationship: RelationshipEdge
+    relationship: RelationshipEdge as any
   }), []);
 
   const onConnect = useCallback((params: Edge | Connection) => {

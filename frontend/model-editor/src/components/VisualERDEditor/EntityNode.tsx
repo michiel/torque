@@ -19,7 +19,7 @@ interface EntityNodeData extends Record<string, unknown> {
   onEdit: (entity: any) => void;
 }
 
-export const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => {
+export const EntityNode: React.FC<NodeProps<any>> = ({ data, selected }) => {
   const { entity, onEdit } = data as EntityNodeData;
 
   const handleEditClick = (e: React.MouseEvent) => {
