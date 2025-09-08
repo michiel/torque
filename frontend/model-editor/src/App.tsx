@@ -37,7 +37,7 @@ function App() {
         // Test the test command
         console.log('🧪 [App] Calling test_tauri_api...');
         invoke('test_tauri_api')
-          .then((result: string) => {
+          .then((result: unknown) => {
             console.log('✅ [App] test_tauri_api success:', result);
           })
           .catch((error: any) => {

@@ -70,6 +70,57 @@ export function ImportWizard({
 
   const { mutate } = useJsonRpcMutation()
 
+  // Parse CSV file
+  const parseCSVFile = useCallback(async (file: File): Promise<ImportPreviewData> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string
+          const lines = text.split('\n').filter(line => line.trim())
+          
+          if (lines.length === 0) {
+            reject(new Error('Empty CSV file'))
+            return
+          }
+          
+          // Parse headers (first line)
+          const headers = lines[0].split(',').map(h => h.trim().replace(/['"]/g, ''))
+          
+          // Parse data rows (remaining lines)
+          const data = lines.slice(1, Math.min(lines.length, 11)).map((line, index) => {
+            const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''))
+            const row: Record<string, any> = { _rowIndex: index + 2 }
+            
+            headers.forEach((header, i) => {
+              row[header] = values[i] || ''
+            })
+            
+            return row
+          })
+          
+          resolve({
+            headers,
+            data,
+            totalRows: lines.length - 1,
+            preview: true
+          })
+        } catch (error) {
+          reject(error)
+        }
+      }
+      
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsText(file)
+    })
+  }, [])
+  
+  // Parse Excel file
+  const parseExcelFile = useCallback(async (file: File): Promise<ImportPreviewData> => {
+    // For now, throw an error as Excel parsing requires additional libraries
+    throw new Error('Excel file import not yet implemented. Please use CSV files.')
+  }, [])
+
   // Parse CSV or Excel file to preview data
   const parseFile = useCallback(async (file: File): Promise<ImportPreviewData> => {
     const fileExtension = file.name.toLowerCase().split('.').pop()
@@ -83,80 +134,7 @@ export function ImportWizard({
     }
   }, [parseCSVFile, parseExcelFile])
 
-  // Parse CSV file
-  const parseCSVFile = useCallback(async (file: File): Promise<ImportPreviewData> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        try {
-          const text = e.target?.result as string
-          const lines = text.split('\n').filter(line => line.trim())
-          
-          if (lines.length === 0) {
-            throw new Error('File is empty')
-          }
 
-          const headers = lines[0].split(',').map(h => h.trim().replace(/['"]/g, ''))
-          const rows = lines.slice(1).map(line => 
-            line.split(',').map(cell => cell.trim().replace(/['"]/g, ''))
-          )
-
-          const sampleRows = rows.slice(0, 5) // Show first 5 rows as sample
-          
-          resolve({
-            headers,
-            rows,
-            totalRows: rows.length,
-            sampleRows
-          })
-        } catch (error) {
-          reject(error)
-        }
-      }
-      reader.onerror = () => reject(new Error('Failed to read CSV file'))
-      reader.readAsText(file)
-    })
-  }, [])
-
-  // Parse Excel file (basic implementation using CSV conversion)
-  const parseExcelFile = useCallback(async (file: File): Promise<ImportPreviewData> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        try {
-          const arrayBuffer = e.target?.result as ArrayBuffer
-          
-          // For simplicity, we'll create a mock Excel parser
-          // In a real implementation, you'd use a library like xlsx or sheetjs
-          // For now, let's simulate Excel parsing by generating sample data
-          const mockHeaders = ['Name', 'Email', 'Phone', 'Department']
-          const mockRows = [
-            ['John Doe', 'john@example.com', '555-0123', 'Engineering'],
-            ['Jane Smith', 'jane@example.com', '555-0124', 'Marketing'],
-            ['Bob Johnson', 'bob@example.com', '555-0125', 'Sales']
-          ]
-          
-          resolve({
-            headers: mockHeaders,
-            rows: mockRows,
-            totalRows: mockRows.length,
-            sampleRows: mockRows
-          })
-          
-          // TODO: Implement real Excel parsing with a library like xlsx
-          // const workbook = XLSX.read(arrayBuffer, { type: 'array' })
-          // const sheetName = workbook.SheetNames[0]
-          // const worksheet = workbook.Sheets[sheetName]
-          // const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
-          
-        } catch (error) {
-          reject(new Error('Failed to parse Excel file: ' + error))
-        }
-      }
-      reader.onerror = () => reject(new Error('Failed to read Excel file'))
-      reader.readAsArrayBuffer(file)
-    })
-  }, [])
 
   // Handle file selection
   const handleFileSelect = useCallback(async (file: File | null) => {
@@ -185,7 +163,7 @@ export function ImportWizard({
           sourceColumn: header,
           targetField: matchingField?.name || '',
           transform: 'none',
-          required: matchingField?.required || false,
+          required: typeof matchingField?.required === 'boolean' ? matchingField.required : false,
           defaultValue: matchingField?.defaultValue
         }
       })
@@ -379,7 +357,7 @@ export function ImportWizard({
                 disabled={loading}
               />
               
-              {loading && <Progress size="xs" animated />}
+              {loading && <Progress size="xs" animated value={undefined} />}
               
               {previewData && (
                 <Alert icon={<IconCheck size={16} />} color="green" title="File Loaded Successfully">
@@ -394,7 +372,7 @@ export function ImportWizard({
                 <Stack gap="xs">
                   <Text fw={500}>Data Preview (first 5 rows):</Text>
                   <ScrollArea>
-                    <Table size="xs">
+                    <Table>
                       <Table.Thead>
                         <Table.Tr>
                           {previewData.headers.map(header => (
