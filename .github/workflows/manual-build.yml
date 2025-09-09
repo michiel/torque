@@ -125,6 +125,34 @@ jobs:
         with:
           name: frontend-build
           path: frontend/model-editor/dist/
+          
+      # Verify frontend artifacts were downloaded correctly
+      - name: Verify frontend artifacts
+        shell: bash
+        run: |
+          echo "🔍 FRONTEND VERIFICATION: Checking downloaded artifacts"
+          echo "Expected path: frontend/model-editor/dist/"
+          
+          if [ -d "frontend/model-editor/dist" ]; then
+            echo "✅ Frontend dist directory exists"
+            echo "📁 Contents:"
+            ls -la frontend/model-editor/dist/
+            echo "📊 Size: $(du -sh frontend/model-editor/dist/)"
+            
+            # Check for essential files
+            if [ -f "frontend/model-editor/dist/index.html" ]; then
+              echo "✅ index.html found"
+            else
+              echo "❌ index.html missing!"
+            fi
+          else
+            echo "❌ CRITICAL: Frontend dist directory missing!"
+            echo "Available directories in frontend/:"
+            ls -la frontend/ 2>/dev/null || echo "frontend/ directory doesn't exist"
+            echo "All available files:"
+            find . -name "dist" -type d 2>/dev/null || echo "No dist directories found"
+            exit 1
+          fi
 
       # Setup Rust with caching
       - name: Setup Rust
@@ -214,14 +242,18 @@ jobs:
       - name: Build torque server binary
         shell: bash
         run: |
+          echo "🔨 SERVER BUILD STARTED for ${{ matrix.platform.os-name }}"
           profile="${{ github.event.inputs.profile || 'release' }}"
+          
           if [ "$profile" = "debug" ]; then
+            echo "Building server in debug mode..."
             cargo build \
               --locked \
               --target ${{ matrix.platform.target }} \
               -p torque \
               --features simd,mimalloc
           else
+            echo "Building server in release mode..."
             cargo build \
               --locked \
               --target ${{ matrix.platform.target }} \
@@ -229,8 +261,35 @@ jobs:
               -p torque \
               --features simd,mimalloc
           fi
+          
+          # Verify server binary was created
+          expected_binary="target/${{ matrix.platform.target }}/${profile}/torque${{ matrix.platform.binary-ext }}"
+          if [ -f "$expected_binary" ]; then
+            echo "✅ SERVER BUILD COMPLETED: $expected_binary"
+            ls -la "$expected_binary"
+          else
+            echo "❌ SERVER BUILD FAILED: Expected binary not found at $expected_binary"
+            echo "Available files in target directory:"
+            find target -name "torque*" 2>/dev/null || echo "No torque binaries found"
+            exit 1
+          fi
         env:
           OPENSSL_STATIC: "1"
+          
+      # Debug step to verify we reach this point
+      - name: Pre-Tauri Debug Check
+        shell: bash
+        run: |
+          echo "🔍 PRE-TAURI DEBUG: This step should always run before Tauri build"
+          echo "🔍 Current directory: $(pwd)"
+          echo "🔍 Platform: ${{ matrix.platform.os-name }}"
+          echo "🔍 Server binary check:"
+          ls -la target/${{ matrix.platform.target }}/release/torque* 2>/dev/null || echo "No server binaries found"
+          echo "🔍 Frontend assets check:"
+          ls -la frontend/model-editor/dist/ 2>/dev/null || echo "No frontend dist found"
+          echo "🔍 src-tauri directory check:"
+          ls -la src-tauri/ 2>/dev/null || echo "No src-tauri directory"
+          echo "🔍 Ready to proceed to Tauri build step"
           
       # Build Tauri desktop app with installers
       - name: Build Tauri desktop app and installers
