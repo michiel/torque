@@ -522,11 +522,16 @@ jobs:
             echo "❌ Server binary not found: $server_binary"
           fi
           
-          # Copy desktop binary (raw executable)
-          desktop_binary="src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}"
+          # Copy desktop binary (raw executable from main target directory)
+          desktop_binary="target/${target}/${profile}/torque-desktop${binary_ext}"
           if [ -f "$desktop_binary" ]; then
             cp "$desktop_binary" "dist/torque-desktop-${os_name}${binary_ext}"
             echo "✅ Packaged desktop binary: $desktop_binary"
+          else
+            echo "❌ Desktop binary not found: $desktop_binary"
+            # Check if it exists in the build output
+            echo "Searching for desktop binary in target directory:"
+            find target -name "torque-desktop*" 2>/dev/null || echo "No desktop binary found"
           fi
           
           # Debug: Check what was actually built
@@ -538,16 +543,7 @@ jobs:
           
           # Check if target directories exist at all
           echo "Checking for Tauri build artifacts..."
-          src_tauri_target_exists=false
           main_target_exists=false
-          
-          if [ -d "src-tauri/target" ]; then
-            echo "✅ src-tauri/target directory exists"
-            echo "src-tauri/target directory size: $(du -sh src-tauri/target 2>/dev/null | cut -f1)"
-            src_tauri_target_exists=true
-          else
-            echo "❌ src-tauri/target directory does not exist"
-          fi
           
           if [ -d "target" ]; then
             echo "✅ main target directory exists"
@@ -557,8 +553,8 @@ jobs:
             echo "❌ main target directory does not exist"
           fi
           
-          if [ "$src_tauri_target_exists" = false ] && [ "$main_target_exists" = false ]; then
-            echo "❌ CRITICAL: Neither target directory exists! Tauri build likely failed completely."
+          if [ "$main_target_exists" = false ]; then
+            echo "❌ CRITICAL: Target directory does not exist! Tauri build likely failed completely."
             echo "This suggests the Tauri build step did not run or crashed silently."
             echo "Checking if Tauri CLI is available:"
             cargo tauri --version 2>/dev/null || echo "Tauri CLI not available"
@@ -570,10 +566,6 @@ jobs:
           # Show complete target directory structure
           echo ""
           echo "Complete target directory structure:"
-          if [ "$src_tauri_target_exists" = true ]; then
-            echo "src-tauri/target structure:"
-            find src-tauri/target -type d 2>/dev/null | sort
-          fi
           if [ "$main_target_exists" = true ]; then
             echo "main target structure:"
             find target -type d 2>/dev/null | head -20 | sort
@@ -581,8 +573,6 @@ jobs:
           
           echo ""
           echo "Looking for bundle directories..."
-          echo "Searching in src-tauri/target:"
-          find src-tauri/target -name "bundle" -type d 2>/dev/null || echo "No bundle directories found in src-tauri/target"
           echo "Searching in target:"
           find target -name "bundle" -type d 2>/dev/null || echo "No bundle directories found in target"
           
@@ -590,9 +580,8 @@ jobs:
           # Based on actual Tauri v2 output: /Users/runner/work/torque/torque/target/x86_64-apple-darwin/release/bundle/
           possible_bundle_dirs=(
             "target/${target}/${profile}/bundle"
-            "src-tauri/target/${target}/${profile}/bundle" 
-            "src-tauri/target/${profile}/bundle"
-            "src-tauri/target/bundle"
+            "target/${profile}/bundle"
+            "target/bundle"
           )
           
           bundle_dir=""
@@ -610,14 +599,14 @@ jobs:
           if [ -z "$bundle_dir" ]; then
             echo ""
             echo "❌ No bundle directory found. Detailed analysis:"
-            echo "All directories in src-tauri/target:"
-            find src-tauri/target -type d -name "*" 2>/dev/null | head -30
+            echo "All directories in target:"
+            find target -type d -name "*" 2>/dev/null | head -30
             echo ""
             echo "All files containing 'bundle' in name:"
-            find src-tauri/target -name "*bundle*" 2>/dev/null || echo "No files with 'bundle' in name"
+            find target -name "*bundle*" 2>/dev/null || echo "No files with 'bundle' in name"
             echo ""
             echo "Recent files in target directory (last 10):"
-            find src-tauri/target -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -10 | cut -d' ' -f2-
+            find target -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -10 | cut -d' ' -f2-
             echo ""
             echo "Build logs analysis:"
             if [ -f "tauri-build-config.log" ]; then
