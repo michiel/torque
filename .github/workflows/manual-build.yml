@@ -291,6 +291,8 @@ jobs:
           if [ $config_result -eq 0 ]; then
             echo "✅ Build with config succeeded"
             build_result=0
+            # Use the config log file for success output
+            cp tauri-build-config.log tauri-build.log 2>/dev/null || true
           else
             echo "❌ Build with config failed, trying with explicit bundles..."
             
@@ -380,11 +382,16 @@ jobs:
           
           echo ""
           echo "Looking for bundle directories..."
-          find src-tauri/target -name "bundle" -type d 2>/dev/null || echo "No bundle directories found"
+          echo "Searching in src-tauri/target:"
+          find src-tauri/target -name "bundle" -type d 2>/dev/null || echo "No bundle directories found in src-tauri/target"
+          echo "Searching in target:"
+          find target -name "bundle" -type d 2>/dev/null || echo "No bundle directories found in target"
           
           # Look for bundle directory in different possible locations
+          # Based on actual Tauri v2 output: /Users/runner/work/torque/torque/target/x86_64-apple-darwin/release/bundle/
           possible_bundle_dirs=(
-            "src-tauri/target/${target}/${profile}/bundle"
+            "target/${target}/${profile}/bundle"
+            "src-tauri/target/${target}/${profile}/bundle" 
             "src-tauri/target/${profile}/bundle"
             "src-tauri/target/bundle"
           )
@@ -442,16 +449,20 @@ jobs:
             linux-*)
               # DEB package
               if [ -n "$bundle_dir" ] && ls ${bundle_dir}/deb/*.deb 1> /dev/null 2>&1; then
-                cp ${bundle_dir}/deb/*.deb dist/
-                echo "✅ Packaged DEB installer: $(ls ${bundle_dir}/deb/*.deb)"
+                for deb_file in ${bundle_dir}/deb/*.deb; do
+                  cp "$deb_file" "dist/torque-desktop-${os_name}.deb"
+                  echo "✅ Packaged DEB installer: $deb_file -> dist/torque-desktop-${os_name}.deb"
+                done
               else
                 echo "❌ No DEB installer found in ${bundle_dir}/deb/"
               fi
               
               # RPM package
               if [ -n "$bundle_dir" ] && ls ${bundle_dir}/rpm/*.rpm 1> /dev/null 2>&1; then
-                cp ${bundle_dir}/rpm/*.rpm dist/
-                echo "✅ Packaged RPM installer: $(ls ${bundle_dir}/rpm/*.rpm)"
+                for rpm_file in ${bundle_dir}/rpm/*.rpm; do
+                  cp "$rpm_file" "dist/torque-desktop-${os_name}.rpm"
+                  echo "✅ Packaged RPM installer: $rpm_file -> dist/torque-desktop-${os_name}.rpm"
+                done
               else
                 echo "❌ No RPM installer found in ${bundle_dir}/rpm/"
               fi
@@ -460,8 +471,10 @@ jobs:
             windows-*)
               # MSI installer
               if [ -n "$bundle_dir" ] && ls ${bundle_dir}/msi/*.msi 1> /dev/null 2>&1; then
-                cp ${bundle_dir}/msi/*.msi dist/
-                echo "✅ Packaged MSI installer: $(ls ${bundle_dir}/msi/*.msi)"
+                for msi_file in ${bundle_dir}/msi/*.msi; do
+                  cp "$msi_file" "dist/torque-desktop-${os_name}.msi"
+                  echo "✅ Packaged MSI installer: $msi_file -> dist/torque-desktop-${os_name}.msi"
+                done
               else
                 echo "❌ No MSI installer found in ${bundle_dir}/msi/"
               fi
@@ -470,10 +483,18 @@ jobs:
             macos-*)
               # DMG installer
               if [ -n "$bundle_dir" ] && ls ${bundle_dir}/dmg/*.dmg 1> /dev/null 2>&1; then
-                cp ${bundle_dir}/dmg/*.dmg dist/
-                echo "✅ Packaged DMG installer: $(ls ${bundle_dir}/dmg/*.dmg)"
+                for dmg_file in ${bundle_dir}/dmg/*.dmg; do
+                  # Rename DMG to standard format
+                  dmg_basename=$(basename "$dmg_file")
+                  cp "$dmg_file" "dist/torque-desktop-${os_name}.dmg"
+                  echo "✅ Packaged DMG installer: $dmg_file -> dist/torque-desktop-${os_name}.dmg"
+                done
               else
                 echo "❌ No DMG installer found in ${bundle_dir}/dmg/"
+              fi
+              # Also look for .app bundle
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/macos/*.app 1> /dev/null 2>&1; then
+                echo "✅ Found .app bundle: $(ls ${bundle_dir}/macos/*.app)"
               fi
               ;;
           esac
