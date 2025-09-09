@@ -156,7 +156,8 @@ jobs:
             libssl-dev pkg-config build-essential curl wget \
             libwebkit2gtk-4.1-dev libgtk-3-dev \
             libayatana-appindicator3-dev librsvg2-dev \
-            perl perl-modules-5.*
+            perl perl-modules-5.* \
+            rpm dpkg-dev
 
       - name: Set up dependencies (Windows)
         if: startsWith(matrix.platform.runs-on, 'windows-')
@@ -185,6 +186,24 @@ jobs:
         if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
         run: |
           cargo install tauri-cli --version "^2.0" --locked
+          
+      # Verify Tauri CLI installation
+      - name: Verify Tauri CLI
+        run: |
+          echo "=== Tauri CLI Verification ==="
+          cargo tauri --version
+          echo "Available bundles for this platform:"
+          cargo tauri build --help | grep -A 10 "possible values"
+          
+      # Test Tauri configuration
+      - name: Validate Tauri configuration
+        run: |
+          cd src-tauri
+          echo "=== Tauri Configuration Test ==="
+          echo "Testing configuration validity..."
+          cargo tauri build --no-bundle --help > /dev/null && echo "✅ Tauri config valid" || echo "❌ Tauri config invalid"
+          echo "Frontend dist path check:"
+          ls -la ../frontend/model-editor/dist/ 2>/dev/null && echo "✅ Frontend dist found" || echo "❌ Frontend dist missing"
 
       # Build server binary
       - name: Build torque server binary
@@ -221,29 +240,39 @@ jobs:
           
           # Build with specific bundles for this platform
           echo "Starting Tauri build with bundles: $bundles"
+          echo "Current directory: $(pwd)"
+          echo "Environment check:"
+          echo "  - Node version: $(node --version)"
+          echo "  - NPM version: $(npm --version)"
+          echo "  - Frontend dist exists: $(ls -la ../frontend/model-editor/dist 2>/dev/null && echo 'YES' || echo 'NO')"
+          
           if [ "$profile" = "debug" ]; then
             echo "Building in debug mode..."
             cargo tauri build \
               --target ${{ matrix.platform.target }} \
               --debug \
               --bundles $bundles \
-              --verbose
-            build_result=$?
+              --verbose 2>&1 | tee tauri-build.log
+            build_result=${PIPESTATUS[0]}
           else
             echo "Building in release mode..."
             cargo tauri build \
               --target ${{ matrix.platform.target }} \
               --bundles $bundles \
-              --verbose
-            build_result=$?
+              --verbose 2>&1 | tee tauri-build.log
+            build_result=${PIPESTATUS[0]}
           fi
           
           echo "Tauri build completed with exit code: $build_result"
           if [ $build_result -ne 0 ]; then
             echo "❌ Tauri build failed!"
+            echo "=== Tauri Build Error Log ==="
+            cat tauri-build.log
             exit $build_result
           else
             echo "✅ Tauri build succeeded"
+            echo "=== Tauri Build Success Log (last 20 lines) ==="
+            tail -20 tauri-build.log
           fi
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
