@@ -157,7 +157,12 @@ jobs:
             libwebkit2gtk-4.1-dev libgtk-3-dev \
             libayatana-appindicator3-dev librsvg2-dev \
             perl perl-modules-5.* \
-            rpm dpkg-dev
+            rpm dpkg-dev fakeroot
+          
+          echo "=== Linux Dependencies Installed ==="
+          echo "dpkg version: $(dpkg --version | head -1)"
+          echo "rpm version: $(rpm --version)"
+          echo "fakeroot available: $(which fakeroot && echo 'YES' || echo 'NO')"
 
       - name: Set up dependencies (Windows)
         if: startsWith(matrix.platform.runs-on, 'windows-')
@@ -246,21 +251,65 @@ jobs:
           echo "  - NPM version: $(npm --version)"
           echo "  - Frontend dist exists: $(ls -la ../frontend/model-editor/dist 2>/dev/null && echo 'YES' || echo 'NO')"
           
+          # Test bundle format - convert comma-separated to space-separated
+          bundles_spaced=$(echo "$bundles" | tr ',' ' ')
+          echo "Bundles (comma-separated): $bundles"
+          echo "Bundles (space-separated): $bundles_spaced"
+          
+          # First try: Test with --no-bundle to see if basic build works
+          echo "=== Testing basic Tauri build (no bundles) ==="
+          cargo tauri build --no-bundle --target ${{ matrix.platform.target }} --verbose
+          basic_result=$?
+          echo "Basic build result: $basic_result"
+          
+          if [ $basic_result -eq 0 ]; then
+            echo "✅ Basic build succeeded, now trying with bundles..."
+          else
+            echo "❌ Basic build failed, cannot proceed with bundles"
+            exit $basic_result
+          fi
+          
+          # Try different bundle approaches
+          echo "=== Attempting bundle creation with different approaches ==="
+          
+          # Approach 1: Let Tauri use config from tauri.conf.json
+          echo "Approach 1: Using tauri.conf.json bundle configuration"
           if [ "$profile" = "debug" ]; then
-            echo "Building in debug mode..."
             cargo tauri build \
               --target ${{ matrix.platform.target }} \
               --debug \
-              --bundles $bundles \
-              --verbose 2>&1 | tee tauri-build.log
-            build_result=${PIPESTATUS[0]}
+              --verbose 2>&1 | tee tauri-build-config.log
+            config_result=${PIPESTATUS[0]}
           else
-            echo "Building in release mode..."
             cargo tauri build \
               --target ${{ matrix.platform.target }} \
-              --bundles $bundles \
-              --verbose 2>&1 | tee tauri-build.log
-            build_result=${PIPESTATUS[0]}
+              --verbose 2>&1 | tee tauri-build-config.log
+            config_result=${PIPESTATUS[0]}
+          fi
+          
+          echo "Build with config result: $config_result"
+          if [ $config_result -eq 0 ]; then
+            echo "✅ Build with config succeeded"
+            build_result=0
+          else
+            echo "❌ Build with config failed, trying with explicit bundles..."
+            
+            # Approach 2: Explicit bundles (original approach)
+            echo "Approach 2: Using explicit --bundles flag"
+            if [ "$profile" = "debug" ]; then
+              cargo tauri build \
+                --target ${{ matrix.platform.target }} \
+                --debug \
+                --bundles $bundles_spaced \
+                --verbose 2>&1 | tee tauri-build-explicit.log
+              build_result=${PIPESTATUS[0]}
+            else
+              cargo tauri build \
+                --target ${{ matrix.platform.target }} \
+                --bundles $bundles_spaced \
+                --verbose 2>&1 | tee tauri-build-explicit.log
+              build_result=${PIPESTATUS[0]}
+            fi
           fi
           
           echo "Tauri build completed with exit code: $build_result"
@@ -310,8 +359,27 @@ jobs:
           
           # Debug: Check what was actually built
           echo ""
-          echo "=== Debug: Tauri build output ==="
-          echo "Target directory structure:"
+          echo "=== Debug: Comprehensive build output analysis ==="
+          echo "Current directory: $(pwd)"
+          echo "Target: $target"
+          echo "Profile: $profile"
+          
+          # Check if src-tauri/target exists at all
+          if [ -d "src-tauri/target" ]; then
+            echo "✅ src-tauri/target directory exists"
+            echo "Target directory size: $(du -sh src-tauri/target 2>/dev/null | cut -f1)"
+          else
+            echo "❌ src-tauri/target directory does not exist!"
+            exit 1
+          fi
+          
+          # Show complete target directory structure
+          echo ""
+          echo "Complete target directory structure:"
+          find src-tauri/target -type d 2>/dev/null | sort
+          
+          echo ""
+          echo "Looking for bundle directories..."
           find src-tauri/target -name "bundle" -type d 2>/dev/null || echo "No bundle directories found"
           
           # Look for bundle directory in different possible locations
@@ -323,20 +391,50 @@ jobs:
           
           bundle_dir=""
           for dir in "${possible_bundle_dirs[@]}"; do
+            echo "Checking: $dir"
             if [ -d "$dir" ]; then
               bundle_dir="$dir"
-              echo "Found bundle directory: $bundle_dir"
+              echo "✅ Found bundle directory: $bundle_dir"
               break
+            else
+              echo "❌ Not found: $dir"
             fi
           done
           
           if [ -z "$bundle_dir" ]; then
-            echo "❌ No bundle directory found. Checking all target directories:"
-            find src-tauri/target -type d -name "*" 2>/dev/null | head -20
+            echo ""
+            echo "❌ No bundle directory found. Detailed analysis:"
+            echo "All directories in src-tauri/target:"
+            find src-tauri/target -type d -name "*" 2>/dev/null | head -30
+            echo ""
+            echo "All files containing 'bundle' in name:"
+            find src-tauri/target -name "*bundle*" 2>/dev/null || echo "No files with 'bundle' in name"
+            echo ""
+            echo "Recent files in target directory (last 10):"
+            find src-tauri/target -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -10 | cut -d' ' -f2-
+            echo ""
+            echo "Build logs analysis:"
+            if [ -f "tauri-build-config.log" ]; then
+              echo "=== Config build log (last 30 lines) ==="
+              tail -30 tauri-build-config.log
+            fi
+            if [ -f "tauri-build-explicit.log" ]; then
+              echo "=== Explicit build log (last 30 lines) ==="
+              tail -30 tauri-build-explicit.log
+            fi
             echo "Tauri build may have failed to generate installers."
           else
+            echo "✅ Bundle directory found: $bundle_dir"
             echo "Bundle directory contents:"
             ls -la "$bundle_dir" 2>/dev/null || echo "Bundle directory exists but is empty"
+            echo ""
+            echo "Bundle subdirectories:"
+            find "$bundle_dir" -type d 2>/dev/null || echo "No subdirectories in bundle"
+            echo ""
+            echo "Bundle files by type:"
+            find "$bundle_dir" -type f 2>/dev/null | while read file; do
+              echo "  $(file --brief "$file"): $file"
+            done
           fi
           
           # Copy platform-specific installers  
