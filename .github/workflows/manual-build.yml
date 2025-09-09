@@ -236,11 +236,63 @@ jobs:
       - name: Build Tauri desktop app and installers
         shell: bash
         run: |
+          echo "=== Pre-build Environment Check ==="
+          echo "Current directory: $(pwd)"
+          echo "Platform: ${{ matrix.platform.os-name }}"
+          echo "Target: ${{ matrix.platform.target }}"
+          echo "Bundles: ${{ matrix.platform.bundles }}"
+          
+          # Check if src-tauri directory exists
+          if [ ! -d "src-tauri" ]; then
+            echo "❌ CRITICAL: src-tauri directory does not exist!"
+            echo "Available directories:"
+            ls -la
+            exit 1
+          fi
+          
           cd src-tauri
+          echo "Changed to src-tauri directory: $(pwd)"
+          
+          # Verify Tauri configuration exists
+          if [ ! -f "tauri.conf.json" ]; then
+            echo "❌ CRITICAL: tauri.conf.json not found!"
+            echo "Files in src-tauri:"
+            ls -la
+            exit 1
+          fi
+          
+          # Verify Tauri CLI is working
+          echo "Checking Tauri CLI:"
+          cargo tauri --version || {
+            echo "❌ CRITICAL: Tauri CLI not available or broken!"
+            echo "Attempting to reinstall..."
+            cargo install tauri-cli --version "^2.0" --locked --force
+            cargo tauri --version || exit 1
+          }
+          
+          # Check if frontend assets are available
+          echo ""
+          echo "Checking frontend assets:"
+          frontend_dist_path="../frontend/model-editor/dist"
+          if [ -d "$frontend_dist_path" ]; then
+            echo "✅ Frontend dist directory exists: $frontend_dist_path"
+            echo "Frontend dist size: $(du -sh $frontend_dist_path 2>/dev/null | cut -f1)"
+            echo "Frontend dist contents:"
+            ls -la "$frontend_dist_path"
+          else
+            echo "❌ CRITICAL: Frontend dist directory missing: $frontend_dist_path"
+            echo "This will cause Tauri build to fail!"
+            echo "Checking if frontend artifacts were downloaded:"
+            ls -la ../frontend/model-editor/ 2>/dev/null || echo "model-editor directory not found"
+            echo "Attempting to locate frontend artifacts:"
+            find .. -name "dist" -type d 2>/dev/null || echo "No dist directories found"
+            exit 1
+          fi
           
           profile="${{ github.event.inputs.profile || 'release' }}"
           bundles="${{ matrix.platform.bundles }}"
           
+          echo ""
           echo "Building Tauri app for ${{ matrix.platform.os-name }} with bundles: $bundles"
           
           # Build with specific bundles for this platform
@@ -318,12 +370,32 @@ jobs:
           if [ $build_result -ne 0 ]; then
             echo "❌ Tauri build failed!"
             echo "=== Tauri Build Error Log ==="
-            cat tauri-build.log
+            if [ -f "tauri-build.log" ]; then
+              cat tauri-build.log
+            else
+              echo "No tauri-build.log found"
+            fi
+            echo "=== Additional Error Information ==="
+            echo "Directory contents after failed build:"
+            ls -la
+            echo "Target directory check:"
+            ls -la target 2>/dev/null || echo "No target directory created"
+            ls -la ../target 2>/dev/null || echo "No ../target directory found"
             exit $build_result
           else
             echo "✅ Tauri build succeeded"
             echo "=== Tauri Build Success Log (last 20 lines) ==="
-            tail -20 tauri-build.log
+            if [ -f "tauri-build.log" ]; then
+              tail -20 tauri-build.log
+            else
+              echo "No tauri-build.log found, but build succeeded"
+            fi
+            echo "=== Post-build Directory Check ==="
+            echo "Current directory contents:"
+            ls -la
+            echo "Target directory contents:"
+            ls -la target 2>/dev/null || echo "No local target directory"
+            ls -la ../target 2>/dev/null || echo "No parent target directory"
           fi
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
@@ -366,19 +438,48 @@ jobs:
           echo "Target: $target"
           echo "Profile: $profile"
           
-          # Check if src-tauri/target exists at all
+          # Check if target directories exist at all
+          echo "Checking for Tauri build artifacts..."
+          src_tauri_target_exists=false
+          main_target_exists=false
+          
           if [ -d "src-tauri/target" ]; then
             echo "✅ src-tauri/target directory exists"
-            echo "Target directory size: $(du -sh src-tauri/target 2>/dev/null | cut -f1)"
+            echo "src-tauri/target directory size: $(du -sh src-tauri/target 2>/dev/null | cut -f1)"
+            src_tauri_target_exists=true
           else
-            echo "❌ src-tauri/target directory does not exist!"
+            echo "❌ src-tauri/target directory does not exist"
+          fi
+          
+          if [ -d "target" ]; then
+            echo "✅ main target directory exists"
+            echo "main target directory size: $(du -sh target 2>/dev/null | cut -f1)"
+            main_target_exists=true
+          else
+            echo "❌ main target directory does not exist"
+          fi
+          
+          if [ "$src_tauri_target_exists" = false ] && [ "$main_target_exists" = false ]; then
+            echo "❌ CRITICAL: Neither target directory exists! Tauri build likely failed completely."
+            echo "This suggests the Tauri build step did not run or crashed silently."
+            echo "Checking if Tauri CLI is available:"
+            cargo tauri --version 2>/dev/null || echo "Tauri CLI not available"
+            echo "Checking recent build logs:"
+            ls -la *.log 2>/dev/null || echo "No log files found"
             exit 1
           fi
           
           # Show complete target directory structure
           echo ""
           echo "Complete target directory structure:"
-          find src-tauri/target -type d 2>/dev/null | sort
+          if [ "$src_tauri_target_exists" = true ]; then
+            echo "src-tauri/target structure:"
+            find src-tauri/target -type d 2>/dev/null | sort
+          fi
+          if [ "$main_target_exists" = true ]; then
+            echo "main target structure:"
+            find target -type d 2>/dev/null | head -20 | sort
+          fi
           
           echo ""
           echo "Looking for bundle directories..."
