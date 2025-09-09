@@ -236,6 +236,24 @@ jobs:
       - name: Build Tauri desktop app and installers
         shell: bash
         run: |
+          set -e  # Exit on any error
+          set -o pipefail  # Catch errors in pipes
+          
+          # Error trap function
+          error_handler() {
+            echo "❌ TAURI BUILD FAILED at line $1"
+            echo "❌ Last command: $BASH_COMMAND"
+            echo "❌ Exit code: $?"
+            echo "❌ Current directory: $(pwd)"
+            echo "❌ Available files:"
+            ls -la 2>/dev/null || echo "Cannot list files"
+            exit 1
+          }
+          trap 'error_handler $LINENO' ERR
+          
+          echo "🚀 TAURI BUILD STEP STARTED - This should appear in logs!"
+          echo "🚀 Timestamp: $(date)"
+          echo "🚀 Platform: ${{ matrix.platform.os-name }}"
           echo "=== Pre-build Environment Check ==="
           echo "Current directory: $(pwd)"
           echo "Platform: ${{ matrix.platform.os-name }}"
@@ -397,6 +415,27 @@ jobs:
             ls -la target 2>/dev/null || echo "No local target directory"
             ls -la ../target 2>/dev/null || echo "No parent target directory"
           fi
+          
+          # Final verification - ensure Tauri build actually created artifacts
+          echo ""
+          echo "=== Final Tauri Build Verification ==="
+          target_created=false
+          if [ -d "target" ]; then
+            echo "✅ Local target directory created"
+            target_created=true
+          fi
+          if [ -d "../target" ]; then
+            echo "✅ Parent target directory exists"  
+            target_created=true
+          fi
+          
+          if [ "$target_created" = false ]; then
+            echo "❌ CRITICAL: No target directories created by Tauri build!"
+            echo "❌ This indicates the Tauri build process failed completely."
+            exit 1
+          fi
+          
+          echo "🎉 TAURI BUILD STEP COMPLETED SUCCESSFULLY"
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
