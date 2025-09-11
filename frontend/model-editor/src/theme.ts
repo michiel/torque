@@ -59,7 +59,7 @@ export const theme = createTheme({
       },
     },
     AppShell: {
-      styles: (theme) => ({
+      styles: (theme: any) => ({
         header: {
           backgroundColor: 'var(--mantine-color-body)',
           borderBottomColor: 'var(--mantine-color-default-border)',
@@ -67,7 +67,7 @@ export const theme = createTheme({
       }),
     },
     Card: {
-      styles: (theme) => ({
+      styles: (theme: any) => ({
         root: {
           backgroundColor: 'var(--mantine-color-body)',
           borderColor: 'var(--mantine-color-default-border)',
@@ -75,14 +75,14 @@ export const theme = createTheme({
       }),
     },
     Modal: {
-      styles: (theme) => ({
+      styles: (theme: any) => ({
         content: {
           backgroundColor: 'var(--mantine-color-body)',
         },
       }),
     },
     Navbar: {
-      styles: (theme) => ({
+      styles: (theme: any) => ({
         root: {
           backgroundColor: 'var(--mantine-color-body)',
           borderRightColor: 'var(--mantine-color-default-border)',

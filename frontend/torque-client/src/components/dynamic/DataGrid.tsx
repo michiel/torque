@@ -221,9 +221,9 @@ export const DataGrid = memo(function DataGrid({
 
   // Data export
   const handleExport = useCallback((format: 'csv' | 'excel') => {
-    const headers = displayColumns.map(col => col.title).join(',')
+    const headers = displayColumns.map((col: any) => col.title).join(',')
     const rows = entityData.map((row: any) => 
-      displayColumns.map(col => row[col.key] || '').join(',')
+      displayColumns.map((col: any) => row[col.key] || '').join(',')
     )
     const csvContent = [headers, ...rows].join('\n')
     

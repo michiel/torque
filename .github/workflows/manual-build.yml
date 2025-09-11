@@ -1,4 +1,4 @@
-name: Build and Release Torque Binaries
+name: Build and Release Torque Desktop
 on:
   workflow_dispatch:
     inputs:
@@ -15,51 +15,30 @@ on:
         required: false
         default: 'main'
         type: string
+      skip_cache:
+        description: 'Skip caches and rebuild everything'
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - 'v*'
 
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
 jobs:
-  release:
-    name: Build - ${{ matrix.platform.os-name }}
-    strategy:
-      matrix:
-        platform:
-          - os-name: linux-x86_64
-            runs-on: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-            binary-ext: ""
-
-          # Disabled aarch64 Linux due to cross-compilation complexity with GUI dependencies
-          # - os-name: linux-aarch64
-          #   runs-on: ubuntu-24.04
-          #   target: aarch64-unknown-linux-gnu
-          #   binary-ext: ""
-
-          - os-name: windows-x86_64
-            runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary-ext: ".exe"
-
-          - os-name: macos-x86_64
-            runs-on: macOS-latest
-            target: x86_64-apple-darwin
-            binary-ext: ""
-
-          - os-name: macos-aarch64
-            runs-on: macOS-latest
-            target: aarch64-apple-darwin
-            binary-ext: ""
-
-    runs-on: ${{ matrix.platform.runs-on }}
+  # Build frontend once and share across all platforms
+  build-frontend:
+    name: Build Frontend Assets
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
-          submodules: recursive
 
-      # Set up Node.js for frontend builds
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -67,7 +46,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'frontend/*/package-lock.json'
 
-      # Build frontend assets
+      - name: Cache frontend node_modules
+        if: github.event.inputs.skip_cache != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/torque-client/node_modules
+            frontend/model-editor/node_modules
+          key: frontend-deps-${{ runner.os }}-${{ hashFiles('frontend/*/package-lock.json') }}
+          restore-keys: |
+            frontend-deps-${{ runner.os }}-
+
       - name: Install torque-client dependencies
         run: |
           cd frontend/torque-client
@@ -81,141 +70,626 @@ jobs:
       - name: Build frontend assets
         run: |
           cd frontend/model-editor
-          # Skip TypeScript checking to avoid compilation errors during build
-          npx vite build
+          npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/model-editor/dist/
+          retention-days: 1
+
+  # Build binaries and installers for each platform
+  build-platform:
+    name: Build - ${{ matrix.platform.os-name }}
+    needs: build-frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os-name: linux-x86_64
+            runs-on: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            binary-ext: ""
+            bundles: "deb,rpm"
+
+          - os-name: windows-x86_64
+            runs-on: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary-ext: ".exe"
+            bundles: "msi"
+
+          - os-name: macos-x86_64
+            runs-on: macOS-latest
+            target: x86_64-apple-darwin
+            binary-ext: ""
+            bundles: "dmg"
+
+          - os-name: macos-aarch64
+            runs-on: macOS-latest
+            target: aarch64-apple-darwin
+            binary-ext: ""
+            bundles: "dmg"
+
+    runs-on: ${{ matrix.platform.runs-on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+          submodules: recursive
+
+      # Download pre-built frontend
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/model-editor/dist/
+          
+      # Verify frontend artifacts were downloaded correctly
+      - name: Verify frontend artifacts
+        shell: bash
+        run: |
+          echo "🔍 FRONTEND VERIFICATION: Checking downloaded artifacts"
+          echo "Expected path: frontend/model-editor/dist/"
+          
+          if [ -d "frontend/model-editor/dist" ]; then
+            echo "✅ Frontend dist directory exists"
+            echo "📁 Contents:"
+            ls -la frontend/model-editor/dist/
+            echo "📊 Size: $(du -sh frontend/model-editor/dist/)"
+            
+            # Check for essential files
+            if [ -f "frontend/model-editor/dist/index.html" ]; then
+              echo "✅ index.html found"
+            else
+              echo "❌ index.html missing!"
+            fi
+          else
+            echo "❌ CRITICAL: Frontend dist directory missing!"
+            echo "Available directories in frontend/:"
+            ls -la frontend/ 2>/dev/null || echo "frontend/ directory doesn't exist"
+            echo "All available files:"
+            find . -name "dist" -type d 2>/dev/null || echo "No dist directories found"
+            exit 1
+          fi
+
+      # Setup Rust with caching
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Cache Rust dependencies
+        if: github.event.inputs.skip_cache != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+            src-tauri/target/
+          key: cargo-${{ matrix.platform.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ matrix.platform.target }}-
+            cargo-
 
       # Set up system dependencies
-      - name: Set up dependencies (Ubuntu only)
+      - name: Set up dependencies (Linux)
         if: startsWith(matrix.platform.runs-on, 'ubuntu-')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config musl-dev perl perl-modules-5.* libfindbin-libs-perl
-          # Additional dependencies for Tauri on Linux
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+          sudo apt-get install -y \
+            libssl-dev pkg-config build-essential curl wget \
+            libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev \
+            perl perl-modules-5.* \
+            rpm dpkg-dev fakeroot
+          
+          echo "=== Linux Dependencies Installed ==="
+          echo "dpkg version: $(dpkg --version | head -1)"
+          echo "rpm version: $(rpm --version)"
+          echo "fakeroot available: $(which fakeroot && echo 'YES' || echo 'NO')"
 
-      - name: Set up dependencies (Windows only)
+      - name: Set up dependencies (Windows)
         if: startsWith(matrix.platform.runs-on, 'windows-')
         run: |
           # Install Strawberry Perl for vendored OpenSSL builds
           choco install strawberryperl -y
-          # Add Strawberry Perl to PATH for this job
           echo "C:\strawberry\perl\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "C:\strawberry\c\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Set up dependencies (macOS only)
+      - name: Set up dependencies (macOS)
         if: startsWith(matrix.platform.runs-on, 'macOS-')
         run: |
           # Verify perl is available (usually pre-installed)
-          perl -e "use FindBin;" && echo "Perl with FindBin ready for vendored builds"
+          perl -e "use FindBin;" && echo "Perl with FindBin ready"
 
-      # Build Rust binaries
-      - name: Build torque binary
-        uses: houseabsolute/actions-rust-cross@v1
-        env:
-          OPENSSL_STATIC: "1"
+      # Install Tauri CLI with caching
+      - name: Cache Tauri CLI
+        if: github.event.inputs.skip_cache != 'true'
+        id: cache-tauri-cli
+        uses: actions/cache@v4
         with:
-          command: build
-          target: ${{ matrix.platform.target }}
-          args: "--locked --${{ github.event.inputs.profile || 'release' }} -p torque --features simd,mimalloc"
-          strip: true
+          path: ~/.cargo/bin/cargo-tauri
+          key: tauri-cli-${{ runner.os }}-2.0
 
       - name: Install Tauri CLI
+        if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
         run: |
           cargo install tauri-cli --version "^2.0" --locked
           
-      - name: Build torque-desktop binary (Tauri)
+      # Verify Tauri CLI installation
+      - name: Verify Tauri CLI
+        run: |
+          echo "=== Tauri CLI Verification ==="
+          cargo tauri --version
+          echo "Available bundles for this platform:"
+          cargo tauri build --help | grep -A 10 "possible values"
+          
+      # Test Tauri configuration
+      - name: Validate Tauri configuration
+        run: |
+          cd src-tauri
+          echo "=== Tauri Configuration Test ==="
+          echo "Testing configuration validity..."
+          cargo tauri build --no-bundle --help > /dev/null && echo "✅ Tauri config valid" || echo "❌ Tauri config invalid"
+          echo "Frontend dist path check:"
+          ls -la ../frontend/model-editor/dist/ 2>/dev/null && echo "✅ Frontend dist found" || echo "❌ Frontend dist missing"
+
+      # Build server binary
+      - name: Build torque server binary
         shell: bash
         run: |
-          if [ "${{ matrix.platform.target }}" = "x86_64-pc-windows-msvc" ]; then
-            # Windows: disable bundling for raw executable
-            cargo tauri build --config '{"bundle":{"active":false}}'
+          echo "🔨 SERVER BUILD STARTED for ${{ matrix.platform.os-name }}"
+          profile="${{ github.event.inputs.profile || 'release' }}"
+          
+          if [ "$profile" = "debug" ]; then
+            echo "Building server in debug mode..."
+            cargo build \
+              --locked \
+              --target ${{ matrix.platform.target }} \
+              -p torque \
+              --features simd,mimalloc
           else
-            # Linux/macOS: use native builds to avoid cross-compilation issues with GUI deps
-            cargo tauri build
+            echo "Building server in release mode..."
+            cargo build \
+              --locked \
+              --target ${{ matrix.platform.target }} \
+              --release \
+              -p torque \
+              --features simd,mimalloc
           fi
+          
+          # Verify server binary was created
+          expected_binary="target/${{ matrix.platform.target }}/${profile}/torque${{ matrix.platform.binary-ext }}"
+          if [ -f "$expected_binary" ]; then
+            echo "✅ SERVER BUILD COMPLETED: $expected_binary"
+            ls -la "$expected_binary"
+          else
+            echo "❌ SERVER BUILD FAILED: Expected binary not found at $expected_binary"
+            echo "Available files in target directory:"
+            find target -name "torque*" 2>/dev/null || echo "No torque binaries found"
+            exit 1
+          fi
+        env:
+          OPENSSL_STATIC: "1"
+          
+      # Debug step to verify we reach this point
+      - name: Pre-Tauri Debug Check
+        shell: bash
+        run: |
+          echo "🔍 PRE-TAURI DEBUG: This step should always run before Tauri build"
+          echo "🔍 Current directory: $(pwd)"
+          echo "🔍 Platform: ${{ matrix.platform.os-name }}"
+          echo "🔍 Server binary check:"
+          ls -la target/${{ matrix.platform.target }}/release/torque* 2>/dev/null || echo "No server binaries found"
+          echo "🔍 Frontend assets check:"
+          ls -la frontend/model-editor/dist/ 2>/dev/null || echo "No frontend dist found"
+          echo "🔍 src-tauri directory check:"
+          ls -la src-tauri/ 2>/dev/null || echo "No src-tauri directory"
+          echo "🔍 Ready to proceed to Tauri build step"
+          
+      # Build Tauri desktop app with installers
+      - name: Build Tauri desktop app and installers
+        shell: bash
+        run: |
+          set -e  # Exit on any error
+          set -o pipefail  # Catch errors in pipes
+          
+          # Error trap function
+          error_handler() {
+            echo "❌ TAURI BUILD FAILED at line $1"
+            echo "❌ Last command: $BASH_COMMAND"
+            echo "❌ Exit code: $?"
+            echo "❌ Current directory: $(pwd)"
+            echo "❌ Available files:"
+            ls -la 2>/dev/null || echo "Cannot list files"
+            exit 1
+          }
+          trap 'error_handler $LINENO' ERR
+          
+          echo "🚀 TAURI BUILD STEP STARTED - This should appear in logs!"
+          echo "🚀 Timestamp: $(date)"
+          echo "🚀 Platform: ${{ matrix.platform.os-name }}"
+          echo "=== Pre-build Environment Check ==="
+          echo "Current directory: $(pwd)"
+          echo "Platform: ${{ matrix.platform.os-name }}"
+          echo "Target: ${{ matrix.platform.target }}"
+          echo "Bundles: ${{ matrix.platform.bundles }}"
+          
+          # Check if src-tauri directory exists
+          if [ ! -d "src-tauri" ]; then
+            echo "❌ CRITICAL: src-tauri directory does not exist!"
+            echo "Available directories:"
+            ls -la
+            exit 1
+          fi
+          
+          cd src-tauri
+          echo "Changed to src-tauri directory: $(pwd)"
+          
+          # Verify Tauri configuration exists
+          if [ ! -f "tauri.conf.json" ]; then
+            echo "❌ CRITICAL: tauri.conf.json not found!"
+            echo "Files in src-tauri:"
+            ls -la
+            exit 1
+          fi
+          
+          # Verify Tauri CLI is working
+          echo "Checking Tauri CLI:"
+          cargo tauri --version || {
+            echo "❌ CRITICAL: Tauri CLI not available or broken!"
+            echo "Attempting to reinstall..."
+            cargo install tauri-cli --version "^2.0" --locked --force
+            cargo tauri --version || exit 1
+          }
+          
+          # Check if frontend assets are available
+          echo ""
+          echo "Checking frontend assets:"
+          frontend_dist_path="../frontend/model-editor/dist"
+          if [ -d "$frontend_dist_path" ]; then
+            echo "✅ Frontend dist directory exists: $frontend_dist_path"
+            echo "Frontend dist size: $(du -sh $frontend_dist_path 2>/dev/null | cut -f1)"
+            echo "Frontend dist contents:"
+            ls -la "$frontend_dist_path"
+          else
+            echo "❌ CRITICAL: Frontend dist directory missing: $frontend_dist_path"
+            echo "This will cause Tauri build to fail!"
+            echo "Checking if frontend artifacts were downloaded:"
+            ls -la ../frontend/model-editor/ 2>/dev/null || echo "model-editor directory not found"
+            echo "Attempting to locate frontend artifacts:"
+            find .. -name "dist" -type d 2>/dev/null || echo "No dist directories found"
+            exit 1
+          fi
+          
+          profile="${{ github.event.inputs.profile || 'release' }}"
+          bundles="${{ matrix.platform.bundles }}"
+          
+          echo ""
+          echo "Building Tauri app for ${{ matrix.platform.os-name }} with bundles: $bundles"
+          
+          # Build with specific bundles for this platform
+          echo "Starting Tauri build with bundles: $bundles"
+          echo "Current directory: $(pwd)"
+          echo "Environment check:"
+          echo "  - Node version: $(node --version)"
+          echo "  - NPM version: $(npm --version)"
+          echo "  - Frontend dist exists: $(ls -la ../frontend/model-editor/dist 2>/dev/null && echo 'YES' || echo 'NO')"
+          
+          # Test bundle format - convert comma-separated to space-separated
+          bundles_spaced=$(echo "$bundles" | tr ',' ' ')
+          echo "Bundles (comma-separated): $bundles"
+          echo "Bundles (space-separated): $bundles_spaced"
+          
+          # First try: Test with --no-bundle to see if basic build works
+          echo "=== Testing basic Tauri build (no bundles) ==="
+          cargo tauri build --no-bundle --target ${{ matrix.platform.target }} --verbose
+          basic_result=$?
+          echo "Basic build result: $basic_result"
+          
+          if [ $basic_result -eq 0 ]; then
+            echo "✅ Basic build succeeded, now trying with bundles..."
+          else
+            echo "❌ Basic build failed, cannot proceed with bundles"
+            exit $basic_result
+          fi
+          
+          # Try different bundle approaches
+          echo "=== Attempting bundle creation with different approaches ==="
+          
+          # Approach 1: Let Tauri use config from tauri.conf.json
+          echo "Approach 1: Using tauri.conf.json bundle configuration"
+          if [ "$profile" = "debug" ]; then
+            cargo tauri build \
+              --target ${{ matrix.platform.target }} \
+              --debug \
+              --verbose 2>&1 | tee tauri-build-config.log
+            config_result=${PIPESTATUS[0]}
+          else
+            cargo tauri build \
+              --target ${{ matrix.platform.target }} \
+              --verbose 2>&1 | tee tauri-build-config.log
+            config_result=${PIPESTATUS[0]}
+          fi
+          
+          echo "Build with config result: $config_result"
+          if [ $config_result -eq 0 ]; then
+            echo "✅ Build with config succeeded"
+            build_result=0
+            # Use the config log file for success output
+            cp tauri-build-config.log tauri-build.log 2>/dev/null || true
+          else
+            echo "❌ Build with config failed, trying with explicit bundles..."
+            
+            # Approach 2: Explicit bundles (original approach)
+            echo "Approach 2: Using explicit --bundles flag"
+            if [ "$profile" = "debug" ]; then
+              cargo tauri build \
+                --target ${{ matrix.platform.target }} \
+                --debug \
+                --bundles $bundles_spaced \
+                --verbose 2>&1 | tee tauri-build-explicit.log
+              build_result=${PIPESTATUS[0]}
+            else
+              cargo tauri build \
+                --target ${{ matrix.platform.target }} \
+                --bundles $bundles_spaced \
+                --verbose 2>&1 | tee tauri-build-explicit.log
+              build_result=${PIPESTATUS[0]}
+            fi
+          fi
+          
+          echo "Tauri build completed with exit code: $build_result"
+          if [ $build_result -ne 0 ]; then
+            echo "❌ Tauri build failed!"
+            echo "=== Tauri Build Error Log ==="
+            if [ -f "tauri-build.log" ]; then
+              cat tauri-build.log
+            else
+              echo "No tauri-build.log found"
+            fi
+            echo "=== Additional Error Information ==="
+            echo "Directory contents after failed build:"
+            ls -la
+            echo "Target directory check:"
+            ls -la target 2>/dev/null || echo "No target directory created"
+            ls -la ../target 2>/dev/null || echo "No ../target directory found"
+            exit $build_result
+          else
+            echo "✅ Tauri build succeeded"
+            echo "=== Tauri Build Success Log (last 20 lines) ==="
+            if [ -f "tauri-build.log" ]; then
+              tail -20 tauri-build.log
+            else
+              echo "No tauri-build.log found, but build succeeded"
+            fi
+            echo "=== Post-build Directory Check ==="
+            echo "Current directory contents:"
+            ls -la
+            echo "Target directory contents:"
+            ls -la target 2>/dev/null || echo "No local target directory"
+            ls -la ../target 2>/dev/null || echo "No parent target directory"
+          fi
+          
+          # Final verification - ensure Tauri build actually created artifacts
+          echo ""
+          echo "=== Final Tauri Build Verification ==="
+          target_created=false
+          if [ -d "target" ]; then
+            echo "✅ Local target directory created"
+            target_created=true
+          fi
+          if [ -d "../target" ]; then
+            echo "✅ Parent target directory exists"  
+            target_created=true
+          fi
+          
+          if [ "$target_created" = false ]; then
+            echo "❌ CRITICAL: No target directories created by Tauri build!"
+            echo "❌ This indicates the Tauri build process failed completely."
+            exit 1
+          fi
+          
+          echo "🎉 TAURI BUILD STEP COMPLETED SUCCESSFULLY"
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
-      # Package binaries
-      - name: Package binaries
+      # Package installers and binaries
+      - name: Package release artifacts
         shell: bash
         run: |
           profile="${{ github.event.inputs.profile || 'release' }}"
           target="${{ matrix.platform.target }}"
           os_name="${{ matrix.platform.os-name }}"
           binary_ext="${{ matrix.platform.binary-ext }}"
+          bundles="${{ matrix.platform.bundles }}"
           
           mkdir -p dist
           
-          # Copy torque binary
-          cp "target/${target}/${profile}/torque${binary_ext}" "dist/torque-${os_name}${binary_ext}"
+          echo "=== Packaging artifacts for $os_name ==="
           
-          # Copy torque-desktop binary (Tauri places binaries in different locations)
-          # Try multiple possible locations since we use native builds
-          desktop_found=false
+          # Copy server binary
+          server_binary="target/${target}/${profile}/torque${binary_ext}"
+          if [ -f "$server_binary" ]; then
+            cp "$server_binary" "dist/torque-server-${os_name}${binary_ext}"
+            echo "✅ Packaged server binary: $server_binary"
+          else
+            echo "❌ Server binary not found: $server_binary"
+          fi
           
-          # Possible locations for Tauri binaries
-          possible_locations=(
-            "src-tauri/target/${profile}/torque-desktop${binary_ext}"
-            "src-tauri/target/${target}/${profile}/torque-desktop${binary_ext}"
-            "target/${profile}/torque-desktop${binary_ext}"
-            "target/${target}/${profile}/torque-desktop${binary_ext}"
+          # Copy desktop binary (raw executable from main target directory)
+          desktop_binary="target/${target}/${profile}/torque-desktop${binary_ext}"
+          if [ -f "$desktop_binary" ]; then
+            cp "$desktop_binary" "dist/torque-desktop-${os_name}${binary_ext}"
+            echo "✅ Packaged desktop binary: $desktop_binary"
+          else
+            echo "❌ Desktop binary not found: $desktop_binary"
+            # Check if it exists in the build output
+            echo "Searching for desktop binary in target directory:"
+            find target -name "torque-desktop*" 2>/dev/null || echo "No desktop binary found"
+          fi
+          
+          # Debug: Check what was actually built
+          echo ""
+          echo "=== Debug: Comprehensive build output analysis ==="
+          echo "Current directory: $(pwd)"
+          echo "Target: $target"
+          echo "Profile: $profile"
+          
+          # Check if target directories exist at all
+          echo "Checking for Tauri build artifacts..."
+          main_target_exists=false
+          
+          if [ -d "target" ]; then
+            echo "✅ main target directory exists"
+            echo "main target directory size: $(du -sh target 2>/dev/null | cut -f1)"
+            main_target_exists=true
+          else
+            echo "❌ main target directory does not exist"
+          fi
+          
+          if [ "$main_target_exists" = false ]; then
+            echo "❌ CRITICAL: Target directory does not exist! Tauri build likely failed completely."
+            echo "This suggests the Tauri build step did not run or crashed silently."
+            echo "Checking if Tauri CLI is available:"
+            cargo tauri --version 2>/dev/null || echo "Tauri CLI not available"
+            echo "Checking recent build logs:"
+            ls -la *.log 2>/dev/null || echo "No log files found"
+            exit 1
+          fi
+          
+          # Show complete target directory structure
+          echo ""
+          echo "Complete target directory structure:"
+          if [ "$main_target_exists" = true ]; then
+            echo "main target structure:"
+            find target -type d 2>/dev/null | head -20 | sort
+          fi
+          
+          echo ""
+          echo "Looking for bundle directories..."
+          echo "Searching in target:"
+          find target -name "bundle" -type d 2>/dev/null || echo "No bundle directories found in target"
+          
+          # Look for bundle directory in different possible locations
+          # Based on actual Tauri v2 output: /Users/runner/work/torque/torque/target/x86_64-apple-darwin/release/bundle/
+          possible_bundle_dirs=(
+            "target/${target}/${profile}/bundle"
+            "target/${profile}/bundle"
+            "target/bundle"
           )
           
-          # Windows raw binary (bundle disabled)
-          if [ "$os_name" = "windows-x86_64" ]; then
-            for location in "${possible_locations[@]}"; do
-              if [ -f "$location" ]; then
-                cp "$location" "dist/torque-desktop-${os_name}${binary_ext}"
-                echo "Found Windows desktop binary at: $location"
-                desktop_found=true
-                break
-              fi
-            done
-          else
-            # Linux/macOS: Try raw binary first, then bundles
-            for location in "${possible_locations[@]}"; do
-              if [ -f "$location" ]; then
-                cp "$location" "dist/torque-desktop-${os_name}${binary_ext}"
-                echo "Found desktop binary at: $location"
-                desktop_found=true
-                break
-              fi
-            done
-            
-            # If no raw binary found, try bundled formats
-            if [ "$desktop_found" = false ]; then
-              # macOS: Try .app bundle
-              if [ "$os_name" = "macos-x86_64" ] || [ "$os_name" = "macos-aarch64" ]; then
-                app_binary="src-tauri/target/${profile}/bundle/macos/Torque Desktop.app/Contents/MacOS/torque-desktop"
-                if [ -f "$app_binary" ]; then
-                  cp "$app_binary" "dist/torque-desktop-${os_name}"
-                  echo "Found macOS app bundle at: $app_binary"
-                  desktop_found=true
-                fi
-              else
-                # Linux: Try AppImage
-                appimage="src-tauri/target/${profile}/bundle/appimage/torque-desktop_0.1.0_amd64.AppImage"
-                if [ -f "$appimage" ]; then
-                  cp "$appimage" "dist/torque-desktop-${os_name}.AppImage"
-                  echo "Found Linux AppImage at: $appimage"
-                  desktop_found=true
-                fi
-              fi
+          bundle_dir=""
+          for dir in "${possible_bundle_dirs[@]}"; do
+            echo "Checking: $dir"
+            if [ -d "$dir" ]; then
+              bundle_dir="$dir"
+              echo "✅ Found bundle directory: $bundle_dir"
+              break
+            else
+              echo "❌ Not found: $dir"
             fi
+          done
+          
+          if [ -z "$bundle_dir" ]; then
+            echo ""
+            echo "❌ No bundle directory found. Detailed analysis:"
+            echo "All directories in target:"
+            find target -type d -name "*" 2>/dev/null | head -30
+            echo ""
+            echo "All files containing 'bundle' in name:"
+            find target -name "*bundle*" 2>/dev/null || echo "No files with 'bundle' in name"
+            echo ""
+            echo "Recent files in target directory (last 10):"
+            find target -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -10 | cut -d' ' -f2-
+            echo ""
+            echo "Build logs analysis:"
+            if [ -f "tauri-build-config.log" ]; then
+              echo "=== Config build log (last 30 lines) ==="
+              tail -30 tauri-build-config.log
+            fi
+            if [ -f "tauri-build-explicit.log" ]; then
+              echo "=== Explicit build log (last 30 lines) ==="
+              tail -30 tauri-build-explicit.log
+            fi
+            echo "Tauri build may have failed to generate installers."
+          else
+            echo "✅ Bundle directory found: $bundle_dir"
+            echo "Bundle directory contents:"
+            ls -la "$bundle_dir" 2>/dev/null || echo "Bundle directory exists but is empty"
+            echo ""
+            echo "Bundle subdirectories:"
+            find "$bundle_dir" -type d 2>/dev/null || echo "No subdirectories in bundle"
+            echo ""
+            echo "Bundle files by type:"
+            find "$bundle_dir" -type f 2>/dev/null | while read file; do
+              echo "  $(file --brief "$file"): $file"
+            done
           fi
           
-          if [ "$desktop_found" = false ]; then
-            echo "WARNING: torque-desktop binary not found for $os_name"
-          fi
+          # Copy platform-specific installers  
+          case "$os_name" in
+            linux-*)
+              # DEB package
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/deb/*.deb 1> /dev/null 2>&1; then
+                for deb_file in ${bundle_dir}/deb/*.deb; do
+                  cp "$deb_file" "dist/torque-desktop-${os_name}.deb"
+                  echo "✅ Packaged DEB installer: $deb_file -> dist/torque-desktop-${os_name}.deb"
+                done
+              else
+                echo "❌ No DEB installer found in ${bundle_dir}/deb/"
+              fi
+              
+              # RPM package
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/rpm/*.rpm 1> /dev/null 2>&1; then
+                for rpm_file in ${bundle_dir}/rpm/*.rpm; do
+                  cp "$rpm_file" "dist/torque-desktop-${os_name}.rpm"
+                  echo "✅ Packaged RPM installer: $rpm_file -> dist/torque-desktop-${os_name}.rpm"
+                done
+              else
+                echo "❌ No RPM installer found in ${bundle_dir}/rpm/"
+              fi
+              ;;
+              
+            windows-*)
+              # MSI installer
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/msi/*.msi 1> /dev/null 2>&1; then
+                for msi_file in ${bundle_dir}/msi/*.msi; do
+                  cp "$msi_file" "dist/torque-desktop-${os_name}.msi"
+                  echo "✅ Packaged MSI installer: $msi_file -> dist/torque-desktop-${os_name}.msi"
+                done
+              else
+                echo "❌ No MSI installer found in ${bundle_dir}/msi/"
+              fi
+              ;;
+              
+            macos-*)
+              # DMG installer
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/dmg/*.dmg 1> /dev/null 2>&1; then
+                for dmg_file in ${bundle_dir}/dmg/*.dmg; do
+                  # Rename DMG to standard format
+                  dmg_basename=$(basename "$dmg_file")
+                  cp "$dmg_file" "dist/torque-desktop-${os_name}.dmg"
+                  echo "✅ Packaged DMG installer: $dmg_file -> dist/torque-desktop-${os_name}.dmg"
+                done
+              else
+                echo "❌ No DMG installer found in ${bundle_dir}/dmg/"
+              fi
+              # Also look for .app bundle
+              if [ -n "$bundle_dir" ] && ls ${bundle_dir}/macos/*.app 1> /dev/null 2>&1; then
+                echo "✅ Found .app bundle: $(ls ${bundle_dir}/macos/*.app)"
+              fi
+              ;;
+          esac
           
-          # List what we actually have for debugging
-          echo "Contents of target directories:"
-          find target -name "*torque*" -type f || echo "No torque binaries found in target/"
-          find src-tauri/target -name "*torque*" -type f || echo "No torque binaries found in src-tauri/target/"
-          
-          echo "Contents of dist directory:"
+          # List all artifacts
+          echo ""
+          echo "=== Final artifacts for $os_name ==="
           ls -la dist/
           
           # Create checksums
@@ -224,36 +698,93 @@ jobs:
             sha256sum * > checksums-${os_name}.txt
           elif command -v shasum > /dev/null; then
             shasum -a 256 * > checksums-${os_name}.txt
-          else
-            echo "No checksum utility available"
           fi
+          
+          echo ""
+          echo "=== Checksums ==="
+          cat checksums-${os_name}.txt
 
       # Upload artifacts
-      - name: Upload binaries as artifacts
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-${{ matrix.platform.os-name }}
+          name: release-${{ matrix.platform.os-name }}
           path: dist/
-          retention-days: 90
+          retention-days: 30
 
   # Create GitHub release if this is a tag push
   create-release:
-    needs: release
+    name: Create GitHub Release
+    needs: build-platform
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all release artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts/
 
+      - name: Organize release files
+        run: |
+          mkdir -p release-files
+          
+          # Move all files from platform-specific folders to release-files
+          find artifacts -type f \( -name "*.dmg" -o -name "*.msi" -o -name "*.deb" -o -name "*.rpm" -o -name "torque-*" -o -name "checksums-*" \) -exec cp {} release-files/ \;
+          
+          echo "=== Release Files ==="
+          ls -la release-files/
+          
+          echo ""
+          echo "=== File Summary ==="
+          echo "DMG files:" && ls release-files/*.dmg 2>/dev/null || echo "  None"
+          echo "MSI files:" && ls release-files/*.msi 2>/dev/null || echo "  None"  
+          echo "DEB files:" && ls release-files/*.deb 2>/dev/null || echo "  None"
+          echo "RPM files:" && ls release-files/*.rpm 2>/dev/null || echo "  None"
+          echo "Binaries:" && ls release-files/torque-* 2>/dev/null || echo "  None"
+
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: release-files/*
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
           generate_release_notes: true
+          name: "Torque Desktop ${{ github.ref_name }}"
+          body: |
+            # Torque Desktop ${{ github.ref_name }}
+            
+            ## 📦 Installation Options
+            
+            ### Windows
+            - **torque-desktop-windows-x86_64.msi** - Windows Installer (Recommended)
+            - **torque-desktop-windows-x86_64.exe** - Portable executable
+            - **torque-server-windows-x86_64.exe** - Server-only binary
+            
+            ### macOS
+            - **torque-desktop-macos-x86_64.dmg** - Intel Mac installer (Recommended)
+            - **torque-desktop-macos-aarch64.dmg** - Apple Silicon (M1/M2) installer (Recommended)
+            - **torque-desktop-macos-*.** - Portable executables
+            - **torque-server-macos-*.** - Server-only binaries
+            
+            ### Linux
+            - **torque-desktop-linux-x86_64.deb** - Debian/Ubuntu package (Recommended)
+            - **torque-desktop-linux-x86_64.rpm** - RedHat/Fedora/SUSE package (Recommended)
+            - **torque-desktop-linux-x86_64** - Portable executable
+            - **torque-server-linux-x86_64** - Server-only binary
+            
+            ## ✅ Verification
+            
+            All files include SHA256 checksums for integrity verification:
+            - `checksums-windows-x86_64.txt`
+            - `checksums-macos-x86_64.txt` / `checksums-macos-aarch64.txt`
+            - `checksums-linux-x86_64.txt`
+            
+            ## 🚀 What's New
+            
+            ${{ github.event.head_commit.message }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -1,0 +1,100 @@
+name: Test Build Configuration
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to test'
+        required: true
+        type: choice
+        default: 'linux'
+        options:
+          - linux
+          - windows
+          - macos
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'src-tauri/**'
+      - 'frontend/**'
+
+jobs:
+  test-config:
+    name: Test Build Config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Tauri config
+        run: |
+          echo "=== Checking Tauri configuration ==="
+          
+          # Check if tauri.conf.json is valid JSON
+          cat src-tauri/tauri.conf.json | jq . > /dev/null && echo "✅ Valid JSON" || exit 1
+          
+          # Check bundle configuration
+          echo ""
+          echo "=== Bundle Configuration ==="
+          cat src-tauri/tauri.conf.json | jq '.bundle'
+          
+          # Check if required icon files exist
+          echo ""
+          echo "=== Icon Files ==="
+          for icon in $(cat src-tauri/tauri.conf.json | jq -r '.bundle.icon[]'); do
+            if [ -f "src-tauri/$icon" ]; then
+              echo "✅ $icon"
+            else
+              echo "❌ $icon (missing)"
+            fi
+          done
+
+      - name: Check frontend structure
+        run: |
+          echo "=== Frontend Structure ==="
+          
+          # Check if package.json files exist
+          if [ -f "frontend/model-editor/package.json" ]; then
+            echo "✅ Model Editor package.json"
+          else
+            echo "❌ Model Editor package.json missing"
+          fi
+          
+          if [ -f "frontend/torque-client/package.json" ]; then
+            echo "✅ Torque Client package.json"
+          else
+            echo "❌ Torque Client package.json missing"
+          fi
+
+      - name: Validate build script
+        run: |
+          echo "=== Build Script Validation ==="
+          
+          if [ -f "scripts/build-release.sh" ]; then
+            echo "✅ Build script exists"
+            
+            # Check if script is executable
+            if [ -x "scripts/build-release.sh" ]; then
+              echo "✅ Build script is executable"
+            else
+              echo "❌ Build script not executable"
+            fi
+          else
+            echo "❌ Build script missing"
+          fi
+
+      - name: Show workflow summary
+        run: |
+          echo "=== Workflow Summary ==="
+          echo "The workflow will:"
+          echo "1. ✅ Build frontend once and share across platforms"
+          echo "2. ✅ Cache Rust dependencies and Tauri CLI"
+          echo "3. ✅ Generate platform-specific installers:"
+          echo "   - Linux: DEB + RPM packages"
+          echo "   - Windows: MSI installer"
+          echo "   - macOS: DMG installer (x64 + ARM64)"
+          echo "4. ✅ Create GitHub releases with all artifacts"
+          echo ""
+          echo "To trigger a release build:"
+          echo "- Push a tag: git tag v1.0.0 && git push origin v1.0.0"
+          echo "- Or use: Actions → 'Build and Release Torque Desktop' → 'Run workflow'"

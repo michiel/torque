@@ -3,7 +3,7 @@ import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Paper, Text, Group, Badge, Stack, Box, ActionIcon } from '@mantine/core';
 import { IconDatabase, IconKey, IconLink, IconEdit, IconGripVertical } from '@tabler/icons-react';
 
-interface EntityNodeData {
+interface EntityNodeData extends Record<string, unknown> {
   entity: {
     id: string;
     name: string;
@@ -19,8 +19,8 @@ interface EntityNodeData {
   onEdit: (entity: any) => void;
 }
 
-export const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => {
-  const { entity, onEdit } = data;
+export const EntityNode: React.FC<NodeProps<any>> = ({ data, selected }) => {
+  const { entity, onEdit } = data as EntityNodeData;
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -122,7 +122,7 @@ export const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected
 
           {/* Entity Fields */}
           <Stack gap="xs">
-            {entity.fields.slice(0, 6).map((field) => (
+            {entity.fields.slice(0, 6).map((field: any) => (
               <Box key={field.id}>
                 <Group gap="xs" justify="space-between">
                   <Group gap="xs">

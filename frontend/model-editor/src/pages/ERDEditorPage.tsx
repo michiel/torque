@@ -70,13 +70,13 @@ export const ERDEditorPage: React.FC = () => {
   console.log('ERDEditorPage: Model data:', modelData);
 
   // Transform relationships to match ERD editor format
-  const relationships = rawRelationships.map(rel => {
+  const relationships = rawRelationships.map((rel: any) => {
     // Convert field names to field IDs
-    const fromEntity = entities.find(e => e.id === rel.fromEntity);
-    const toEntity = entities.find(e => e.id === rel.toEntity);
+    const fromEntity = entities.find((e: any) => e.id === rel.fromEntity);
+    const toEntity = entities.find((e: any) => e.id === rel.toEntity);
     
-    const fromField = fromEntity?.fields.find(f => f.name === rel.fromField);
-    const toField = toEntity?.fields.find(f => f.name === rel.toField);
+    const fromField = fromEntity?.fields.find((f: any) => f.name === rel.fromField);
+    const toField = toEntity?.fields.find((f: any) => f.name === rel.toField);
 
     // Convert relationship type from enum to kebab-case
     const relationshipTypeMap: Record<string, string> = {
@@ -190,11 +190,11 @@ export const ERDEditorPage: React.FC = () => {
     setIsLoading(true);
     try {
       // Convert field IDs to field names
-      const fromEntity = entities.find(e => e.id === relationship.fromEntityId);
-      const toEntity = entities.find(e => e.id === relationship.toEntityId);
+      const fromEntity = entities.find((e: any) => e.id === relationship.fromEntityId);
+      const toEntity = entities.find((e: any) => e.id === relationship.toEntityId);
       
-      const fromField = fromEntity?.fields.find(f => f.id === relationship.fromFieldId);
-      const toField = toEntity?.fields.find(f => f.id === relationship.toFieldId);
+      const fromField = fromEntity?.fields.find((f: any) => f.id === relationship.fromFieldId);
+      const toField = toEntity?.fields.find((f: any) => f.id === relationship.toFieldId);
 
       // Convert relationship type to proper enum format
       const relationshipTypeMap: Record<string, string> = {
@@ -243,11 +243,11 @@ export const ERDEditorPage: React.FC = () => {
     setIsLoading(true);
     try {
       // Convert field IDs to field names
-      const fromEntity = entities.find(e => e.id === relationshipData.fromEntityId);
-      const toEntity = entities.find(e => e.id === relationshipData.toEntityId);
+      const fromEntity = entities.find((e: any) => e.id === relationshipData.fromEntityId);
+      const toEntity = entities.find((e: any) => e.id === relationshipData.toEntityId);
       
-      const fromField = fromEntity?.fields.find(f => f.id === relationshipData.fromFieldId);
-      const toField = toEntity?.fields.find(f => f.id === relationshipData.toFieldId);
+      const fromField = fromEntity?.fields.find((f: any) => f.id === relationshipData.fromFieldId);
+      const toField = toEntity?.fields.find((f: any) => f.id === relationshipData.toFieldId);
 
       // Convert relationship type to proper enum format
       const relationshipTypeMap: Record<string, string> = {

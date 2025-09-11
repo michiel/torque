@@ -50,9 +50,9 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<ModelChangeEvent | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastNotificationRef = useRef<string | null>(null);
-  const notificationTimeoutRef = useRef<number | null>(null);
+  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const wsUrl = useMemo(() => {
     const socketUrl = new URL(url);

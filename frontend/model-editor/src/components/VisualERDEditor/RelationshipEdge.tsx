@@ -3,7 +3,7 @@ import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath } from '@xyflow/r
 import { Badge, Group, Text, ActionIcon } from '@mantine/core';
 import { IconEdit } from '@tabler/icons-react';
 
-interface RelationshipEdgeData {
+interface RelationshipEdgeData extends Record<string, unknown> {
   relationship: {
     id: string;
     name: string;
@@ -15,7 +15,7 @@ interface RelationshipEdgeData {
   onEdit: (relationship: any) => void;
 }
 
-export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
+export const RelationshipEdge: React.FC<EdgeProps<any>> = ({
   id,
   sourceX,
   sourceY,
@@ -38,8 +38,9 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
 
   const handleEditClick = (event: React.MouseEvent) => {
     event.stopPropagation();
-    if (data?.onEdit && data?.relationship) {
-      data.onEdit(data.relationship);
+    const relationshipData = data as RelationshipEdgeData;
+    if (relationshipData?.onEdit && relationshipData?.relationship) {
+      relationshipData.onEdit(relationshipData.relationship);
     }
   };
 
@@ -78,7 +79,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
       <BaseEdge
         path={edgePath}
         style={{
-          ...style,
+          ...(style || {}),
           strokeWidth: selected ? 3 : 2,
           stroke: selected ? '#228be6' : '#868e96',
         }}
@@ -103,14 +104,14 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeData>> = ({
             }}
           >
             <Text size="xs" fw={600}>
-              {data?.relationship?.displayName || 'Relationship'}
+              {(data as RelationshipEdgeData)?.relationship?.displayName || 'Relationship'}
             </Text>
             <Badge 
               size="xs" 
-              color={getRelationshipColor(data?.relationship?.relationshipType || 'one-to-many')}
+              color={getRelationshipColor((data as RelationshipEdgeData)?.relationship?.relationshipType || 'one-to-many')}
               variant="light"
             >
-              {getRelationshipTypeShorthand(data?.relationship?.relationshipType || 'one-to-many')}
+              {getRelationshipTypeShorthand((data as RelationshipEdgeData)?.relationship?.relationshipType || 'one-to-many')}
             </Badge>
             <ActionIcon 
               size="xs" 

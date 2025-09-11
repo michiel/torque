@@ -166,7 +166,7 @@ const InteractiveConsole: React.FC<ConsoleProps> = ({
     
     // Handle local commands (both fallback sessions and real sessions)
     if (session.sessionId.startsWith('fallback-') || ['help', 'echo', 'clear', 'exit', 'status', 'history', 'aliases', 'stats', 'reset', 'export', 'import', 'macro'].some(localCmd => cmd.startsWith(localCmd))) {
-      let result = { success: true, output: '' };
+      let result: { success: boolean; output: string; action?: string } = { success: true, output: '' };
       
       if (cmd === 'help') {
         const isOffline = session.sessionId.startsWith('fallback-');
@@ -1180,7 +1180,7 @@ Use 'export' to create valid session files.`]);
   useEffect(() => {
     if (!fitAddon.current || !terminal.current) return;
 
-    let resizeTimeout: number;
+    let resizeTimeout: ReturnType<typeof setTimeout>;
     
     const handleResize = () => {
       // Debounce resize calls

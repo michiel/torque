@@ -42,7 +42,7 @@ cleanup() {
     pkill -f "cargo tauri" 2>/dev/null || true
     
     # Kill frontend dev server processes 
-    pkill -f "vite.*3001" 2>/dev/null || true
+    pkill -f "vite.*3000" 2>/dev/null || true
     pkill -f "npm run dev" 2>/dev/null || true
     
     success "Tauri development environment stopped"
@@ -97,7 +97,7 @@ check_frontend_deps() {
     
     cd $FRONTEND_DIR
     
-    if [ ! -d "node_modules" ] || [ ! -f "node_modules/@tauri-apps/api/package.json" ]; then
+    if [ ! -d "node_modules" ] || [ ! -f "package-lock.json" ]; then
         log "Installing Tauri frontend dependencies..."
         npm install
         success "Frontend dependencies installed"
@@ -153,7 +153,7 @@ start_tauri_dev() {
     log "Starting Tauri desktop application..."
     log "This will:"
     log "  1. Start embedded Torque server with SQLite database"
-    log "  2. Start React frontend on http://127.0.0.1:3001"
+    log "  2. Start React frontend on http://127.0.0.1:3000"
     log "  3. Launch desktop application window"
     log "  4. Enable hot reload for both frontend and backend"
     echo ""
@@ -184,7 +184,7 @@ main() {
     echo ""
     echo "💡 What happens next:"
     echo "   • Embedded Torque server will start on random port"
-    echo "   • Frontend dev server will start on port 3001"  
+    echo "   • Frontend dev server will start on port 3000"  
     echo "   • Desktop application window will open"
     echo "   • SQLite database: ~/.local/share/torque-desktop/torque.db"
     echo "   • All APIs available: GraphQL, JSON-RPC, WebSocket"
